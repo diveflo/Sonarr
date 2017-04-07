@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex ResolutionRegex = new Regex(@"\b(?:(?<R480p>480p|640x480|848x480)|(?<R576p>576p)|(?<R720p>720p|1280x720)|(?<R1080p>1080p|1920x1080|1440p|FHD|1080i)|(?<R2160p>2160p|4k[-_. ](?:UHD|HEVC|BD)|(?:UHD|HEVC|BD)[-_. ]4k))\b",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<x264>x264)|(?<h264>h264)|(?<xvidhd>XvidHD)|(?<xvid>Xvid)|(?<divx>divx))\b",
+        private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<x265>x265)|(?<x264>x264)|(?<h264>h264)|(?<xvidhd>XvidHD)|(?<xvid>Xvid)|(?<divx>divx))\b",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex OtherSourceRegex = new Regex(@"(?<hdtv>HD[-_. ]TV)|(?<sdtv>SD[-_. ]TV)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -101,8 +101,27 @@ namespace NzbDrone.Core.Parser
                     {
                         result.Quality = Quality.DVD;
                         return result;
-                    }
+                    }                    
 
+                    if (codecRegex.Groups["x265"].Success)
+                    {
+                        switch (resolution)
+                        {
+                            case Resolution.R720p:
+                                result.Quality = Quality.Bluray720pHEVC;
+                                break;
+                            case Resolution.R1080p:
+                                result.Quality = Quality.Bluray1080pHEVC;
+                                break;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.Bluray2160pHEVC;
+                                break;
+                            default:
+                                result.Quality = Quality.Unknown;
+                                break;
+                        }
+                        return result;
+                    }
                     if (resolution == Resolution.R2160p)
                     {
                         result.Quality = Quality.Bluray2160p;
@@ -127,6 +146,21 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["webdl"].Success)
                 {
+                    if (codecRegex.Groups["x265"].Success)
+                    {
+                        switch (resolution)
+                        {
+                            case Resolution.R720p:
+                                result.Quality = Quality.WEBDL720pHEVC;
+                                return result;
+                            case Resolution.R1080p:
+                                result.Quality = Quality.WEBDL1080pHEVC;
+                                return result;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.WEBDL2160pHEVC;
+                                return result;
+                        }
+                    }
                     if (resolution == Resolution.R2160p)
                     {
                         result.Quality = Quality.WEBDL2160p;
@@ -157,6 +191,21 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["hdtv"].Success)
                 {
+                    if (codecRegex.Groups["x265"].Success)
+                    {
+                        switch (resolution)
+                        {
+                            case Resolution.R720p:
+                                result.Quality = Quality.HDTV720pHEVC;
+                                return result;
+                            case Resolution.R1080p:
+                                result.Quality = Quality.HDTV1080pHEVC;
+                                return result;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.HDTV2160pHEVC;
+                                return result;
+                        }
+                    }
                     if (resolution == Resolution.R2160p)
                     {
                         result.Quality = Quality.HDTV2160p;
@@ -204,6 +253,11 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["dvd"].Success)
                 {
+                    if (codecRegex.Groups["x265"].Success)
+                    {
+                        result.Quality = Quality.DVDHEVC;
+                        return result;
+                    }
                     result.Quality = Quality.DVD;
                     return result;
                 }
@@ -258,18 +312,33 @@ namespace NzbDrone.Core.Parser
 
             if (resolution == Resolution.R2160p)
             {
+                if (codecRegex.Groups["x265"].Success)
+                {
+                    result.Quality = Quality.HDTV2160pHEVC;
+                    return result;
+                }
                 result.Quality = Quality.HDTV2160p;
                 return result;
             }
 
             if (resolution == Resolution.R1080p)
             {
+                if (codecRegex.Groups["x265"].Success)
+                {
+                    result.Quality = Quality.HDTV1080pHEVC;
+                    return result;
+                }
                 result.Quality = Quality.HDTV1080p;
                 return result;
             }
 
             if (resolution == Resolution.R720p)
             {
+                if (codecRegex.Groups["x265"].Success)
+                {
+                    result.Quality = Quality.HDTV720pHEVC;
+                    return result;
+                }
                 result.Quality = Quality.HDTV720p;
                 return result;
             }
