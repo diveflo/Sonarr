@@ -86,6 +86,7 @@ namespace NzbDrone.Core.Qualities
         public static Quality HDTV1080pHVEC => new Quality(23, "HDTV-1080p-HVEC");
         public static Quality WEBDL1080pHEVC => new Quality(24, "WEBDL-1080p-HEVC");
         public static Quality Bluray1080pHEVC => new Quality(25, "Bluray-1080p-HEVC");
+        public static Quality DVDHEVC => new Quality(26, "DVD-HEVC");
 
         static Quality()
         {
@@ -110,7 +111,8 @@ namespace NzbDrone.Core.Qualities
                 Bluray720pHEVC,
                 HDTV1080pHVEC,
                 WEBDL1080pHEVC,
-                Bluray1080pHEVC
+                Bluray1080pHEVC,
+                DVDHEVC
             };
 
             AllLookup = new Quality[All.Select(v => v.Id).Max() + 1];
@@ -141,6 +143,7 @@ namespace NzbDrone.Core.Qualities
                 new QualityDefinition(Quality.HDTV1080pHVEC) { Weight = 18, MinSize = 0, MaxSize = 100 },
                 new QualityDefinition(Quality.WEBDL1080pHEVC) { Weight = 19, MinSize = 0, MaxSize = 100 },
                 new QualityDefinition(Quality.Bluray1080pHEVC) { Weight = 20, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(Quality.DVDHEVC) { Weight = 21, MinSize = 0, MaxSize = 100}
             };
         }
 

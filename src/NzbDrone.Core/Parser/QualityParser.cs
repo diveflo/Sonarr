@@ -101,7 +101,7 @@ namespace NzbDrone.Core.Parser
                     {
                         result.Quality = Quality.DVD;
                         return result;
-                    }
+                    }                    
 
                     if (codecRegex.Groups["x265"].Success)
                     {
@@ -244,6 +244,11 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["dvd"].Success)
                 {
+                    if (codecRegex.Groups["x265"].Success)
+                    {
+                        result.Quality = Quality.DVDHEVC;
+                        return result;
+                    }
                     result.Quality = Quality.DVD;
                     return result;
                 }
@@ -304,12 +309,22 @@ namespace NzbDrone.Core.Parser
 
             if (resolution == Resolution.R1080p)
             {
+                if (codecRegex.Groups["x265"].Success)
+                {
+                    result.Quality = Quality.HDTV1080pHVEC;
+                    return result;
+                }
                 result.Quality = Quality.HDTV1080p;
                 return result;
             }
 
             if (resolution == Resolution.R720p)
             {
+                if (codecRegex.Groups["x265"].Success)
+                {
+                    result.Quality = Quality.HDTV720pHEVC;
+                    return result;
+                }
                 result.Quality = Quality.HDTV720p;
                 return result;
             }
