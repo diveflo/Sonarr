@@ -95,24 +95,24 @@ namespace NzbDrone.Core.Qualities
                 Unknown,
                 SDTV,
                 DVD,
+                DVDHEVC,
                 WEBDL1080p,
+                WEBDL1080pHEVC,
                 HDTV720p,
+                HDTV720pHEVC,
                 WEBDL720p,
+                WEBDL720pHEVC,
                 Bluray720p,
+                Bluray720pHEVC,
                 Bluray1080p,
+                Bluray1080pHEVC,
                 WEBDL480p,
                 HDTV1080p,
+                HDTV1080pHVEC,
                 RAWHD,
                 HDTV2160p,
                 WEBDL2160p,
-                Bluray2160p,
-                HDTV720pHEVC,
-                WEBDL720pHEVC,
-                Bluray720pHEVC,
-                HDTV1080pHVEC,
-                WEBDL1080pHEVC,
-                Bluray1080pHEVC,
-                DVDHEVC
+                Bluray2160p
             };
 
             AllLookup = new Quality[All.Select(v => v.Id).Max() + 1];
