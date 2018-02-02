@@ -113,6 +113,9 @@ namespace NzbDrone.Core.Parser
                             case Resolution.R1080p:
                                 result.Quality = Quality.Bluray1080pHEVC;
                                 break;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.Bluray2160pHEVC;
+                                break;
                             default:
                                 result.Quality = Quality.Unknown;
                                 break;
@@ -152,6 +155,9 @@ namespace NzbDrone.Core.Parser
                                 return result;
                             case Resolution.R1080p:
                                 result.Quality = Quality.WEBDL1080pHEVC;
+                                return result;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.WEBDL2160pHEVC;
                                 return result;
                         }
                     }
@@ -194,6 +200,9 @@ namespace NzbDrone.Core.Parser
                                 return result;
                             case Resolution.R1080p:
                                 result.Quality = Quality.HDTV1080pHVEC;
+                                return result;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.HDTV2160pHEVC;
                                 return result;
                         }
                     }
@@ -303,6 +312,11 @@ namespace NzbDrone.Core.Parser
 
             if (resolution == Resolution.R2160p)
             {
+                if (codecRegex.Groups["x265"].Success)
+                {
+                    result.Quality = Quality.HDTV2160pHEVC;
+                    return result;
+                }
                 result.Quality = Quality.HDTV2160p;
                 return result;
             }
