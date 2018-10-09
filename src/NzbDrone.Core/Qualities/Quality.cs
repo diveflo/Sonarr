@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Qualities
 {
@@ -59,38 +60,36 @@ namespace NzbDrone.Core.Qualities
             return !Equals(left, right);
         }
 
-        public static Quality Unknown => new Quality(0, "Unknown");
-        public static Quality SDTV => new Quality(1, "SDTV");
-        public static Quality DVD => new Quality(2, "DVD");
-        public static Quality WEBDL1080p => new Quality(3, "WEBDL-1080p");
-        public static Quality HDTV720p => new Quality(4, "HDTV-720p");
-        public static Quality WEBDL720p => new Quality(5, "WEBDL-720p");
-        public static Quality Bluray720p => new Quality(6, "Bluray-720p");
-        public static Quality Bluray1080p => new Quality(7, "Bluray-1080p");
-        public static Quality WEBDL480p => new Quality(8, "WEBDL-480p");
-        public static Quality HDTV1080p => new Quality(9, "HDTV-1080p");
-        public static Quality RAWHD => new Quality(10, "Raw-HD");
-        //public static Quality HDTV480p    { get { return new Quality(11, "HDTV-480p"); } }
-        //public static Quality WEBRip480p  { get { return new Quality(12, "WEBRip-480p"); } }
-        //public static Quality Bluray480p  { get { return new Quality(13, "Bluray-480p"); } }
-        //public static Quality WEBRip720p  { get { return new Quality(14, "WEBRip-720p"); } }
-        //public static Quality WEBRip1080p { get { return new Quality(15, "WEBRip-1080p"); } }
-        public static Quality HDTV2160p => new Quality(16, "HDTV-2160p");
-        //public static Quality WEBRip2160p { get { return new Quality(17, "WEBRip-2160p"); } }
-        public static Quality WEBDL2160p => new Quality(18, "WEBDL-2160p");
-        public static Quality Bluray2160p => new Quality(19, "Bluray-2160p");
-
-        public static Quality HDTV720pHEVC => new Quality(20, "HDTV-720p-HEVC");
-        public static Quality WEBDL720pHEVC => new Quality(21, "WEBDL-720p-HEVC");
-        public static Quality Bluray720pHEVC => new Quality(22, "Bluray-720p-HEVC");
-        public static Quality HDTV1080pHVEC => new Quality(23, "HDTV-1080p-HVEC");
-        public static Quality WEBDL1080pHEVC => new Quality(24, "WEBDL-1080p-HEVC");
-        public static Quality Bluray1080pHEVC => new Quality(25, "Bluray-1080p-HEVC");
-        public static Quality DVDHEVC => new Quality(26, "DVD-HEVC");
-        public static Quality HDTV2160pHEVC => new Quality(27, "HDTV-2160p-HEVC");
-        public static Quality WEBDL2160pHEVC => new Quality(28, "WEBDL-2160p-HEVC");
-        public static Quality Bluray2160pHEVC => new Quality(29, "Bluray-2160p-HEVC");
-
+        public static Quality Unknown => new Quality(0,  "Unknown", QualitySource.Unknown, 0);
+        public static Quality SDTV => new Quality(1,  "SDTV", QualitySource.Television, 480);
+        public static Quality DVD => new Quality(2,  "DVD", QualitySource.DVD, 480);
+        public static Quality WEBDL1080p => new Quality(3,  "WEBDL-1080p", QualitySource.Web, 1080);
+        public static Quality HDTV720p => new Quality(4,  "HDTV-720p", QualitySource.Television, 720);
+        public static Quality WEBDL720p => new Quality(5,  "WEBDL-720p", QualitySource.Web, 720);
+        public static Quality Bluray720p => new Quality(6,  "Bluray-720p", QualitySource.Bluray, 720);
+        public static Quality Bluray1080p => new Quality(7,  "Bluray-1080p", QualitySource.Bluray, 1080);
+        public static Quality WEBDL480p => new Quality(8,  "WEBDL-480p", QualitySource.Web, 480);
+        public static Quality HDTV1080p => new Quality(9,  "HDTV-1080p", QualitySource.Television, 1080);
+        public static Quality RAWHD => new Quality(10, "Raw-HD", QualitySource.TelevisionRaw, 1080);
+        //public static Quality HDTV480p    { get { return new Quality(11, "HDTV-480p", QualitySource.Television, 480); } }
+        //public static Quality WEBRip480p  { get { return new Quality(12, "WEBRip-480p", QualitySource.WebRip, 480); } }
+        //public static Quality Bluray480p  { get { return new Quality(13, "Bluray-480p", QualitySource.Bluray, 480); } }
+        //public static Quality WEBRip720p  { get { return new Quality(14, "WEBRip-720p", QualitySource.WebRip, 720); } }
+        //public static Quality WEBRip1080p { get { return new Quality(15, "WEBRip-1080p", QualitySource.WebRip, 1080); } }
+        public static Quality HDTV2160p => new Quality(16, "HDTV-2160p", QualitySource.Television, 2160);
+        //public static Quality WEBRip2160p { get { return new Quality(17, "WEBRip-2160p", QualitySource.WebRip, 2160); } }
+        public static Quality WEBDL2160p => new Quality(18, "WEBDL-2160p", QualitySource.Web, 2160);
+        public static Quality Bluray2160p => new Quality(19, "Bluray-2160p", QualitySource.Bluray, 2160);
+		public static Quality HDTV720pHEVC => new Quality(20, "HDTV-720p-HEVC", QualitySource.Television, 720);
+        public static Quality WEBDL720pHEVC => new Quality(21, "WEBDL-720p-HEVC", QualitySource.Web, 720);
+        public static Quality Bluray720pHEVC => new Quality(22, "Bluray-720p-HEVC", QualitySource.Bluray, 720);
+        public static Quality HDTV1080pHEVC => new Quality(23, "HDTV-1080p-HEVC", QualitySource.Television, 1080);
+        public static Quality WEBDL1080pHEVC => new Quality(24, "WEBDL-1080p-HEVC", QualitySource.Web, 1080);
+        public static Quality Bluray1080pHEVC => new Quality(25, "Bluray-1080p-HEVC", QualitySource.Bluray, 1080);
+        public static Quality DVDHEVC => new Quality(26, "DVD-HEVC", QualitySource.DVD, 480);
+        public static Quality HDTV2160pHEVC => new Quality(27, "HDTV-2160p-HEVC", QualitySource.Television, 2160);
+        public static Quality WEBDL2160pHEVC => new Quality(28, "WEBDL-2160p-HEVC", QualitySource.Web, 2160);
+        public static Quality Bluray2160pHEVC => new Quality(29, "Bluray-2160p-HEVC", QualitySource.Bluray, 2160);
         static Quality()
         {
             All = new List<Quality>
@@ -111,7 +110,7 @@ namespace NzbDrone.Core.Qualities
                 Bluray1080pHEVC,
                 WEBDL480p,
                 HDTV1080p,
-                HDTV1080pHVEC,
+                HDTV1080pHEVC,
                 RAWHD,
                 HDTV2160p,
                 HDTV2160pHEVC,
@@ -147,7 +146,7 @@ namespace NzbDrone.Core.Qualities
                 new QualityDefinition(Quality.HDTV720pHEVC) { Weight = 16, MinSize = 0, MaxSize = 100 },
                 new QualityDefinition(Quality.WEBDL720pHEVC) { Weight = 17, MinSize = 0, MaxSize = 100 },
                 new QualityDefinition(Quality.Bluray720pHEVC) { Weight = 18, MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.HDTV1080pHVEC) { Weight = 19, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(Quality.HDTV1080pHEVC) { Weight = 19, MinSize = 0, MaxSize = 100 },
                 new QualityDefinition(Quality.WEBDL1080pHEVC) { Weight = 20, MinSize = 0, MaxSize = 100 },
                 new QualityDefinition(Quality.Bluray1080pHEVC) { Weight = 21, MinSize = 0, MaxSize = 100 },
                 new QualityDefinition(Quality.HDTV2160pHEVC) {Weight=22, MinSize=0, MaxSize=100},
@@ -184,9 +183,25 @@ namespace NzbDrone.Core.Qualities
             return quality.Id;
         }
 
-        public static Quality FindBySourceAndResolution(QualitySource source, int resolution)
+        //public static Quality FindBySourceAndResolution(QualitySource source, int resolution)
+        //{
+        //    return All.SingleOrDefault(q => q.Source == source && q.Resolution == resolution);
+        //}
+
+        public static Quality FindBySourceResolutionAndCodec(QualitySource source, int resolution, LocalEpisode episode)
         {
-            return All.SingleOrDefault(q => q.Source == source && q.Resolution == resolution);
+            var qualityMaybeHEVC = All.Where(q => q.Source == source && q.Resolution == resolution).ToList();
+            if(qualityMaybeHEVC.Count() == 1)
+            {
+                return qualityMaybeHEVC.SingleOrDefault();
+            }
+            var mediaInfo = episode.MediaInfo;
+            string videoFormat = mediaInfo.VideoFormat;
+            if(qualityMaybeHEVC.Any(q => q.Name.EndsWith(videoFormat)))
+            {
+                return qualityMaybeHEVC.SingleOrDefault(q => q.Name.EndsWith(videoFormat));
+            }
+            return qualityMaybeHEVC.FirstOrDefault();
         }
     }
 }

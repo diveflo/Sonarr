@@ -199,7 +199,7 @@ namespace NzbDrone.Core.Parser
                                 result.Quality = Quality.HDTV720pHEVC;
                                 return result;
                             case Resolution.R1080p:
-                                result.Quality = Quality.HDTV1080pHVEC;
+                                result.Quality = Quality.HDTV1080pHEVC;
                                 return result;
                             case Resolution.R2160p:
                                 result.Quality = Quality.HDTV2160pHEVC;
@@ -325,7 +325,7 @@ namespace NzbDrone.Core.Parser
             {
                 if (codecRegex.Groups["x265"].Success)
                 {
-                    result.Quality = Quality.HDTV1080pHVEC;
+                    result.Quality = Quality.HDTV1080pHEVC;
                     return result;
                 }
                 result.Quality = Quality.HDTV1080p;
