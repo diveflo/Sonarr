@@ -169,7 +169,7 @@ namespace NzbDrone.Core.Qualities
 
             if (quality == null)
                 throw new ArgumentException("ID does not match a known quality", nameof(id));
-
+                        
             return quality;
         }
 
@@ -182,11 +182,6 @@ namespace NzbDrone.Core.Qualities
         {
             return quality.Id;
         }
-
-        //public static Quality FindBySourceAndResolution(QualitySource source, int resolution)
-        //{
-        //    return All.SingleOrDefault(q => q.Source == source && q.Resolution == resolution);
-        //}
 
         public static Quality FindBySourceResolutionAndCodec(QualitySource source, int resolution, LocalEpisode episode)
         {
