@@ -11,7 +11,7 @@ var Collection = PagableCollection.extend({
     tableName : 'wanted.cutoff',
 
     state : {
-        pageSize : 15,
+        pageSize : 30,
         sortKey  : 'airDateUtc',
         order    : 1
     },
