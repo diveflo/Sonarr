@@ -67,6 +67,7 @@ publish
 
 # NuGet Packages Directory
 packages
+package-lock.json
 
 # Windows Azure Build Output
 csx
