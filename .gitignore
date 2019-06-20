@@ -137,3 +137,7 @@ _start
 _temp_*/**/*
 
 src/.idea/
+
+
+#lock files
+yarn.lock
