@@ -80,7 +80,7 @@ namespace NzbDrone.Core.Qualities
         //public static Quality WEBRip2160p { get { return new Quality(17, "WEBRip-2160p", QualitySource.WebRip, 2160); } }
         public static Quality WEBDL2160p => new Quality(18, "WEBDL-2160p", QualitySource.Web, 2160);
         public static Quality Bluray2160p => new Quality(19, "Bluray-2160p", QualitySource.Bluray, 2160);
-		public static Quality HDTV720pHEVC => new Quality(20, "HDTV-720p-HEVC", QualitySource.Television, 720);
+        public static Quality HDTV720pHEVC => new Quality(20, "HDTV-720p-HEVC", QualitySource.Television, 720);
         public static Quality WEBDL720pHEVC => new Quality(21, "WEBDL-720p-HEVC", QualitySource.Web, 720);
         public static Quality Bluray720pHEVC => new Quality(22, "Bluray-720p-HEVC", QualitySource.Bluray, 720);
         public static Quality HDTV1080pHEVC => new Quality(23, "HDTV-1080p-HEVC", QualitySource.Television, 1080);
@@ -90,6 +90,7 @@ namespace NzbDrone.Core.Qualities
         public static Quality HDTV2160pHEVC => new Quality(27, "HDTV-2160p-HEVC", QualitySource.Television, 2160);
         public static Quality WEBDL2160pHEVC => new Quality(28, "WEBDL-2160p-HEVC", QualitySource.Web, 2160);
         public static Quality Bluray2160pHEVC => new Quality(29, "Bluray-2160p-HEVC", QualitySource.Bluray, 2160);
+
         static Quality()
         {
             All = new List<Quality>
@@ -128,30 +129,30 @@ namespace NzbDrone.Core.Qualities
 
             DefaultQualityDefinitions = new HashSet<QualityDefinition>
             {
-                new QualityDefinition(Quality.Unknown)     { Weight = 1,  MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.SDTV)        { Weight = 2,  MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.WEBDL480p)   { Weight = 3,  MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.DVD)         { Weight = 4,  MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.HDTV720p)    { Weight = 5,  MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.HDTV1080p)   { Weight = 6,  MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.RAWHD)       { Weight = 7,  MinSize = 0, MaxSize = null },
-                new QualityDefinition(Quality.WEBDL720p)   { Weight = 8,  MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.Bluray720p)  { Weight = 9,  MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.WEBDL1080p)  { Weight = 10, MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.Bluray1080p) { Weight = 11, MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.HDTV2160p)   { Weight = 12, MinSize = 0, MaxSize = null },
-                new QualityDefinition(Quality.WEBDL2160p)  { Weight = 13, MinSize = 0, MaxSize = null },
-                new QualityDefinition(Quality.Bluray2160p) { Weight = 14, MinSize = 0, MaxSize = null },
-                new QualityDefinition(Quality.DVDHEVC) { Weight = 15, MinSize = 0, MaxSize = 100},
-                new QualityDefinition(Quality.HDTV720pHEVC) { Weight = 16, MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.WEBDL720pHEVC) { Weight = 17, MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.Bluray720pHEVC) { Weight = 18, MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.HDTV1080pHEVC) { Weight = 19, MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.WEBDL1080pHEVC) { Weight = 20, MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.Bluray1080pHEVC) { Weight = 21, MinSize = 0, MaxSize = 100 },
-                new QualityDefinition(Quality.HDTV2160pHEVC) {Weight=22, MinSize=0, MaxSize=100},
-                new QualityDefinition(Quality.WEBDL2160pHEVC) {Weight=23, MinSize=0, MaxSize=100},
-                new QualityDefinition(Quality.Bluray2160pHEVC) {Weight=24, MinSize=0, MaxSize=100}
+                new QualityDefinition(Unknown)          { Weight = 1,  MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(SDTV)             { Weight = 2,  MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(WEBDL480p)        { Weight = 3,  MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(DVD)              { Weight = 4,  MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(HDTV720p)         { Weight = 5,  MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(HDTV1080p)        { Weight = 6,  MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(RAWHD)            { Weight = 7,  MinSize = 0, MaxSize = null },
+                new QualityDefinition(WEBDL720p)        { Weight = 8,  MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(Bluray720p)       { Weight = 9,  MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(WEBDL1080p)       { Weight = 10, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(Bluray1080p)      { Weight = 11, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(HDTV2160p)        { Weight = 12, MinSize = 0, MaxSize = null },
+                new QualityDefinition(WEBDL2160p)       { Weight = 13, MinSize = 0, MaxSize = null },
+                new QualityDefinition(Bluray2160p)      { Weight = 14, MinSize = 0, MaxSize = null },
+                new QualityDefinition(DVDHEVC)          { Weight = 15, MinSize = 0, MaxSize = 100},
+                new QualityDefinition(HDTV720pHEVC)     { Weight = 16, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(WEBDL720pHEVC)    { Weight = 17, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(Bluray720pHEVC)   { Weight = 18, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(HDTV1080pHEVC)    { Weight = 19, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(WEBDL1080pHEVC)   { Weight = 20, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(Bluray1080pHEVC)  { Weight = 21, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(HDTV2160pHEVC)    { Weight = 22, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(WEBDL2160pHEVC)   { Weight = 23, MinSize = 0, MaxSize = 100 },
+                new QualityDefinition(Bluray2160pHEVC)  { Weight = 24, MinSize = 0, MaxSize = 100 }
             };
         }
 
