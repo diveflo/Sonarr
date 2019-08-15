@@ -1,6 +1,6 @@
 language: csharp
-solution: "./src/Sonarr.sln"
+solution: "./src/NzbDrone.sln"
 install:
-- travis_retry nuget restore -source "https://www.nuget.org/api/v2" ./src/Sonarr.sln
+- travis_retry nuget restore -source "https://www.nuget.org/api/v2" ./src/NzbDrone.sln
 script:
-- xbuild ./src/Sonarr.sln
+- xbuild ./src/NzbDrone.sln
