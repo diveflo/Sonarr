@@ -9,6 +9,6 @@ deploy:
   provider: releases
   api_key:
     secure: dFUY6lcIdfshymBzv/+lp1Gd+TWguLdy8ls4m5w8F5xdjPgZ8ggFLpe93GnLlEv5zw7F346JkZU9UxHJnuI8RSj7NEVERmRPxCm+Pvmf2Frzc3aH4JFrGCEMNvZfhQ4HOuyRjuidRqM5kYbMuZ4uXDgc6gQiuzI0ofA6/miwz0/XbuNloBBLY4PeA9nQPpOTqFUqXcF4V8RVc9GJySK0Gh+hKamEi+XF/LnO3zBrrSm5SlZud4YkIWQbjJi1Bzt2l1lD0AmJBWC4VsVYqSS74fDmIO4h/8/pO65r5Dm1QwWx/Jj6wd8jbVgru9Bf4kDw/BKn5lO7n7p3bKb9u/UVgs87ycue2omAwstkmidIuLUA7o2LiHOn0wlNawg+tJwYh5Obt/BngQCT/tVDlhbYSjAmlAL0LEujan8FJZzBzWNzhSACk1qLFEFZtFiegmQ93gTWo82bOrPFN5fihryVlhuGNmduBShLentJANt5oZeIGFA44EEwSv3CvbYdIdCsdtfPCBKt+RL/HmFg+nSuYcDF9xwzgzzCMt+esvK8OoXfW7c7ejvOzSBQuhmRsA//5RtKfZDqkAn96qBJ4jaBjuDocNyjip7uijdXYkte6HV/Sg6tq8r+1rDRdp+SVtW34RjsoiFJinVPBlkoNqhwltYM5p4gDI4OFApcVDHhYHo=
-  file: _output_mono/*
+  file: /home/travis/build/diveflo/Sonarr/_output_mono/*
   on:
     repo: diveflo/Sonarr
