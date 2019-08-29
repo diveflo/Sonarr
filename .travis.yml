@@ -13,5 +13,4 @@ deploy:
   file_glob: true
   file: /home/travis/build/diveflo/Sonarr/_output_mono/** /*
   skip_cleanup: true
-  on:
-    repo: diveflo/Sonarr
+  draft: true
