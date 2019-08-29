@@ -15,4 +15,5 @@ deploy:
     - "/home/travis/build/diveflo/Sonarr/_output_mono/** /*"
     - "_output_mono/** /*"
   skip_cleanup: true
-  draft: true
+  on:
+    tags: true
