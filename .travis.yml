@@ -5,6 +5,7 @@ install:
 - npm install
 script:
 - bash build.sh
+- ls -l /home/travis/build/diveflo/Sonarr
 deploy:
   provider: releases
   api_key:
