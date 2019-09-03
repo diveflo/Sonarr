@@ -14,6 +14,8 @@ ENV SONARR_BRANCH="master"
 
 COPY scripts/docker-entrypoint.sh /sbin/docker-entrypoint.sh
 
+RUN chmod 755 /sbin/docker-entrypoint.sh
+
 RUN \
  echo "**** install packages ****" && \
  apt-get update && \
@@ -30,9 +32,6 @@ RUN \
  rm -rf \
 	/tmp/* \
 	/var/tmp/*
-
-# add local files
-COPY root/ /
 
 # ports and volumes
 EXPOSE 8989
