@@ -18,7 +18,7 @@ RUN \
  echo "**** install packages ****" && \
  apt-get update && \
  apt-get install -y \
-        jq && \
+        jq wget && \
  echo "**** install sonarr ****" && \
  mkdir -p /opt/NzbDrone && \
     wget https://github.com/diveflo/Sonarr/releases/latest/download/mono.tar -O /tmp/mono.tar && \
