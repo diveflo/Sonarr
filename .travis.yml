@@ -5,8 +5,8 @@ install:
 script:
 - bash build.sh
 before_deploy:
-  - tar -cvf mono.tar /home/travis/build/diveflo/Sonarr/_output_mono
-  - tar -cvf output.tar /home/travis/build/diveflo/Sonarr/_output
+  - tar -cvf mono.tar -C /home/travis/build/diveflo/Sonarr _output_mono
+  - tar -cvf output.tar -C /home/travis/build/diveflo/Sonarr _output
 deploy:
   provider: releases
   api_key:
