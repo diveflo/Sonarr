@@ -5,8 +5,8 @@ install:
 script:
 - bash build.sh
 before_deploy:
-  - tar -cvf mono.tar -C /home/travis/build/diveflo/Sonarr _output_mono
-  - tar -cvf output.tar -C /home/travis/build/diveflo/Sonarr _output
+  - mv /home/travis/build/diveflo/Sonarr/_output_mono /home/travis/build/diveflo/Sonarr/NzbDrone
+  - tar -cvf mono.tar -C /home/travis/build/diveflo/Sonarr NzbDrone
 deploy:
   provider: releases
   api_key:
@@ -14,7 +14,6 @@ deploy:
   file_glob: true
   file: 
     - mono.tar
-    - output.tar
   skip_cleanup: true
   on:
     tags: true
