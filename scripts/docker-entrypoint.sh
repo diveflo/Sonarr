@@ -6,6 +6,9 @@ umask "$UMASK_SET"
 
 cd /opt/NzbDrone || exit
 
+chown -R "$PUID":"$PGID" /opt/NzbDrone
+chown -R "$PUID":"$PGID" /config
+
 exec \
-	mono NzbDrone.exe \
-	-nobrowser -data=/config
+ mono NzbDrone.exe \
+ -nobrowser -data=/config
