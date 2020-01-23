@@ -1,6 +1,6 @@
 language: csharp
 install:
-- travis_retry nuget restore ./src/NzbDrone.sln
+- travis_retry nuget restore ./src/Sonarr.sln
 - npm install
 script:
 - bash build.sh
