@@ -1,5 +1,5 @@
 #! /bin/bash
-msBuildVersion='15.0'
+msBuild='/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin'
 outputFolder='./_output'
 outputFolderWindows='./_output_windows'
 outputFolderLinux='./_output_linux'

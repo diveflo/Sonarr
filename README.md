@@ -2,6 +2,23 @@
 
 Sonarr is a PVR for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new episodes of your favorite shows and will grab, sort and rename them. It can also be configured to automatically upgrade the quality of files already downloaded when a better quality format becomes available.
 
+# This fork
+
+This fork tracks the main branch of the original Sonarr/Sonarr repo but adds HEVC/x265 quality types. The following qualities are added:
+
+* Bluray-2160p-HEVC
+* WEBDL-2160p-HEVC
+* HDTV-2160p-HEVC
+* Bluray-1080p-HEVC
+* WEBDL-1080p-HEVC
+* HDTV-1080p-HEVC
+* Bluray-720p-HEVC
+* WEBDL-720p-HEVC
+* HDTV-720p-HEVC
+* DVD-HEVC
+
+Sonarr V3 will add prefered tags, similar to Radarr, to download HEVC/x265 content. However, this doesn't allow for the same configuration, e.g., cut-off, as adding specific quality types. Additionally, it will not upgrade your local file to the HEVC version once it comes available.
+
 ## Major Features Include:
 
 * Support for major platforms: Windows, Linux, macOS, Raspberry Pi, etc.
