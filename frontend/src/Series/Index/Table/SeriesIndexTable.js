@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import getIndexOfFirstCharacter from 'Utilities/Array/getIndexOfFirstCharacter';
 import { sortDirections } from 'Helpers/Props';
 import VirtualTable from 'Components/Table/VirtualTable';
+import VirtualTableRow from 'Components/Table/VirtualTableRow';
 import SeriesIndexItemConnector from 'Series/Index/SeriesIndexItemConnector';
 import SeriesIndexHeaderConnector from './SeriesIndexHeaderConnector';
 import SeriesIndexRow from './SeriesIndexRow';
@@ -22,10 +23,12 @@ class SeriesIndexTable extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const jumpToCharacter = this.props.jumpToCharacter;
+    const {
+      items,
+      jumpToCharacter
+    } = this.props;
 
     if (jumpToCharacter != null && jumpToCharacter !== prevProps.jumpToCharacter) {
-      const items = this.props.items;
 
       const scrollIndex = getIndexOfFirstCharacter(items, jumpToCharacter);
 
@@ -50,16 +53,20 @@ class SeriesIndexTable extends Component {
     const series = items[rowIndex];
 
     return (
-      <SeriesIndexItemConnector
+      <VirtualTableRow
         key={key}
-        component={SeriesIndexRow}
         style={style}
-        columns={columns}
-        seriesId={series.id}
-        languageProfileId={series.languageProfileId}
-        qualityProfileId={series.qualityProfileId}
-        showBanners={showBanners}
-      />
+      >
+        <SeriesIndexItemConnector
+          key={series.id}
+          component={SeriesIndexRow}
+          columns={columns}
+          seriesId={series.id}
+          languageProfileId={series.languageProfileId}
+          qualityProfileId={series.qualityProfileId}
+          showBanners={showBanners}
+        />
+      </VirtualTableRow>
     );
   }
 
@@ -70,25 +77,20 @@ class SeriesIndexTable extends Component {
     const {
       items,
       columns,
-      filters,
       sortKey,
       sortDirection,
       showBanners,
       isSmallScreen,
-      scrollTop,
-      contentBody,
       onSortPress,
-      onRender,
-      onScroll
+      scroller
     } = this.props;
 
     return (
       <VirtualTable
         className={styles.tableContainer}
         items={items}
-        scrollTop={scrollTop}
         scrollIndex={this.state.scrollIndex}
-        contentBody={contentBody}
+        scroller={scroller}
         isSmallScreen={isSmallScreen}
         rowHeight={showBanners ? 70 : 38}
         overscanRowCount={2}
@@ -103,11 +105,6 @@ class SeriesIndexTable extends Component {
           />
         }
         columns={columns}
-        filters={filters}
-        sortKey={sortKey}
-        sortDirection={sortDirection}
-        onRender={onRender}
-        onScroll={onScroll}
       />
     );
   }
@@ -116,17 +113,13 @@ class SeriesIndexTable extends Component {
 SeriesIndexTable.propTypes = {
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
-  filters: PropTypes.arrayOf(PropTypes.object).isRequired,
   sortKey: PropTypes.string,
   sortDirection: PropTypes.oneOf(sortDirections.all),
   showBanners: PropTypes.bool.isRequired,
-  scrollTop: PropTypes.number.isRequired,
   jumpToCharacter: PropTypes.string,
-  contentBody: PropTypes.object.isRequired,
+  scroller: PropTypes.instanceOf(Element).isRequired,
   isSmallScreen: PropTypes.bool.isRequired,
-  onSortPress: PropTypes.func.isRequired,
-  onRender: PropTypes.func.isRequired,
-  onScroll: PropTypes.func.isRequired
+  onSortPress: PropTypes.func.isRequired
 };
 
 export default SeriesIndexTable;

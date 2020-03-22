@@ -6,7 +6,6 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.DataAugmentation.DailySeries;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Commands;
@@ -23,7 +22,6 @@ namespace NzbDrone.Core.Tv
         private readonly ISeriesService _seriesService;
         private readonly IRefreshEpisodeService _refreshEpisodeService;
         private readonly IEventAggregator _eventAggregator;
-        private readonly IDailySeriesService _dailySeriesService;
         private readonly IDiskScanService _diskScanService;
         private readonly ICheckIfSeriesShouldBeRefreshed _checkIfSeriesShouldBeRefreshed;
         private readonly IConfigService _configService;
@@ -33,7 +31,7 @@ namespace NzbDrone.Core.Tv
                                     ISeriesService seriesService,
                                     IRefreshEpisodeService refreshEpisodeService,
                                     IEventAggregator eventAggregator,
-                                    IDailySeriesService dailySeriesService,
+                                    
                                     IDiskScanService diskScanService,
                                     ICheckIfSeriesShouldBeRefreshed checkIfSeriesShouldBeRefreshed,
                                     IConfigService configService,
@@ -43,7 +41,6 @@ namespace NzbDrone.Core.Tv
             _seriesService = seriesService;
             _refreshEpisodeService = refreshEpisodeService;
             _eventAggregator = eventAggregator;
-            _dailySeriesService = dailySeriesService;
             _diskScanService = diskScanService;
             _checkIfSeriesShouldBeRefreshed = checkIfSeriesShouldBeRefreshed;
             _configService = configService;
@@ -68,7 +65,7 @@ namespace NzbDrone.Core.Tv
                 if (series.Status != SeriesStatusType.Deleted)
                 {
                     series.Status = SeriesStatusType.Deleted;
-                    _seriesService.UpdateSeries(series);
+                    _seriesService.UpdateSeries(series, publishUpdatedEvent: false);
                     _logger.Debug("Series marked as deleted on tvdb for {0}", series.Title);
                     _eventAggregator.PublishEvent(new SeriesUpdatedEvent(series));
                 }
@@ -101,11 +98,6 @@ namespace NzbDrone.Core.Tv
             series.Genres = seriesInfo.Genres;
             series.Certification = seriesInfo.Certification;
 
-            if (_dailySeriesService.IsDailySeries(series.TvdbId))
-            {
-                series.SeriesType = SeriesTypes.Daily;
-            }
-
             try
             {
                 series.Path = new DirectoryInfo(series.Path).FullName;
@@ -118,7 +110,7 @@ namespace NzbDrone.Core.Tv
 
             series.Seasons = UpdateSeasons(series, seriesInfo);
 
-            _seriesService.UpdateSeries(series);
+            _seriesService.UpdateSeries(series, publishUpdatedEvent: false);
             _refreshEpisodeService.RefreshEpisodeInfo(series, episodes);
 
             _logger.Debug("Finished series refresh for {0}", series.Title);
@@ -138,12 +130,13 @@ namespace NzbDrone.Core.Tv
                 {
                     if (season.SeasonNumber == 0)
                     {
+                        _logger.Debug("Ignoring season 0 for series [{0}] {1} by default", series.TvdbId, series.Title);
                         season.Monitored = false;
                         continue;
                     }
 
-                    _logger.Debug("New season ({0}) for series: [{1}] {2}, setting monitored to true", season.SeasonNumber, series.TvdbId, series.Title);
-                    season.Monitored = true;
+                    _logger.Debug("New season ({0}) for series: [{1}] {2}, setting monitored to {3}", season.SeasonNumber, series.TvdbId, series.Title, series.Monitored.ToString().ToLowerInvariant());
+                    season.Monitored = series.Monitored;
                 }
 
                 else

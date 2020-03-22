@@ -23,6 +23,8 @@ class Scroller extends Component {
     if (this.props.scrollTop != null) {
       this._scroller.scrollTop = scrollTop;
     }
+
+    this._scroller.focus({ preventScroll: true });
   }
 
   //
@@ -30,6 +32,8 @@ class Scroller extends Component {
 
   _setScrollerRef = (ref) => {
     this._scroller = ref;
+
+    this.props.registerScroller(ref);
   }
 
   //
@@ -43,6 +47,7 @@ class Scroller extends Component {
       children,
       scrollTop,
       onScroll,
+      registerScroller,
       ...otherProps
     } = this.props;
 
@@ -55,6 +60,7 @@ class Scroller extends Component {
           styles[scrollDirection],
           autoScroll && styles.autoScroll
         )}
+        tabIndex={-1}
         {...otherProps}
       >
         {children}
@@ -70,12 +76,14 @@ Scroller.propTypes = {
   autoScroll: PropTypes.bool.isRequired,
   scrollTop: PropTypes.number,
   children: PropTypes.node,
-  onScroll: PropTypes.func
+  onScroll: PropTypes.func,
+  registerScroller: PropTypes.func
 };
 
 Scroller.defaultProps = {
   scrollDirection: scrollDirections.VERTICAL,
-  autoScroll: true
+  autoScroll: true,
+  registerScroller: () => {}
 };
 
 export default Scroller;

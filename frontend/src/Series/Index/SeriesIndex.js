@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import hasDifferentItems from 'Utilities/Object/hasDifferentItems';
+import hasDifferentItemsOrOrder from 'Utilities/Object/hasDifferentItemsOrOrder';
 import { align, icons, sortDirections } from 'Helpers/Props';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
@@ -46,12 +46,11 @@ class SeriesIndex extends Component {
     super(props, context);
 
     this.state = {
-      contentBody: null,
-      jumpBarItems: [],
+      scroller: null,
+      jumpBarItems: { order: [] },
       jumpToCharacter: null,
       isPosterOptionsModalOpen: false,
-      isOverviewOptionsModalOpen: false,
-      isRendered: false
+      isOverviewOptionsModalOpen: false
     };
   }
 
@@ -63,19 +62,17 @@ class SeriesIndex extends Component {
     const {
       items,
       sortKey,
-      sortDirection,
-      scrollTop
+      sortDirection
     } = this.props;
 
-    if (
-      hasDifferentItems(prevProps.items, items) ||
-      sortKey !== prevProps.sortKey ||
-      sortDirection !== prevProps.sortDirection
+    if (sortKey !== prevProps.sortKey ||
+        sortDirection !== prevProps.sortDirection ||
+        hasDifferentItemsOrOrder(prevProps.items, items)
     ) {
       this.setJumpBarItems();
     }
 
-    if (this.state.jumpToCharacter != null && scrollTop !== prevProps.scrollTop) {
+    if (this.state.jumpToCharacter != null) {
       this.setState({ jumpToCharacter: null });
     }
   }
@@ -83,8 +80,8 @@ class SeriesIndex extends Component {
   //
   // Control
 
-  setContentBodyRef = (ref) => {
-    this.setState({ contentBody: ref });
+  setScrollerRef = (ref) => {
+    this.setState({ scroller: ref });
   }
 
   setJumpBarItems() {
@@ -96,28 +93,39 @@ class SeriesIndex extends Component {
 
     // Reset if not sorting by sortTitle
     if (sortKey !== 'sortTitle') {
-      this.setState({ jumpBarItems: [] });
+      this.setState({ jumpBarItems: { order: [] } });
       return;
     }
 
     const characters = _.reduce(items, (acc, item) => {
-      const firstCharacter = item.sortTitle.charAt(0);
+      let char = item.sortTitle.charAt(0);
 
-      if (isNaN(firstCharacter)) {
-        acc.push(firstCharacter);
+      if (!isNaN(char)) {
+        char = '#';
+      }
+
+      if (char in acc) {
+        acc[char] = acc[char] + 1;
       } else {
-        acc.push('#');
+        acc[char] = 1;
       }
 
       return acc;
-    }, []).sort();
+    }, {});
+
+    const order = Object.keys(characters).sort();
 
     // Reverse if sorting descending
     if (sortDirection === sortDirections.DESCENDING) {
-      characters.reverse();
+      order.reverse();
     }
 
-    this.setState({ jumpBarItems: _.sortedUniq(characters) });
+    const jumpBarItems = {
+      characters,
+      order
+    };
+
+    this.setState({ jumpBarItems });
   }
 
   //
@@ -143,27 +151,6 @@ class SeriesIndex extends Component {
     this.setState({ jumpToCharacter });
   }
 
-  onRender = () => {
-    this.setState({ isRendered: true }, () => {
-      const {
-        scrollTop,
-        isSmallScreen
-      } = this.props;
-
-      if (isSmallScreen) {
-        // Seems to result in the view being off by 125px (distance to the top of the page)
-        // document.documentElement.scrollTop = document.body.scrollTop = scrollTop;
-
-        // This works, but then jumps another 1px after scrolling
-        document.documentElement.scrollTop = scrollTop;
-      }
-    });
-  }
-
-  onScroll = ({ scrollTop }) => {
-    this.props.onScroll({ scrollTop });
-  }
-
   //
   // Render
 
@@ -183,7 +170,7 @@ class SeriesIndex extends Component {
       view,
       isRefreshingSeries,
       isRssSyncExecuting,
-      scrollTop,
+      onScroll,
       onSortSelect,
       onFilterSelect,
       onViewSelect,
@@ -193,16 +180,15 @@ class SeriesIndex extends Component {
     } = this.props;
 
     const {
-      contentBody,
+      scroller,
       jumpBarItems,
       jumpToCharacter,
       isPosterOptionsModalOpen,
-      isOverviewOptionsModalOpen,
-      isRendered
+      isOverviewOptionsModalOpen
     } = this.state;
 
     const ViewComponent = getViewComponent(view);
-    const isLoaded = !!(!error && isPopulated && items.length && contentBody);
+    const isLoaded = !!(!error && isPopulated && items.length && scroller);
     const hasNoSeries = !totalItems;
 
     return (
@@ -299,11 +285,10 @@ class SeriesIndex extends Component {
 
         <div className={styles.pageContentBodyWrapper}>
           <PageContentBodyConnector
-            ref={this.setContentBodyRef}
+            registerScroller={this.setScrollerRef}
             className={styles.contentBody}
             innerClassName={styles[`${view}InnerContentBody`]}
-            scrollTop={isRendered ? scrollTop : 0}
-            onScroll={this.onScroll}
+            onScroll={onScroll}
           >
             {
               isFetching && !isPopulated &&
@@ -319,14 +304,12 @@ class SeriesIndex extends Component {
               isLoaded &&
                 <div className={styles.contentBodyContainer}>
                   <ViewComponent
-                    contentBody={contentBody}
+                    scroller={scroller}
                     items={items}
                     filters={filters}
                     sortKey={sortKey}
                     sortDirection={sortDirection}
-                    scrollTop={scrollTop}
                     jumpToCharacter={jumpToCharacter}
-                    onRender={this.onRender}
                     {...otherProps}
                   />
 
@@ -341,7 +324,7 @@ class SeriesIndex extends Component {
           </PageContentBodyConnector>
 
           {
-            isLoaded && !!jumpBarItems.length &&
+            isLoaded && !!jumpBarItems.order.length &&
               <PageJumpBar
                 items={jumpBarItems}
                 onItemPress={this.onJumpBarItemPress}
@@ -378,7 +361,6 @@ SeriesIndex.propTypes = {
   view: PropTypes.string.isRequired,
   isRefreshingSeries: PropTypes.bool.isRequired,
   isRssSyncExecuting: PropTypes.bool.isRequired,
-  scrollTop: PropTypes.number.isRequired,
   isSmallScreen: PropTypes.bool.isRequired,
   onSortSelect: PropTypes.func.isRequired,
   onFilterSelect: PropTypes.func.isRequired,

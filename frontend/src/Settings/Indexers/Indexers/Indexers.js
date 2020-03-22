@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import sortByName from 'Utilities/Array/sortByName';
 import { icons } from 'Helpers/Props';
 import FieldSet from 'Components/FieldSet';
 import Card from 'Components/Card';
@@ -32,6 +31,11 @@ class Indexers extends Component {
     this.setState({ isAddIndexerModalOpen: true });
   }
 
+  onCloneIndexerPress = (id) => {
+    this.props.dispatchCloneIndexer({ id });
+    this.setState({ isEditIndexerModalOpen: true });
+  }
+
   onAddIndexerModalClose = ({ indexerSelected = false } = {}) => {
     this.setState({
       isAddIndexerModalOpen: false,
@@ -49,6 +53,7 @@ class Indexers extends Component {
   render() {
     const {
       items,
+      dispatchCloneIndexer,
       onConfirmDeleteIndexer,
       ...otherProps
     } = this.props;
@@ -66,11 +71,12 @@ class Indexers extends Component {
         >
           <div className={styles.indexers}>
             {
-              items.sort(sortByName).map((item) => {
+              items.map((item) => {
                 return (
                   <Indexer
                     key={item.id}
                     {...item}
+                    onCloneIndexerPress={this.onCloneIndexerPress}
                     onConfirmDeleteIndexer={onConfirmDeleteIndexer}
                   />
                 );
@@ -109,6 +115,7 @@ Indexers.propTypes = {
   isFetching: PropTypes.bool.isRequired,
   error: PropTypes.object,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
+  dispatchCloneIndexer: PropTypes.func.isRequired,
   onConfirmDeleteIndexer: PropTypes.func.isRequired
 };
 

@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Messaging.Events;
 
 
@@ -10,6 +12,7 @@ namespace NzbDrone.Core.Tv
         bool SeriesPathExists(string path);
         Series FindByTitle(string cleanTitle);
         Series FindByTitle(string cleanTitle, int year);
+        List<Series> FindByTitleInexact(string cleanTitle);
         Series FindByTvdbId(int tvdbId);
         Series FindByTvRageId(int tvRageId);
         Series FindByPath(string path);
@@ -17,9 +20,12 @@ namespace NzbDrone.Core.Tv
 
     public class SeriesRepository : BasicRepository<Series>, ISeriesRepository
     {
+        protected IMainDatabase _database;
+
         public SeriesRepository(IMainDatabase database, IEventAggregator eventAggregator)
             : base(database, eventAggregator)
         {
+            _database = database;
         }
 
         public bool SeriesPathExists(string path)
@@ -31,17 +37,29 @@ namespace NzbDrone.Core.Tv
         {
             cleanTitle = cleanTitle.ToLowerInvariant();
 
-            return Query.Where(s => s.CleanTitle == cleanTitle)
-                        .SingleOrDefault();
+            var series = Query.Where(s => s.CleanTitle == cleanTitle)
+                                        .ToList();
+
+            return ReturnSingleSeriesOrThrow(series);
         }
 
         public Series FindByTitle(string cleanTitle, int year)
         {
             cleanTitle = cleanTitle.ToLowerInvariant();
 
-            return Query.Where(s => s.CleanTitle == cleanTitle)
-                        .AndWhere(s => s.Year == year)
-                        .SingleOrDefault();
+            var series = Query.Where(s => s.CleanTitle == cleanTitle)
+                                        .AndWhere(s => s.Year == year)
+                                        .ToList();
+
+            return ReturnSingleSeriesOrThrow(series);
+        }
+
+        public List<Series> FindByTitleInexact(string cleanTitle)
+        {
+            var mapper = _database.GetDataMapper();
+            mapper.AddParameter("CleanTitle", cleanTitle);
+
+            return mapper.Query<Series>().Where($"instr(@CleanTitle, [t0].[CleanTitle])");
         }
 
         public Series FindByTvdbId(int tvdbId)
@@ -58,6 +76,21 @@ namespace NzbDrone.Core.Tv
         {
             return Query.Where(s => s.Path == path)
                         .FirstOrDefault();
+        }
+
+        private Series ReturnSingleSeriesOrThrow(List<Series> series)
+        {
+            if (series.Count == 0)
+            {
+                return null;
+            }
+
+            if (series.Count == 1)
+            {
+                return series.First();
+            }
+
+            throw new MultipleSeriesFoundException("Expected one series, but found {0}. Matching series: {1}", series.Count, string.Join(",", series));
         }
     }
 }

@@ -222,9 +222,13 @@ class QueueRow extends Component {
             if (name === 'quality') {
               return (
                 <TableRowCell key={name}>
-                  <EpisodeQuality
-                    quality={quality}
-                  />
+                  {
+                    quality ?
+                      <EpisodeQuality
+                        quality={quality}
+                      /> :
+                      null
+                  }
                 </TableRowCell>
               );
             }

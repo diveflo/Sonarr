@@ -54,8 +54,9 @@ namespace NzbDrone.Core.Test.TvTests
         }
 
         [Test]
-        public void should_monitor_new_seasons_automatically()
+        public void should_monitor_new_seasons_automatically_if_series_is_monitored()
         {
+            _series.Monitored = true;
             var newSeriesInfo = _series.JsonClone();
             newSeriesInfo.Seasons.Add(Builder<Season>.CreateNew()
                                          .With(s => s.SeasonNumber = 2)
@@ -66,7 +67,24 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2 && s.Seasons.Single(season => season.SeasonNumber == 2).Monitored == true), It.IsAny<bool>()));
+                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2 && s.Seasons.Single(season => season.SeasonNumber == 2).Monitored == true), It.IsAny<bool>(), It.IsAny<bool>()));
+        }
+
+        [Test]
+        public void should_not_monitor_new_seasons_automatically_if_series_is_not_monitored()
+        {
+            _series.Monitored = false;
+            var newSeriesInfo = _series.JsonClone();
+            newSeriesInfo.Seasons.Add(Builder<Season>.CreateNew()
+                .With(s => s.SeasonNumber = 2)
+                .Build());
+
+            GivenNewSeriesInfo(newSeriesInfo);
+
+            Subject.Execute(new RefreshSeriesCommand(_series.Id));
+
+            Mocker.GetMock<ISeriesService>()
+                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2 && s.Seasons.Single(season => season.SeasonNumber == 2).Monitored == false), It.IsAny<bool>(), It.IsAny<bool>()));
         }
 
         [Test]
@@ -82,7 +100,7 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2 && s.Seasons.Single(season => season.SeasonNumber == 0).Monitored == false), It.IsAny<bool>()));
+                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2 && s.Seasons.Single(season => season.SeasonNumber == 0).Monitored == false), It.IsAny<bool>(), It.IsAny<bool>()));
         }
 
         [Test]
@@ -96,7 +114,7 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TvRageId == newSeriesInfo.TvRageId), It.IsAny<bool>()));
+                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TvRageId == newSeriesInfo.TvRageId), It.IsAny<bool>(), It.IsAny<bool>()));
         }
 
         [Test]
@@ -110,7 +128,7 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TvMazeId == newSeriesInfo.TvMazeId), It.IsAny<bool>()));
+                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TvMazeId == newSeriesInfo.TvMazeId), It.IsAny<bool>(), It.IsAny<bool>()));
         }
 
         [Test]
@@ -119,7 +137,7 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Status == SeriesStatusType.Deleted), It.IsAny<bool>()), Times.Once());
+                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Status == SeriesStatusType.Deleted), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
 
             ExceptionVerification.ExpectedErrors(1);
         }
@@ -130,7 +148,7 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Status == SeriesStatusType.Deleted), It.IsAny<bool>()), Times.Once());
+                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Status == SeriesStatusType.Deleted), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
 
             ExceptionVerification.ExpectedErrors(1);
         }
@@ -143,7 +161,7 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                .Verify(v => v.UpdateSeries(It.IsAny<Series>(), It.IsAny<bool>()), Times.Never());
+                .Verify(v => v.UpdateSeries(It.IsAny<Series>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
 
             ExceptionVerification.ExpectedErrors(1);
         }
@@ -159,7 +177,7 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TvdbId == newSeriesInfo.TvdbId), It.IsAny<bool>()));
+                .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.TvdbId == newSeriesInfo.TvdbId), It.IsAny<bool>(), It.IsAny<bool>()));
 
             ExceptionVerification.ExpectedWarns(1);
         }
@@ -185,7 +203,7 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                  .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2), It.IsAny<bool>()));
+                  .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2), It.IsAny<bool>(), It.IsAny<bool>()));
         }
 
         [Test]
@@ -205,7 +223,7 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.Execute(new RefreshSeriesCommand(_series.Id));
 
             Mocker.GetMock<ISeriesService>()
-                  .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2), It.IsAny<bool>()));
+                  .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.Seasons.Count == 2), It.IsAny<bool>(), It.IsAny<bool>()));
 
         }
 
