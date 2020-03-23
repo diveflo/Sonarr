@@ -4,11 +4,11 @@ UMASK_SET=${UMASK_SET:-022}
 
 umask "$UMASK_SET"
 
-cd /opt/NzbDrone || exit
+cd /opt/Sonarr || exit
 
-chown -R "$PUID":"$PGID" /opt/NzbDrone
+chown -R "$PUID":"$PGID" /opt/Sonarr
 chown -R "$PUID":"$PGID" /config
 
 exec \
- mono NzbDrone.exe \
- -nobrowser -data=/config
+ mono Sonarr.exe \
+ -nobrowser -debug -data=/config
