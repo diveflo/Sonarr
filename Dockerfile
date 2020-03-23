@@ -23,10 +23,10 @@ RUN \
         jq wget && \
  echo "**** install sonarr ****" && \
  mkdir -p /opt/NzbDrone && \
-    wget https://github.com/diveflo/Sonarr/releases/latest/download/mono.tar -O /tmp/mono.tar && \
+    wget https://github.com/diveflo/Sonarr/releases/latest/download/sonarr_linux.tar -O /tmp/sonarr_linux.tar && \
  tar xf \
-	/tmp/mono.tar -C \
-	/opt/NzbDrone --strip-components=1 && \
+	/tmp/sonarr_linux.tar -C \
+	/opt/Sonarr --strip-components=1 && \
  echo "**** cleanup ****" && \
  apt-get clean && \
  rm -rf \
