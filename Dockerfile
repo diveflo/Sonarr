@@ -22,7 +22,7 @@ RUN \
  apt-get install -y \
         jq wget && \
  echo "**** install sonarr ****" && \
- mkdir -p /opt/NzbDrone && \
+ mkdir -p /opt/Sonarr && \
     wget https://github.com/diveflo/Sonarr/releases/latest/download/sonarr_linux.tar -O /tmp/sonarr_linux.tar && \
  tar xf \
 	/tmp/sonarr_linux.tar -C \
