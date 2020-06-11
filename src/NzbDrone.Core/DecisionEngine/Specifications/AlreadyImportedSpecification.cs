@@ -47,7 +47,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 }
 
                 var historyForEpisode = _historyService.FindByEpisodeId(episode.Id);
-                var lastGrabbed = historyForEpisode.FirstOrDefault(h => h.EventType == HistoryEventType.Grabbed);
+                var lastGrabbed = historyForEpisode.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.Grabbed);
 
                 if (lastGrabbed == null)
                 {
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 }
 
                 var imported = historyForEpisode.FirstOrDefault(h =>
-                    h.EventType == HistoryEventType.DownloadFolderImported &&
+                    h.EventType == EpisodeHistoryEventType.DownloadFolderImported &&
                     h.DownloadId == lastGrabbed.DownloadId);
 
                 if (imported == null)
@@ -84,7 +84,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                     }
                 }
 
-            // Only based on title because a release with the same title on another indexer/released at
+                // Only based on title because a release with the same title on another indexer/released at
                 // a different time very likely has the exact same content and we don't need to also try it.
 
                 if (release.Title.Equals(lastGrabbed.SourceTitle, StringComparison.InvariantCultureIgnoreCase))

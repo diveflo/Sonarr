@@ -26,13 +26,14 @@ namespace NzbDrone.Core.Download
         public bool IgnoreDownload(TrackedDownload trackedDownload)
         {
             var series = trackedDownload.RemoteEpisode.Series;
-            var episodes = trackedDownload.RemoteEpisode.Episodes;
 
-            if (series == null || episodes.Empty())
+            if (series == null)
             {
-                _logger.Warn("Unable to ignore download for unknown series/episode");
+                _logger.Warn("Unable to ignore download for unknown series");
                 return false;
             }
+
+            var episodes = trackedDownload.RemoteEpisode.Episodes;
 
             var downloadIgnoredEvent = new DownloadIgnoredEvent
                                       {
@@ -41,7 +42,7 @@ namespace NzbDrone.Core.Download
                                           Language = trackedDownload.RemoteEpisode.ParsedEpisodeInfo.Language,
                                           Quality = trackedDownload.RemoteEpisode.ParsedEpisodeInfo.Quality,
                                           SourceTitle = trackedDownload.DownloadItem.Title,
-                                          DownloadClient = trackedDownload.DownloadItem.DownloadClient,
+                                          DownloadClientInfo = trackedDownload.DownloadItem.DownloadClientInfo,
                                           DownloadId = trackedDownload.DownloadItem.DownloadId,
                                           Message = "Manually ignored"
                                       };

@@ -138,8 +138,12 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
 
             if (series == null)
             {
-                var files = _diskScanService.FilterFiles(baseFolder, _diskScanService.GetVideoFiles(baseFolder, false));
-                var subfolders = _diskScanService.FilterFiles(baseFolder, _diskProvider.GetDirectories(baseFolder));
+                // Filter paths based on the rootFolder, so files in subfolders that should be ignored are ignored.
+                // It will lead to some extra directories being checked for files, but it saves the processing of them and is cleaner than
+                // teaching FilterPaths to know whether it's processing a file or a folder and changing it's filtering based on that.
+
+                var files = _diskScanService.FilterPaths(rootFolder, _diskScanService.GetVideoFiles(baseFolder, false));
+                var subfolders = _diskScanService.FilterPaths(rootFolder, _diskProvider.GetDirectories(baseFolder));
 
                 var processedFiles = files.Select(file => ProcessFile(rootFolder, baseFolder, file, downloadId));
                 var processedFolders = subfolders.SelectMany(subfolder => ProcessFolder(rootFolder, subfolder, downloadId, null, filterExistingFiles));
@@ -315,7 +319,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                     localEpisode.FolderEpisodeInfo = Parser.Parser.ParseTitle(file.FolderName);
                 }
 
-                localEpisode = _aggregationService.Augment(localEpisode, false);
+                localEpisode = _aggregationService.Augment(localEpisode, trackedDownload?.DownloadItem, false);
 
                 // Apply the user-chosen values.
                 localEpisode.Series = series;
@@ -349,21 +353,27 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             foreach (var groupedTrackedDownload in importedTrackedDownload.GroupBy(i => i.TrackedDownload.DownloadItem.DownloadId).ToList())
             {
                 var trackedDownload = groupedTrackedDownload.First().TrackedDownload;
+                var importedSeries = imported.First().ImportDecision.LocalEpisode.Series;
 
                 if (_diskProvider.FolderExists(trackedDownload.DownloadItem.OutputPath.FullPath))
                 {
                     if (_downloadedEpisodesImportService.ShouldDeleteFolder(
-                            new DirectoryInfo(trackedDownload.DownloadItem.OutputPath.FullPath),
-                            trackedDownload.RemoteEpisode.Series) && trackedDownload.DownloadItem.CanMoveFiles)
+                            new DirectoryInfo(trackedDownload.DownloadItem.OutputPath.FullPath), importedSeries) &&
+                        trackedDownload.DownloadItem.CanMoveFiles)
                     {
                         _diskProvider.DeleteFolder(trackedDownload.DownloadItem.OutputPath.FullPath, true);
                     }
                 }
 
-                if (groupedTrackedDownload.Select(c => c.ImportResult).Count(c => c.Result == ImportResultType.Imported) >= Math.Max(1, trackedDownload.RemoteEpisode.Episodes.Count))
+                var allEpisodesImported = groupedTrackedDownload.Select(c => c.ImportResult)
+                                                                    .Where(c => c.Result == ImportResultType.Imported)
+                                                                   .SelectMany(c => c.ImportDecision.LocalEpisode.Episodes).Count() >= 
+                                                                                Math.Max(1, trackedDownload.RemoteEpisode.Episodes.Count);
+
+                if (allEpisodesImported)
                 {
                     trackedDownload.State = TrackedDownloadState.Imported;
-                    _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload));
+                    _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload, importedSeries.Id));
                 }
             }
         }

@@ -29,14 +29,17 @@ using NzbDrone.Core.Tv;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Authentication;
 using NzbDrone.Core.CustomFilters;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Extras.Metadata;
 using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.Extras.Others;
 using NzbDrone.Core.Extras.Subtitles;
+using NzbDrone.Core.History;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Profiles.Languages;
 using NzbDrone.Core.Profiles.Releases;
+using NzbDrone.Core.Update.History;
 
 namespace NzbDrone.Core.Datastore
 {
@@ -80,7 +83,7 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<SceneMapping>().RegisterModel("SceneMappings");
 
-            Mapper.Entity<History.History>().RegisterModel("History")
+            Mapper.Entity<EpisodeHistory>().RegisterModel("History")
                   .AutoMapChildModels();
 
             Mapper.Entity<Series>().RegisterModel("Series")
@@ -134,6 +137,11 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<DownloadClientStatus>().RegisterModel("DownloadClientStatus");
 
             Mapper.Entity<CustomFilter>().RegisterModel("CustomFilters");
+
+            Mapper.Entity<DownloadHistory>().RegisterModel("DownloadHistory")
+                  .AutoMapChildModels();
+
+            Mapper.Entity<UpdateHistory>().RegisterModel("UpdateHistory");
         }
 
         private static void RegisterMappers()
@@ -163,6 +171,7 @@ namespace NzbDrone.Core.Datastore
             MapRepository.Instance.RegisterTypeConverter(typeof(Command), new CommandConverter());
             MapRepository.Instance.RegisterTypeConverter(typeof(TimeSpan), new TimeSpanConverter());
             MapRepository.Instance.RegisterTypeConverter(typeof(TimeSpan?), new TimeSpanConverter());
+            MapRepository.Instance.RegisterTypeConverter(typeof(Version), new SystemVersionConverter());
         }
 
         private static void RegisterProviderSettingConverter()

@@ -3,12 +3,14 @@ import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
 import { icons, kinds } from 'Helpers/Props';
 import formatDate from 'Utilities/Date/formatDate';
+import formatDateTime from 'Utilities/Date/formatDateTime';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import SpinnerButton from 'Components/Link/SpinnerButton';
+import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
 import Icon from 'Components/Icon';
 import Label from 'Components/Label';
 import PageContent from 'Components/Page/PageContent';
-import PageContentBodyConnector from 'Components/Page/PageContentBodyConnector';
+import PageContentBody from 'Components/Page/PageContentBody';
 import UpdateChanges from './UpdateChanges';
 import styles from './Updates.css';
 
@@ -27,7 +29,10 @@ class Updates extends Component {
       items,
       isInstallingUpdate,
       updateMechanism,
+      updateMechanismMessage,
       shortDateFormat,
+      longDateFormat,
+      timeFormat,
       onInstallLatestPress
     } = this.props;
 
@@ -37,15 +42,16 @@ class Updates extends Component {
     const hasUpdateToInstall = hasUpdates && _.some(items, { installable: true, latest: true });
     const noUpdateToInstall = hasUpdates && !hasUpdateToInstall;
 
+    const externalUpdaterPrefix = 'Unable to update Sonarr directly,';
     const externalUpdaterMessages = {
-      external: 'Unable to update Sonarr directly, Sonarr is configured to use an external update mechanism',
-      apt: 'Unable to update Sonarr directly, use apt to install the update',
-      docker: 'Unable to update Sonarr directly, update the docker container to receive the update'
+      external: 'Sonarr is configured to use an external update mechanism',
+      apt: 'use apt to install the update',
+      docker: 'update the docker container to receive the update'
     };
 
     return (
       <PageContent title="Updates">
-        <PageContentBodyConnector>
+        <PageContentBody>
           {
             !isPopulated && !hasError &&
               <LoadingIndicator />
@@ -78,7 +84,7 @@ class Updates extends Component {
                       />
 
                       <div className={styles.message}>
-                        {externalUpdaterMessages[updateMechanism] || externalUpdaterMessages.external}
+                        {externalUpdaterPrefix} <InlineMarkdown data={updateMechanismMessage || externalUpdaterMessages[updateMechanism] || externalUpdaterMessages.external} />
                       </div>
                     </Fragment>
                 }
@@ -131,7 +137,12 @@ class Updates extends Component {
                         <div className={styles.info}>
                           <div className={styles.version}>{update.version}</div>
                           <div className={styles.space}>&mdash;</div>
-                          <div className={styles.date}>{formatDate(update.releaseDate, shortDateFormat)}</div>
+                          <div
+                            className={styles.date}
+                            title={formatDateTime(update.releaseDate, longDateFormat, timeFormat)}
+                          >
+                            {formatDate(update.releaseDate, shortDateFormat)}
+                          </div>
 
                           {
                             update.branch === 'master' ?
@@ -148,8 +159,21 @@ class Updates extends Component {
                               <Label
                                 className={styles.label}
                                 kind={kinds.SUCCESS}
+                                title={formatDateTime(update.installedOn, longDateFormat, timeFormat)}
                               >
                                 Currently Installed
+                              </Label> :
+                              null
+                          }
+
+                          {
+                            update.version !== currentVersion && update.installedOn ?
+                              <Label
+                                className={styles.label}
+                                kind={kinds.INVERSE}
+                                title={formatDateTime(update.installedOn, longDateFormat, timeFormat)}
+                              >
+                                Previously Installed
                               </Label> :
                               null
                           }
@@ -194,7 +218,7 @@ class Updates extends Component {
                 Failed to update settings
               </div>
           }
-        </PageContentBodyConnector>
+        </PageContentBody>
       </PageContent>
     );
   }
@@ -210,7 +234,10 @@ Updates.propTypes = {
   items: PropTypes.array.isRequired,
   isInstallingUpdate: PropTypes.bool.isRequired,
   updateMechanism: PropTypes.string,
+  updateMechanismMessage: PropTypes.string,
   shortDateFormat: PropTypes.string.isRequired,
+  longDateFormat: PropTypes.string.isRequired,
+  timeFormat: PropTypes.string.isRequired,
   onInstallLatestPress: PropTypes.func.isRequired
 };
 

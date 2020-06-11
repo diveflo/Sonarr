@@ -16,7 +16,6 @@ using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Tv;
-using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -25,7 +24,7 @@ namespace NzbDrone.Core.MediaFiles
         void Scan(Series series);
         string[] GetVideoFiles(string path, bool allDirectories = true);
         string[] GetNonVideoFiles(string path, bool allDirectories = true);
-        List<string> FilterFiles(string basePath, IEnumerable<string> files);
+        List<string> FilterPaths(string basePath, IEnumerable<string> files);
     }
 
     public class DiskScanService :
@@ -63,30 +62,35 @@ namespace NzbDrone.Core.MediaFiles
             _logger = logger;
         }
 
-        private static readonly Regex ExcludedSubFoldersRegex = new Regex(@"(?:\\|\/|^)(?:extras|@eadir|extrafanart|plex versions|\.[^\\/]+)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex ExcludedSubFoldersRegex = new Regex(@"(?:\\|\/|^)(?:extras|@eadir|\.@__thumb|extrafanart|plex versions|\.[^\\/]+)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex ExcludedFilesRegex = new Regex(@"^\._|^Thumbs\.db$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public void Scan(Series series)
         {
             var rootFolder = _rootFolderService.GetBestRootFolderPath(series.Path);
 
-            if (!_diskProvider.FolderExists(rootFolder))
-            {
-                _logger.Warn("Series' root folder ({0}) doesn't exist.", rootFolder);
-                _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderDoesNotExist));
-                return;
-            }
+            var seriesFolderExists = _diskProvider.FolderExists(series.Path);
 
-            if (_diskProvider.GetDirectories(rootFolder).Empty())
+            if (!seriesFolderExists)
             {
-                _logger.Warn("Series' root folder ({0}) is empty.", rootFolder);
-                _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderIsEmpty));
-                return;
+                if (!_diskProvider.FolderExists(rootFolder))
+                {
+                    _logger.Warn("Series' root folder ({0}) doesn't exist.", rootFolder);
+                    _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderDoesNotExist));
+                    return;
+                }
+
+                if (_diskProvider.FolderEmpty(rootFolder))
+                {
+                    _logger.Warn("Series' root folder ({0}) is empty.", rootFolder);
+                    _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderIsEmpty));
+                    return;
+                }
             }
 
             _logger.ProgressInfo("Scanning {0}", series.Title);
 
-            if (!_diskProvider.FolderExists(series.Path))
+            if (!seriesFolderExists)
             {
                 if (_configService.CreateEmptySeriesFolders)
                 {
@@ -106,7 +110,7 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var videoFilesStopwatch = Stopwatch.StartNew();
-            var mediaFileList = FilterFiles(series.Path, GetVideoFiles(series.Path)).ToList();
+            var mediaFileList = FilterPaths(series.Path, GetVideoFiles(series.Path)).ToList();
             videoFilesStopwatch.Stop();
             _logger.Trace("Finished getting episode files for: {0} [{1}]", series, videoFilesStopwatch.Elapsed);
 
@@ -166,10 +170,10 @@ namespace NzbDrone.Core.MediaFiles
             return mediaFileList.ToArray();
         }
 
-        public List<string> FilterFiles(string basePath, IEnumerable<string> files)
+        public List<string> FilterPaths(string basePath, IEnumerable<string> paths)
         {
-            return files.Where(file => !ExcludedSubFoldersRegex.IsMatch(basePath.GetRelativePath(file)))
-                        .Where(file => !ExcludedFilesRegex.IsMatch(Path.GetFileName(file)))
+            return paths.Where(path => !ExcludedSubFoldersRegex.IsMatch(basePath.GetRelativePath(path)))
+                        .Where(path => !ExcludedFilesRegex.IsMatch(Path.GetFileName(path)))
                         .ToList();
         }
 
@@ -182,8 +186,8 @@ namespace NzbDrone.Core.MediaFiles
 
             try
             {
-                var permissions = _configService.FolderChmod;
-                _diskProvider.SetPermissions(path, permissions, _configService.ChownUser, _configService.ChownGroup);
+                var permissions = _configService.FileChmod;
+                _diskProvider.SetPermissions(path, permissions);
             }
 
             catch (Exception ex)
@@ -198,13 +202,11 @@ namespace NzbDrone.Core.MediaFiles
         {
             if (_configService.DeleteEmptyFolders)
             {
-                if (_diskProvider.GetFiles(path, SearchOption.AllDirectories).Empty())
+                _diskProvider.RemoveEmptySubfolders(path);
+
+                if (_diskProvider.FolderEmpty(path))
                 {
                     _diskProvider.DeleteFolder(path, true);
-                }
-                else
-                {
-                    _diskProvider.RemoveEmptySubfolders(path);
                 }
             }
         }

@@ -239,8 +239,20 @@ namespace NzbDrone.Core.IndexerSearch
         {
             var downloadDecisions = new List<DownloadDecision>();
 
-            // Only search for aired episodes when performing a season anime search
-            foreach (var episode in episodes.Where(e => e.Monitored && e.AirDateUtc.HasValue && e.AirDateUtc.Value.Before(DateTime.UtcNow)))
+            
+            var episodesToSearch = episodes.Where(e =>
+            {
+                // Episode needs to be monitored if it's not an interactive search
+                if (!interactiveSearch && !e.Monitored)
+                {
+                    return false;
+                }
+
+                // Ensure episode has an airdate and has already aired
+                return e.AirDateUtc.HasValue && e.AirDateUtc.Value.Before(DateTime.UtcNow);
+            });
+
+            foreach (var episode in episodesToSearch)
             {
                 downloadDecisions.AddRange(SearchAnime(series, episode, userInvokedSearch, interactiveSearch, true));
             }
@@ -280,6 +292,9 @@ namespace NzbDrone.Core.IndexerSearch
             spec.SceneTitles = _sceneMapping.GetSceneNames(series.TvdbId,
                                                            episodes.Select(e => e.SeasonNumber).Distinct().ToList(),
                                                            episodes.Select(e => e.SceneSeasonNumber ?? e.SeasonNumber).Distinct().ToList());
+            spec.SceneMappings = _sceneMapping.GetSceneMappings(series.TvdbId,
+                                                           episodes.Select(e => e.SeasonNumber).Distinct().ToList());
+
 
             if (!spec.SceneTitles.Contains(series.Title))
             {

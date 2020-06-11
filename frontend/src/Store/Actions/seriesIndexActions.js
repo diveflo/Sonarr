@@ -236,12 +236,6 @@ export const defaultState = {
       return statistics.seasonCount;
     },
 
-    sizeOnDisk: function(item) {
-      const { statistics = {} } = item;
-
-      return statistics.sizeOnDisk;
-    },
-
     ratings: function(item) {
       const { ratings = {} } = item;
 
@@ -298,12 +292,16 @@ export const defaultState = {
       label: 'Network',
       type: filterBuilderTypes.STRING,
       optionsSelector: function(items) {
-        const tagList = items.map((series) => {
-          return {
-            id: series.network,
-            name: series.network
-          };
-        });
+        const tagList = items.reduce((acc, series) => {
+          if (series.network) {
+            acc.push({
+              id: series.network,
+              name: series.network
+            });
+          }
+
+          return acc;
+        }, []);
 
         return tagList.sort(sortByName);
       }

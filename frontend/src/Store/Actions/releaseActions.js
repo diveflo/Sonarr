@@ -93,6 +93,33 @@ export const defaultState = {
 
       // Default to false
       return false;
+    },
+
+    rejectionCount: function(item, value, type) {
+      const rejectionCount = item.rejections.length;
+
+      switch (type) {
+        case filterTypes.EQUAL:
+          return rejectionCount === value;
+
+        case filterTypes.GREATER_THAN:
+          return rejectionCount > value;
+
+        case filterTypes.GREATER_THAN_OR_EQUAL:
+          return rejectionCount >= value;
+
+        case filterTypes.LESS_THAN:
+          return rejectionCount < value;
+
+        case filterTypes.LESS_THAN_OR_EQUAL:
+          return rejectionCount <= value;
+
+        case filterTypes.NOT_EQUAL:
+          return rejectionCount !== value;
+
+        default:
+          return false;
+      }
     }
   },
 
@@ -141,8 +168,8 @@ export const defaultState = {
       valueType: filterBuilderValueTypes.QUALITY
     },
     {
-      name: 'rejections',
-      label: 'Rejections',
+      name: 'rejectionCount',
+      label: 'Rejection Count',
       type: filterBuilderTypes.NUMBER
     }
   ],
@@ -261,17 +288,16 @@ export const reducers = createHandleActions({
     const guid = payload.guid;
     const newState = Object.assign({}, state);
     const items = newState.items;
-
-    // Return early if there aren't any items (the user closed the modal)
-    if (!items.length) {
-      return;
-    }
-
     const index = items.findIndex((item) => item.guid === guid);
-    const item = Object.assign({}, items[index], payload);
 
-    newState.items = [...items];
-    newState.items.splice(index, 1, item);
+    // Don't try to update if there isnt a matching item (the user closed the modal)
+
+    if (index >= 0) {
+      const item = Object.assign({}, items[index], payload);
+
+      newState.items = [...items];
+      newState.items.splice(index, 1, item);
+    }
 
     return newState;
   },

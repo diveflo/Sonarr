@@ -39,17 +39,19 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
                 }
 
                 var episodeHistory = _historyService.FindByEpisodeId(episode.Id);
-                var lastImported = episodeHistory.FirstOrDefault(h => h.EventType == HistoryEventType.DownloadFolderImported);
-                var lastGrabbed = episodeHistory.FirstOrDefault(h => h.EventType == HistoryEventType.Grabbed);
+                var lastImported = episodeHistory.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.DownloadFolderImported);
+                var lastGrabbed = episodeHistory.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.Grabbed);
 
                 if (lastImported == null)
                 {
+                    _logger.Trace("Episode file has not been imported");
                     continue;
                 }
 
                 // If the release was grabbed again after importing don't reject it
                 if (lastGrabbed != null && lastGrabbed.Date.After(lastImported.Date))
                 {
+                    _logger.Trace("Episode file was grabbed again after importing");
                     continue;
                 }
 

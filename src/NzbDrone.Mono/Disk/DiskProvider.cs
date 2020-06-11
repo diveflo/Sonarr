@@ -56,29 +56,70 @@ namespace NzbDrone.Mono.Disk
 
         public override void InheritFolderPermissions(string filename)
         {
-            Ensure.That(filename, () => filename).IsValidPath();
 
+        }
+
+        public override void SetEveryonePermissions(string filename)
+        {
+            
+        }
+
+        public override void SetPermissions(string path, string mask)
+        {
+            Logger.Debug("Setting permissions: {0} on {1}", mask, path);
+
+            var permissions = NativeConvert.FromOctalPermissionString(mask);
+
+            if (Directory.Exists(path))
+            {
+                permissions = GetFolderPermissions(permissions);
+            }
+
+            if (Syscall.chmod(path, permissions) < 0)
+            {
+                var error = Stdlib.GetLastError();
+
+                throw new LinuxPermissionsException("Error setting permissions: " + error);
+            }
+        }
+
+        private static FilePermissions GetFolderPermissions(FilePermissions permissions)
+        {
+            permissions |= (FilePermissions) ((int) (permissions & (FilePermissions.S_IRUSR | FilePermissions.S_IRGRP | FilePermissions.S_IROTH)) >> 2);
+
+            return permissions;
+        }
+
+        public override bool IsValidFilePermissionMask(string mask)
+        {
             try
             {
-                var fs = File.GetAccessControl(filename);
-                fs.SetAccessRuleProtection(false, false);
-                File.SetAccessControl(filename, fs);
+                var permissions = NativeConvert.FromOctalPermissionString(mask);
+
+                if ((permissions & (FilePermissions.S_ISUID | FilePermissions.S_ISGID | FilePermissions.S_ISVTX)) != 0)
+                {
+                    return false;
+                }
+
+                if ((permissions & (FilePermissions.S_IXUSR | FilePermissions.S_IXGRP | FilePermissions.S_IXOTH)) != 0)
+                {
+                    return false;
+                }
+
+                if ((permissions & (FilePermissions.S_IRUSR | FilePermissions.S_IWUSR)) != (FilePermissions.S_IRUSR | FilePermissions.S_IWUSR))
+                {
+                    return false;
+                }
+
+                return true;
             }
-            catch (NotImplementedException)
+            catch (FormatException)
             {
-            }
-            catch (PlatformNotSupportedException)
-            {
+                return false;
             }
         }
 
-        public override void SetPermissions(string path, string mask, string user, string group)
-        {
-            SetPermissions(path, mask);
-            SetOwner(path, user, group);
-        }
-
-        public override void CopyPermissions(string sourcePath, string targetPath, bool includeOwner)
+        public override void CopyPermissions(string sourcePath, string targetPath)
         {
             try
             {
@@ -88,11 +129,6 @@ namespace NzbDrone.Mono.Disk
                 if (srcStat.st_mode != tgtStat.st_mode)
                 {
                     Syscall.chmod(targetPath, srcStat.st_mode);
-                }
-
-                if (includeOwner && (srcStat.st_uid != tgtStat.st_uid || srcStat.st_gid != tgtStat.st_gid))
-                {
-                    Syscall.chown(targetPath, srcStat.st_uid, srcStat.st_gid);
                 }
             }
             catch (Exception ex)
@@ -231,6 +267,18 @@ namespace NzbDrone.Mono.Disk
             // - In 6.6 it'll leave a zero length file
             // Catch the exception and attempt to handle these edgecases
 
+            // Mono 6.x till 6.10 doesn't properly try use rename first.
+            if (move && PlatformInfo.GetVersion() < new Version(6, 10))
+            {
+                if (Syscall.lstat(source, out var sourcestat) == 0 &&
+                    Syscall.lstat(destination, out var deststat) != 0 &&
+                    Syscall.rename(source, destination) == 0)
+                {
+                    _logger.Trace("Moved '{0}' -> '{1}' using Syscall.rename", source, destination);
+                    return;
+                }
+            }
+
             try
             {
                 if (move)
@@ -346,39 +394,6 @@ namespace NzbDrone.Mono.Disk
             {
                 Logger.Debug(ex, string.Format("Hardlink '{0}' to '{1}' failed.", source, destination));
                 return false;
-            }
-        }
-
-        private void SetPermissions(string path, string mask)
-        {
-            Logger.Debug("Setting permissions: {0} on {1}", mask, path);
-
-            var filePermissions = NativeConvert.FromOctalPermissionString(mask);
-
-            if (Syscall.chmod(path, filePermissions) < 0)
-            {
-                var error = Stdlib.GetLastError();
-
-                throw new LinuxPermissionsException("Error setting file permissions: " + error);
-            }
-        }
-
-        private void SetOwner(string path, string user, string group)
-        {
-            if (string.IsNullOrWhiteSpace(user) && string.IsNullOrWhiteSpace(group))
-            {
-                Logger.Debug("User and Group for chown not configured, skipping chown.");
-                return;
-            }
-
-            var userId = GetUserId(user);
-            var groupId = GetGroupId(group);
-
-            if (Syscall.chown(path, userId, groupId) < 0)
-            {
-                var error = Stdlib.GetLastError();
-
-                throw new LinuxPermissionsException("Error setting file owner and/or group: " + error);
             }
         }
 

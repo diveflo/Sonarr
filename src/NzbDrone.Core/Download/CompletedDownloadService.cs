@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NLog;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download.TrackedDownloads;
@@ -17,6 +19,7 @@ namespace NzbDrone.Core.Download
     {
         void Check(TrackedDownload trackedDownload);
         void Import(TrackedDownload trackedDownload);
+        bool VerifyImport(TrackedDownload trackedDownload, List<ImportResult> importResults);
     }
 
     public class CompletedDownloadService : ICompletedDownloadService
@@ -27,13 +30,15 @@ namespace NzbDrone.Core.Download
         private readonly IParsingService _parsingService;
         private readonly ISeriesService _seriesService;
         private readonly ITrackedDownloadAlreadyImported _trackedDownloadAlreadyImported;
+        private readonly Logger _logger;
 
         public CompletedDownloadService(IEventAggregator eventAggregator,
                                         IHistoryService historyService,
                                         IDownloadedEpisodesImportService downloadedEpisodesImportService,
                                         IParsingService parsingService,
                                         ISeriesService seriesService,
-                                        ITrackedDownloadAlreadyImported trackedDownloadAlreadyImported)
+                                        ITrackedDownloadAlreadyImported trackedDownloadAlreadyImported,
+                                        Logger logger)
         {
             _eventAggregator = eventAggregator;
             _historyService = historyService;
@@ -41,6 +46,7 @@ namespace NzbDrone.Core.Download
             _parsingService = parsingService;
             _seriesService = seriesService;
             _trackedDownloadAlreadyImported = trackedDownloadAlreadyImported;
+            _logger = logger;
         }
 
         public void Check(TrackedDownload trackedDownload)
@@ -106,36 +112,9 @@ namespace NzbDrone.Core.Download
             var importResults = _downloadedEpisodesImportService.ProcessPath(outputPath, ImportMode.Auto,
                 trackedDownload.RemoteEpisode.Series, trackedDownload.DownloadItem);
 
-            var allEpisodesImported = importResults.Where(c => c.Result == ImportResultType.Imported)
-                                                   .SelectMany(c => c.ImportDecision.LocalEpisode.Episodes)
-                                                   .Count() >= Math.Max(1,
-                                          trackedDownload.RemoteEpisode.Episodes.Count);
-
-            if (allEpisodesImported)
+            if (VerifyImport(trackedDownload, importResults))
             {
-                trackedDownload.State = TrackedDownloadState.Imported;
-                _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload));
                 return;
-            }
-
-            // Double check if all episodes were imported by checking the history if at least one
-            // file was imported. This will allow the decision engine to reject already imported
-            // episode files and still mark the download complete when all files are imported.
-
-            if (importResults.Any(c => c.Result == ImportResultType.Imported))
-            {
-                var historyItems = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId)
-                                                  .OrderByDescending(h => h.Date)
-                                                  .ToList();
-
-                var allEpisodesImportedInHistory = _trackedDownloadAlreadyImported.IsImported(trackedDownload, historyItems);
-
-                if (allEpisodesImportedInHistory)
-                {
-                    trackedDownload.State = TrackedDownloadState.Imported;
-                    _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload));
-                    return;
-                }
             }
 
             trackedDownload.State = TrackedDownloadState.ImportPending;
@@ -148,12 +127,57 @@ namespace NzbDrone.Core.Download
             if (importResults.Any(c => c.Result != ImportResultType.Imported))
             {
                 var statusMessages = importResults
-                    .Where(v => v.Result != ImportResultType.Imported)
+                    .Where(v => v.Result != ImportResultType.Imported && v.ImportDecision.LocalEpisode != null)
                     .Select(v => new TrackedDownloadStatusMessage(Path.GetFileName(v.ImportDecision.LocalEpisode.Path), v.Errors))
                     .ToArray();
 
                 trackedDownload.Warn(statusMessages);
             }
+        }
+
+        public bool VerifyImport(TrackedDownload trackedDownload, List<ImportResult> importResults)
+        {
+            var allEpisodesImported = importResults.Where(c => c.Result == ImportResultType.Imported)
+                                                   .SelectMany(c => c.ImportDecision.LocalEpisode.Episodes)
+                                                   .Count() >= Math.Max(1,
+                                          trackedDownload.RemoteEpisode.Episodes.Count);
+
+            if (allEpisodesImported)
+            {
+                _logger.Debug("All episodes were imported for {0}", trackedDownload.DownloadItem.Title);
+                trackedDownload.State = TrackedDownloadState.Imported;
+                _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload, trackedDownload.RemoteEpisode.Series.Id));
+                return true;
+            }
+
+            // Double check if all episodes were imported by checking the history if at least one
+            // file was imported. This will allow the decision engine to reject already imported
+            // episode files and still mark the download complete when all files are imported.
+
+            // EDGE CASE: This process relies on EpisodeIds being consistent between executions, if a series is updated 
+            // and an episode is removed, but later comes back with a different ID then Sonarr will treat it as incomplete.
+            // Since imports should be relatively fast and these types of data changes are infrequent this should be quite
+            // safe, but commenting for future benefit.
+
+            if (importResults.Any(c => c.Result == ImportResultType.Imported))
+            {
+                var historyItems = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId)
+                                                  .OrderByDescending(h => h.Date)
+                                                  .ToList();
+
+                var allEpisodesImportedInHistory = _trackedDownloadAlreadyImported.IsImported(trackedDownload, historyItems);
+
+                if (allEpisodesImportedInHistory)
+                {
+                    _logger.Debug("All episodes were imported in history for {0}", trackedDownload.DownloadItem.Title);
+                    trackedDownload.State = TrackedDownloadState.Imported;
+                    _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload, trackedDownload.RemoteEpisode.Series.Id));
+                    return true;
+                }
+            }
+
+            _logger.Debug("Not all episodes have been imported for {0}", trackedDownload.DownloadItem.Title);
+            return false;
         }
     }
 }

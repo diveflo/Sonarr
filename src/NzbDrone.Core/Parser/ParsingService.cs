@@ -57,6 +57,11 @@ namespace NzbDrone.Core.Parser
 
             var series = _seriesService.FindByTitle(parsedEpisodeInfo.SeriesTitle);
 
+            if (series == null && parsedEpisodeInfo.SeriesTitleInfo.AllTitles != null)
+            {
+                series = GetSeriesByAllTitles(parsedEpisodeInfo);
+            }
+
             if (series == null)
             {
                 series = _seriesService.FindByTitle(parsedEpisodeInfo.SeriesTitleInfo.TitleWithoutYear,
@@ -64,6 +69,49 @@ namespace NzbDrone.Core.Parser
             }
 
             return series;
+        }
+
+        private Series GetSeriesByAllTitles(ParsedEpisodeInfo parsedEpisodeInfo)
+        {
+            Series foundSeries = null;
+            int? foundTvdbId = null;
+
+            // Match each title individually, they must all resolve to the same tvdbid
+            foreach (var title in parsedEpisodeInfo.SeriesTitleInfo.AllTitles)
+            {
+                var series = _seriesService.FindByTitle(title);
+                var tvdbId = series?.TvdbId;
+
+                if (series == null)
+                {
+                    tvdbId = _sceneMappingService.FindTvdbId(title, parsedEpisodeInfo.ReleaseTitle);
+                }
+
+                if (!tvdbId.HasValue)
+                {
+                    _logger.Trace("Title {0} not matching any series.", title);
+                    return null;
+                }
+
+                if (foundTvdbId.HasValue && tvdbId != foundTvdbId)
+                {
+                    _logger.Trace("Title {0} both matches tvdbid {1} and {2}, no series selected.", parsedEpisodeInfo.SeriesTitle, foundTvdbId, tvdbId);
+                    return null;
+                }
+
+                if (foundSeries == null)
+                {
+                    foundSeries = series;
+                }
+                foundTvdbId = tvdbId;
+            }
+
+            if (foundSeries == null && foundTvdbId.HasValue)
+            {
+                foundSeries = _seriesService.FindByTvdbId(foundTvdbId.Value);
+            }
+
+            return foundSeries;
         }
 
         public RemoteEpisode Map(ParsedEpisodeInfo parsedEpisodeInfo, int tvdbId, int tvRageId, SearchCriteriaBase searchCriteria = null)
@@ -113,7 +161,7 @@ namespace NzbDrone.Core.Parser
 
             if (parsedEpisodeInfo.IsDaily)
             {
-                var episodeInfo = GetDailyEpisode(series, parsedEpisodeInfo.AirDate, searchCriteria);
+                var episodeInfo = GetDailyEpisode(series, parsedEpisodeInfo.AirDate, parsedEpisodeInfo.DailyPart, searchCriteria);
 
                 if (episodeInfo != null)
                 {
@@ -270,6 +318,11 @@ namespace NzbDrone.Core.Parser
 
             series = _seriesService.FindByTitle(parsedEpisodeInfo.SeriesTitle);
 
+            if (series == null && parsedEpisodeInfo.SeriesTitleInfo.AllTitles != null)
+            {
+                series = GetSeriesByAllTitles(parsedEpisodeInfo);
+            }
+
             if (series == null && parsedEpisodeInfo.SeriesTitleInfo.Year > 0)
             {
                 series = _seriesService.FindByTitle(parsedEpisodeInfo.SeriesTitleInfo.TitleWithoutYear, parsedEpisodeInfo.SeriesTitleInfo.Year);
@@ -314,7 +367,7 @@ namespace NzbDrone.Core.Parser
             return series;
         }
 
-        private Episode GetDailyEpisode(Series series, string airDate, SearchCriteriaBase searchCriteria)
+        private Episode GetDailyEpisode(Series series, string airDate, int? part, SearchCriteriaBase searchCriteria)
         {
             Episode episodeInfo = null;
 
@@ -326,7 +379,7 @@ namespace NzbDrone.Core.Parser
 
             if (episodeInfo == null)
             {
-                episodeInfo = _episodeService.FindEpisode(series.Id, airDate);
+                episodeInfo = _episodeService.FindEpisode(series.Id, airDate, part);
             }
 
             return episodeInfo;
@@ -402,13 +455,9 @@ namespace NzbDrone.Core.Parser
 
             if (sceneSource)
             {
-                var sceneMapping = _sceneMappingService.FindSceneMapping(parsedEpisodeInfo.SeriesTitle, parsedEpisodeInfo.ReleaseTitle);
-
-                if (sceneMapping != null && sceneMapping.SeasonNumber.HasValue && sceneMapping.SeasonNumber.Value >= 0 &&
-                    sceneMapping.SceneSeasonNumber == seasonNumber)
-                {
-                    seasonNumber = sceneMapping.SeasonNumber.Value;
-                }
+                seasonNumber = _sceneMappingService.GetTvdbSeasonNumber(parsedEpisodeInfo.SeriesTitle,
+                                                                        parsedEpisodeInfo.ReleaseTitle,
+                                                                        parsedEpisodeInfo.SeasonNumber);
             }
 
             if (parsedEpisodeInfo.EpisodeNumbers == null)
