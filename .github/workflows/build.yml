@@ -16,7 +16,7 @@ jobs:
       uses: NuGet/setup-nuget@v1.0.2
       
     - name: nuget restore
-      run: nuget restore
+      run: nuget restore src\Sonarr.sln
       
     - name: build
       run: msbuild src\Sonarr.sln /p:Configuration=Release
