@@ -1,28 +1,32 @@
 name: CI
 on:
   push:
-    branches: [ phantom-develop ]
+    branches: [phantom-develop]
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
-      
-    - name: setup msbuild
-      uses: microsoft/setup-msbuild@v1.0.0
-      
-    - name: setup nuget
-      uses: NuGet/setup-nuget@v1.0.2
-      
-    - name: nuget restore
-      run: nuget restore src\Sonarr.sln
-      
-    - name: build
-      run: msbuild src\Sonarr.sln /p:Configuration=Release /p:Platform=x86 /t:Build
-
-    - name: upload build artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: sonarr-hevc-build
-        path: _output
+      - uses: actions/checkout@v2
+      - name: setup msbuild
+        uses: microsoft/setup-msbuild@v1.0.0
+      - name: setup nuget
+        uses: NuGet/setup-nuget@v1.0.2
+      - name: nuget restore
+        run: nuget restore src\Sonarr.sln
+      - name: build
+        run: msbuild src\Sonarr.sln /p:Configuration=Release /p:Platform=x86 /t:Build
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "12"
+      - name: gulp/yarn
+        run: |
+          yarn install
+          yarn lint
+          yarn stylelint
+          yarn run build --production
+      - name: upload build artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: sonarr-hevc-build
+          path: _output
