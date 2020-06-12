@@ -27,8 +27,11 @@ jobs:
           yarn lint
           yarn stylelint
           yarn run build --production
+      - name: prepare artifact upload
+        shell: powershell
+        run: Rename-Item -Path .\_output\ -NewName Sonarr
       - name: upload build artifacts
         uses: actions/upload-artifact@v1
         with:
           name: sonarr-hevc-build
-          path: _output
+          path: Sonarr
