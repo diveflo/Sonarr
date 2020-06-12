@@ -1,0 +1,22 @@
+name: CI.build
+on:
+  push:
+    branches: [ phantom-develop ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: setup msbuild
+      uses: microsoft/setup-msbuild@v1.0.0
+      
+    - name: setup nuget
+      uses: NuGet/setup-nuget@v1.0.2
+      
+    - name: nuget restore
+      run: nuget restore
+      
+    - name: build
+      run: msbuild src\Sonarr.sln /p:Configuration=Release
