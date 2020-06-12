@@ -1,4 +1,4 @@
-name: CI.build
+name: CI
 on:
   push:
     branches: [ phantom-develop ]
@@ -21,8 +21,8 @@ jobs:
     - name: build
       run: msbuild src\Sonarr.sln /p:Configuration=Release /p:Platform=x86 /t:Build
 
-    - name: archive build
+    - name: upload build artifacts
       uses: actions/upload-artifact@v1
       with:
-        name: sonarr-linux
+        name: sonarr-hevc-build
         path: _output
