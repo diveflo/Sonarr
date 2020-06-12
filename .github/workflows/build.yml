@@ -7,6 +7,11 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
+      - name: log
+        shell: bash
+        run: |
+          echo {{github.event_name}}
+          echo {{github.ref}}
       - name: checkout
         uses: actions/checkout@v2
       - name: setup msbuild
