@@ -9,34 +9,29 @@ jobs:
   buildx:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: checkout
+      - name: checkout
         uses: actions/checkout@v2
-      -
-        name: prepare buildx
+      - name: prepare buildx
         id: buildx
         uses: crazy-max/ghaction-docker-buildx@v3
         with:
           buildx-version: latest
           qemu-version: latest
-      -
-        name: login dockerhub
+      - name: login dockerhub
         if: success() && github.event_name != 'pull_request'
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_ACCESSTOKEN }}
         run: |
           echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
-      -
-        name: build & push images
+      - name: build & push images
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm,linux/arm64/v8 \
             --output "type=image,push=true" \
             --tag floriang89/sonarr-hevc:latest \
             --file ./Dockerfile .
-      -
-        name: clear docker config
+      - name: clear docker config
         if: always() && github.event_name != 'pull_request'
         run: |
           rm -f ${HOME}/.docker/config.json
