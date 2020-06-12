@@ -7,7 +7,8 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: checkout
+        uses: actions/checkout@v2
       - name: setup msbuild
         uses: microsoft/setup-msbuild@v1.0.0
       - name: setup nuget
@@ -16,7 +17,8 @@ jobs:
         run: nuget restore src\Sonarr.sln
       - name: build
         run: msbuild src\Sonarr.sln /p:Configuration=Release /p:Platform=x86 /t:Build
-      - uses: actions/setup-node@v1
+      - name: setup node
+        uses: actions/setup-node@v1
         with:
           node-version: "12"
       - name: gulp/yarn
