@@ -35,3 +35,12 @@ jobs:
         with:
           name: sonarr-hevc-build
           path: Sonarr
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    steps:
+      - name: download build artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: sonarr-hevc-build
