@@ -42,7 +42,13 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: Github tagger
+        id: release-tagger
         uses: mosfetlang/dev-tagger-action@v1
+      - name: Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: steps.release-tagger.outputs.newTag
+          release_name: steps.release-tagger.outputs.newTag
       - name: download build artifacts
         uses: actions/download-artifact@v1
         with:
