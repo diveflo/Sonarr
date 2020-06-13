@@ -7,11 +7,6 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: log
-        shell: bash
-        run: |
-          echo {{github.event_name}}
-          echo {{github.ref}}
       - name: checkout
         uses: actions/checkout@v2
       - name: setup msbuild
@@ -43,8 +38,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs: build
-    if: contains(github.ref, 'refs/tags/')
     steps:
+      - name: Github tagger
+        uses: mosfetlang/dev-tagger-action@v1
       - name: download build artifacts
         uses: actions/download-artifact@v1
         with:
