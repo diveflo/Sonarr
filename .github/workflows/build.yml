@@ -61,8 +61,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: steps.release-tagger.outputs.newTag
-          release_name: steps.release-tagger.outputs.newTag
+          tag_name: ${{steps.release-tagger.outputs.newTag}}
+          release_name: Release ${{ steps.release-tagger.outputs.newTag }}
       - name: download build artifacts
         uses: actions/download-artifact@v1
         with:
