@@ -70,9 +70,6 @@ jobs:
         with:
           name: sonarr-hevc-build
           path: ${{runner.temp}}
-      - shell: pwsh
-        run: ls${{runner.temp}}
-      - run: ${{github.workspace}}
       - name: prepare release asset
         shell: pwsh
         run: Compress-Archive -Path ${{runner.temp}}/Sonarr -DestinationPath sonarr-hevc.zip
