@@ -69,7 +69,7 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: sonarr-hevc-build
-          path: ${{runner.temp}}
+          path: ${{runner.temp}}/Sonarr
       - name: prepare release asset
         shell: pwsh
         run: Compress-Archive -Path ${{runner.temp}}/Sonarr -DestinationPath sonarr-hevc.zip
