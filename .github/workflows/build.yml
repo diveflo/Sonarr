@@ -39,6 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: checkout
+        uses: actions/checkout@v2
       - name: Github tagger
         uses: mosfetlang/dev-tagger-action@v1
       - name: download build artifacts
