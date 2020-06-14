@@ -29,7 +29,7 @@ jobs:
           docker buildx build \
             --platform linux/amd64,linux/arm,linux/arm64/v8 \
             --output "type=image,push=true" \
-            --tag ${DOCKER_USERNAME}/sonarr-hevc:latest \
+            --tag "${DOCKER_USERNAME}"/sonarr-hevc:latest \
             --file ./Dockerfile .
       - name: clear docker config
         if: always()
