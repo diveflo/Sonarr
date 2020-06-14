@@ -17,21 +17,21 @@ COPY scripts/docker-entrypoint.sh /sbin/docker-entrypoint.sh
 RUN chmod 755 /sbin/docker-entrypoint.sh
 
 RUN \
- echo "**** install packages ****" && \
- rm -rf /var/lib/apt/lists/* && \
- apt-get update && \
- apt-get install -y --no-install-recommends \
-        jq wget && \
- echo "**** install sonarr ****" && \
- mkdir -p /opt/Sonarr && \
- wget https://github.com/diveflo/Sonarr/releases/latest/download/sonarr-hevc.zip -O /opt/sonarr-hevc.zip && \
- unzip /opt/sonarr-hevc.zip -d /opt && \
- echo "**** cleanup ****" && \
- apt-get clean && \
- rm -rf \
+	echo "**** install packages ****" && \
+	rm -rf /var/lib/apt/lists/* && \
+	apt-get update && \
+	apt-get install -y --no-install-recommends \
+	jq wget && \
+	echo "**** install sonarr ****" && \
+	mkdir -p /opt/Sonarr && \
+	wget https://github.com/diveflo/Sonarr/releases/latest/download/sonarr-hevc.zip -O /opt/sonarr-hevc.zip && \
+	unzip /opt/sonarr-hevc.zip -d /opt && \
+	echo "**** cleanup ****" && \
+	apt-get clean && \
+	rm -rf \
 	/tmp/* \
 	/var/tmp/* \
- rm /opt/sonarr-hevc.zip
+	rm /opt/sonarr-hevc.zip
 
 # ports and volumes
 EXPOSE 8989
