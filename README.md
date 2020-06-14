@@ -4,6 +4,8 @@ Sonarr is a PVR for Usenet and BitTorrent users. It can monitor multiple RSS fee
 
 # This fork
 
+![continuous integration](https://github.com/diveflo/Sonarr/workflows/continuous%20integration/badge.svg?branch=phantom-develop)
+
 This fork tracks the main branch of the original Sonarr/Sonarr repo but adds HEVC/x265 quality types. The following qualities are added:
 
 * Bluray-2160p-HEVC
