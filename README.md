@@ -21,6 +21,8 @@ This fork tracks the main branch of the original Sonarr/Sonarr repo but adds HEV
 
 Sonarr V3 will add prefered tags, similar to Radarr, to download HEVC/x265 content. However, this doesn't allow for the same configuration, e.g., cut-off, as adding specific quality types. Additionally, it will not upgrade your local file to the HEVC version once it comes available.
 
+The current build is always availble in the [Releases](https://github.com/diveflo/Sonarr/releases) section. Additionally, these releases are used to automatically build multi-arch docker images. These can be found on [dockerhub](https://hub.docker.com/r/floriang89/sonarr-hevc) for *linux/amd64*, *linux/arm/v7* and *linux/arm64/v8*.
+
 ## Getting Started
 
 - [Download](https://sonarr.tv/#download) (Linux, MacOS, Windows, Docker, etc.)
