@@ -83,16 +83,15 @@ jobs:
       - name: login dockerhub
         if: success()
         env:
-          DOCKER_USERNAME: floriang89
           DOCKER_PASSWORD: ${{ secrets.DOCKER_ACCESSTOKEN }}
         run: |
-          echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
+          echo "${DOCKER_PASSWORD}" | docker login --username floriang89 --password-stdin
       - name: build & push images
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm,linux/arm64/v8 \
             --output "type=image,push=true" \
-            --tag "${DOCKER_USERNAME}"/sonarr-hevc:latest \
+            --tag floriang89/sonarr-hevc:latest \
             --file ./Dockerfile .
       - name: clear docker config
         if: always()
