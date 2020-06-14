@@ -102,24 +102,32 @@ class ImportSeries extends Component {
           onScroll={this.onScroll}
         >
           {
-            rootFoldersFetching && !rootFoldersPopulated &&
-              <LoadingIndicator />
+            rootFoldersFetching ? <LoadingIndicator /> : null
           }
 
           {
-            !rootFoldersFetching && !!rootFoldersError &&
-              <div>Unable to load root folders</div>
+            !rootFoldersFetching && !!rootFoldersError ?
+              <div>Unable to load root folders</div> :
+              null
           }
 
           {
-            !rootFoldersError && rootFoldersPopulated && !unmappedFolders.length &&
+            !rootFoldersError &&
+            !rootFoldersFetching &&
+            rootFoldersPopulated &&
+            !unmappedFolders.length ?
               <div>
                 All series in {path} have been imported
-              </div>
+              </div> :
+              null
           }
 
           {
-            !rootFoldersError && rootFoldersPopulated && !!unmappedFolders.length && scroller &&
+            !rootFoldersError &&
+            !rootFoldersFetching &&
+            rootFoldersPopulated &&
+            !!unmappedFolders.length &&
+            scroller ?
               <ImportSeriesTableConnector
                 rootFolderId={rootFolderId}
                 unmappedFolders={unmappedFolders}
@@ -131,18 +139,22 @@ class ImportSeries extends Component {
                 onSelectAllChange={this.onSelectAllChange}
                 onSelectedChange={this.onSelectedChange}
                 onRemoveSelectedStateItem={this.onRemoveSelectedStateItem}
-              />
+              /> :
+              null
           }
         </PageContentBody>
 
         {
-          !rootFoldersError && rootFoldersPopulated && !!unmappedFolders.length &&
+          !rootFoldersError &&
+          !rootFoldersFetching &&
+          !!unmappedFolders.length ?
             <ImportSeriesFooterConnector
               selectedIds={this.getSelectedIds()}
               showLanguageProfile={showLanguageProfile}
               onInputChange={this.onInputChange}
               onImportPress={this.onImportPress}
-            />
+            /> :
+            null
         }
       </PageContent>
     );
