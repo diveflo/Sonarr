@@ -6,7 +6,7 @@ Sonarr is a PVR for Usenet and BitTorrent users. It can monitor multiple RSS fee
 
 ![continuous integration](https://github.com/diveflo/Sonarr/workflows/continuous%20integration/badge.svg?branch=phantom-develop)
 
-This fork tracks the main branch of the original Sonarr/Sonarr repo but adds HEVC/x265 quality types. The following qualities are added:
+This fork tracks the phantom-develop branch of the original Sonarr/Sonarr repo but adds HEVC/x265 quality types. The following qualities are added:
 
 * Bluray-2160p-HEVC
 * WEBDL-2160p-HEVC
@@ -19,7 +19,7 @@ This fork tracks the main branch of the original Sonarr/Sonarr repo but adds HEV
 * HDTV-720p-HEVC
 * DVD-HEVC
 
-Sonarr V3 will add prefered tags, similar to Radarr, to download HEVC/x265 content. However, this doesn't allow for the same configuration, e.g., cut-off, as adding specific quality types. Additionally, it will not upgrade your local file to the HEVC version once it comes available.
+Sonarr V3 added prefered tags, similar to Radarr, to download HEVC/x265 content. However, this doesn't allow for the same configuration, e.g., cut-off, as adding specific quality types. Additionally, it will not upgrade your local file to the HEVC version once it comes available.
 
 The current build is always availble in the [Releases](https://github.com/diveflo/Sonarr/releases) section. Additionally, these releases are used to automatically build multi-arch docker images. These can be found on [dockerhub](https://hub.docker.com/r/floriang89/sonarr-hevc) for *linux/amd64*, *linux/arm/v7* and *linux/arm64/v8*.
 
