@@ -10,7 +10,7 @@ LABEL maintainer="floriang89"
 # set environment variables
 ARG DEBIAN_FRONTEND="noninteractive"
 ENV XDG_CONFIG_HOME="/config/xdg"
-ENV SONARR_BRANCH="master"
+ENV SONARR_BRANCH="phandom-develop"
 
 COPY scripts/docker-entrypoint.sh /sbin/docker-entrypoint.sh
 
