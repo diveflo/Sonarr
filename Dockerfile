@@ -18,8 +18,9 @@ RUN chmod 755 /sbin/docker-entrypoint.sh
 
 RUN \
  echo "**** install packages ****" && \
+ rm -rf /var/lib/apt/lists/* && \
  apt-get update && \
- apt-get install -y \
+ apt-get install -y --no-install-recommends \
         jq wget && \
  echo "**** install sonarr ****" && \
  mkdir -p /opt/Sonarr && \
