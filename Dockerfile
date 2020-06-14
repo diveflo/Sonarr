@@ -25,7 +25,7 @@ RUN \
  echo "**** install sonarr ****" && \
  mkdir -p /opt/Sonarr && \
  wget https://github.com/diveflo/Sonarr/releases/latest/download/sonarr-hevc.zip -O /opt/sonarr-hevc.zip && \
- unzip /opt/sonarr-hevc.zip -d /opt \
+ unzip /opt/sonarr-hevc.zip -d /opt && \
  echo "**** cleanup ****" && \
  apt-get clean && \
  rm -rf \
