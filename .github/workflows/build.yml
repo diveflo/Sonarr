@@ -21,23 +21,10 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: "12"
-      - name: define yarn cache
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-        shell: bash
-      - name: cache yarn dependencies
-        uses: actions/cache@v2
-        id: yarn-cache
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-      - name: yarn dependencies
-        if: steps.yarn-cache.outputs.cache-hit != 'true'
-        run: yarn install
-      - name: yarn build
-        run: yarn run build --production
+      - name: yarn/gulp
+        run: |
+          yarn install
+          yarn run build --production
       - name: prepare artifact upload
         shell: powershell
         run: Rename-Item -Path .\_output\ -NewName Sonarr
