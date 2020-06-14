@@ -27,7 +27,10 @@ jobs:
           yarn run build --production
       - name: prepare artifact upload
         shell: powershell
-        run: Rename-Item -Path .\_output\ -NewName Sonarr
+        run: | 
+          Rename-Item -Path .\_output\ -NewName Sonarr
+          Remove-Item -Path .\Sonarr\Sonarr.exe
+          Rename-Item -Path .\Sonarr\Sonarr.Console.exe -NewName Sonarr.exe
       - name: upload build artifacts
         uses: actions/upload-artifact@v1
         with:
