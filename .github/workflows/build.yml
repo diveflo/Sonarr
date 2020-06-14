@@ -33,13 +33,15 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
-      - name: yarn install
+      - name: yarn dependencies
         if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: yarn install
+      - name: yarn linting
         run: |
-          yarn install
           yarn lint
           yarn stylelint
-          yarn run build --production
+      - name: yarn build
+        run: yarn run build --production
       - name: prepare artifact upload
         shell: powershell
         run: Rename-Item -Path .\_output\ -NewName Sonarr
@@ -74,7 +76,7 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path ${{runner.temp}}/Sonarr -DestinationPath sonarr-hevc.zip
       - name: upload release asset
-        id: upload-release-asset 
+        id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
