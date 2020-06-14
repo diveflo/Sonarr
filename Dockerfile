@@ -24,15 +24,14 @@ RUN \
         jq wget && \
  echo "**** install sonarr ****" && \
  mkdir -p /opt/Sonarr && \
-    wget https://github.com/diveflo/Sonarr/releases/latest/download/sonarr-hevc.zip -O /tmp/sonarr-hevc.zip && \
- tar xf \
-	/tmp/sonarr-hevc.zip -C \
-	/opt/Sonarr --strip-components=1 && \
+ wget https://github.com/diveflo/Sonarr/releases/latest/download/sonarr-hevc.zip -O /opt/sonarr-hevc.zip && \
+ unzip /opt/sonarr-hevc.zip -d /opt \
  echo "**** cleanup ****" && \
  apt-get clean && \
  rm -rf \
 	/tmp/* \
-	/var/tmp/*
+	/var/tmp/* \
+ rm /opt/sonarr-hevc.zip
 
 # ports and volumes
 EXPOSE 8989
