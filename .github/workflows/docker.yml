@@ -1,0 +1,35 @@
+name: docker
+
+on:
+  release:
+
+jobs:
+  buildx:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: prepare buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v3
+        with:
+          buildx-version: latest
+          qemu-version: latest
+      - name: login dockerhub
+        if: success()
+        env:
+          DOCKER_USERNAME: floriang89
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_ACCESSTOKEN }}
+        run: |
+          echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
+      - name: build & push images
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm,linux/arm64/v8 \
+            --output "type=image,push=true" \
+            --tag ${DOCKER_USERNAME}/sonarr-hevc:latest \
+            --file ./Dockerfile .
+      - name: clear docker config
+        if: always()
+        run: |
+          rm -f ${HOME}/.docker/config.json
