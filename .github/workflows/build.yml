@@ -36,10 +36,6 @@ jobs:
       - name: yarn dependencies
         if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: yarn install
-      - name: yarn linting
-        run: |
-          yarn lint
-          yarn stylelint
       - name: yarn build
         run: yarn run build --production
       - name: prepare artifact upload
