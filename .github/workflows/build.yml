@@ -1,4 +1,4 @@
-name: build & release
+name: continuous integration
 on:
   push:
     branches: [phantom-develop]
