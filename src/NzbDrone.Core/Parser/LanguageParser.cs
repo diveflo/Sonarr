@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Parser
                 new RegexReplace(@".*?\.(S\d{2}(?:E\d{2,4})*\..*)", "$1", RegexOptions.Compiled | RegexOptions.IgnoreCase)
             };
 
-        private static readonly Regex LanguageRegex = new Regex(@"(?:\W|_)(?<italian>\b(?:ita|italian)\b)|(?<german>german\b|videomann)|(?<flemish>flemish)|(?<greek>greek)|(?<french>(?:\W|_)(?:FR|VOSTFR)(?:\W|_))|(?<russian>\brus\b)|(?<dutch>nl\W?subs?)|(?<hungarian>\b(?:HUNDUB|HUN)\b)|(?<hebrew>\bHebDub\b)|(?<chinese>\[(?:CH[ST]|BIG5|GB)\]|简|繁|字幕)",
+        private static readonly Regex LanguageRegex = new Regex(@"(?:\W|_)(?<italian>\b(?:ita|italian)\b)|(?<german>german\b|videomann)|(?<flemish>flemish)|(?<greek>greek)|(?<french>(?:\W|_)(?:FR)(?:\W|_))|(?<russian>\brus\b)|(?<hungarian>\b(?:HUNDUB|HUN)\b)|(?<hebrew>\bHebDub\b)|(?<chinese>\[(?:CH[ST]|BIG5|GB)\]|简|繁|字幕)",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex CaseSensitiveLanguageRegex = new Regex(@"(?<lithuanian>\bLT\b)|(?<czech>\bCZ\b)",
@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Parser
 
         private static readonly Regex SubtitleLanguageRegex = new Regex(".+?[-_. ](?<iso_code>[a-z]{2,3})$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public static Language ParseLanguage(string title)
+        public static Language ParseLanguage(string title, bool defaultToEnglish = true)
         {
             foreach (var regex in CleanSeriesTitleRegex)
             {
@@ -78,9 +78,6 @@ namespace NzbDrone.Core.Parser
             if (lowerTitle.Contains("norwegian"))
                 return Language.Norwegian;
 
-            if (lowerTitle.Contains("nordic"))
-                return Language.Norwegian;
-
             if (lowerTitle.Contains("finnish"))
                 return Language.Finnish;
 
@@ -103,7 +100,7 @@ namespace NzbDrone.Core.Parser
                 return regexLanguage;
             }
 
-            return Language.English;
+            return defaultToEnglish ? Language.English : Language.Unknown;
         }
 
         public static Language ParseSubtitleLanguage(string fileName)

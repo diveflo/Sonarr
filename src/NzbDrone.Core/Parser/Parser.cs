@@ -68,17 +68,21 @@ namespace NzbDrone.Core.Parser
                 //Anime - [SubGroup] Title Season+Episode
                 new Regex(@"^(?:\[(?<subgroup>.+?)\](?:_|-|\s|\.)?)(?<title>.+?)(?:[-_\W](?<![()\[!]))+(?:S?(?<season>(?<!\d+)\d{1,2}(?!\d+))(?:(?:[ex]|\W[ex]){1,2}(?<episode>\d{2}(?!\d+)))+)(?:\s|\.).*?(?<hash>\[\w{8}\])?(?:$|\.)",
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
+                
+                //Anime - [SubGroup] Title with trailing number Absolute Episode Number
+                new Regex(@"^\[(?<subgroup>.+?)\][-_. ]?(?<title>[^-]+?)(?:(?<![-_. ]|\b[0]\d+) - )(?:[-_. ]?(?<absoluteepisode>\d{2,3}(\.\d{1,2})?(?!\d+)))+(?:[-_. ]+(?<special>special|ova|ovd))?.*?(?<hash>\[\w{8}\])?(?:$|\.mkv)",
+                          RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Anime - [SubGroup] Title with trailing number Absolute Episode Number
-                new Regex(@"^\[(?<subgroup>.+?)\][-_. ]?(?<title>[^-]+?)(?:(?<![-_. ]|[0]\d+)[-_. ]+)(?:[-_. ]?(?<absoluteepisode>\d{3}(\.\d{1,2})?(?!\d+)))+(?:[-_. ]+(?<special>special|ova|ovd))?.*?(?<hash>\[\w{8}\])?(?:$|\.mkv)",
+                new Regex(@"^\[(?<subgroup>.+?)\][-_. ]?(?<title>[^-]+?)(?:(?<![-_. ]|\b[0]\d+)[_ ]+)(?:[-_. ]?(?<absoluteepisode>\d{3}(\.\d{1,2})?(?!\d+)))+(?:[-_. ]+(?<special>special|ova|ovd))?.*?(?<hash>\[\w{8}\])?(?:$|\.mkv)",
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Anime - [SubGroup] Title - Absolute Episode Number
-                new Regex(@"^\[(?<subgroup>.+?)\][-_. ]?(?<title>.+?)(?:(?<![0]\d+))(?:[. ]-[. ](?<absoluteepisode>\d{2,3}(\.\d{1,2})?(?!\d+|[-])))+(?:[-_. ]+(?<special>special|ova|ovd))?.*?(?<hash>\[\w{8}\])?(?:$|\.mkv)",
+                new Regex(@"^\[(?<subgroup>.+?)\][-_. ]?(?<title>.+?)(?:(?<!\b[0]\d+))(?:[. ]-[. ](?<absoluteepisode>\d{2,3}(\.\d{1,2})?(?!\d+|[-])))+(?:[-_. ]+(?<special>special|ova|ovd))?.*?(?<hash>\[\w{8}\])?(?:$|\.mkv)",
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Anime - [SubGroup] Title Absolute Episode Number - Absolute Episode Number (batches without full separator between title and absolute episode numbers)
-                new Regex(@"^\[(?<subgroup>.+?)\][-_. ]?(?<title>.+?)(?:(?<![0]\d+))(?<absoluteepisode>\d{2,3}(\.\d{1,2})?(?!\d+|[-]))[. ]-[. ](?<absoluteepisode>\d{2,3}(\.\d{1,2})?(?!\d+|[-]))(?:[-_. ]+(?<special>special|ova|ovd))?.*?(?<hash>\[\w{8}\])?(?:$|\.mkv)",
+                new Regex(@"^\[(?<subgroup>.+?)\][-_. ]?(?<title>.+?)(?:(?<!\b[0]\d+))(?<absoluteepisode>\d{2,3}(\.\d{1,2})?(?!\d+|[-]))[. ]-[. ](?<absoluteepisode>\d{2,3}(\.\d{1,2})?(?!\d+|[-]))(?:[-_. ]+(?<special>special|ova|ovd))?.*?(?<hash>\[\w{8}\])?(?:$|\.mkv)",
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Anime - [SubGroup] Title Absolute Episode Number
@@ -138,7 +142,7 @@ namespace NzbDrone.Core.Parser
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 // Multi-season pack
-                new Regex(@"^(?<title>.+?)[-_. ]+S(?<season>(?<!\d+)(?:\d{1,2})(?!\d+))-(?<season>(?<!\d+)(?:\d{1,2})(?!\d+))",
+                new Regex(@"^(?<title>.+?)[-_. ]+S(?<season>(?<!\d+)(?:\d{1,2})(?!\d+))-S?(?<season>(?<!\d+)(?:\d{1,2})(?!\d+))",
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 // Partial season pack
@@ -205,6 +209,12 @@ namespace NzbDrone.Core.Parser
                 new Regex(@"^(?<title>.+?)(?:_|-|\s|\.)+S(?<season>\d{2}(?!\d+))(\W-\W)E(?<episode>(?<!\d+)\d{2}(?!\d+))(?!\\)",
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
+                // Season and episode numbers in square brackets (single and mult-episode)
+                // Series Title - [02x01] - Episode 1
+                // Series Title - [02x01x02] - Episode 1
+                new Regex(@"^(?<title>.+?)?(?:[-_\W](?<![()\[!]))+\[(?<season>(?<!\d+)\d{1,2})(?:(?:-|x){1,2}(?<episode>\d{2}))+\].+?(?:\.|$)",
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled), 
+
                 // Anime - Title with season number - Absolute Episode Number (Title S01 - EP14)
                 new Regex(@"^(?<title>.+?S\d{1,2})[-_. ]{3,}(?:EP)?(?<absoluteepisode>\d{2,3}(\.\d{1,2})?(?!\d+|[-]))",
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
@@ -268,7 +278,7 @@ namespace NzbDrone.Core.Parser
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Anime - Title Absolute Episode Number (e66)
-                new Regex(@"^(?:\[(?<subgroup>.+?)\][-_. ]?)?(?<title>.+?)(?:(?:_|-|\s|\.)+(?:e|ep)(?<absoluteepisode>\d{2,3}(\.\d{1,2})?))+.*?(?<hash>\[\w{8}\])?(?:$|\.)",
+                new Regex(@"^(?:\[(?<subgroup>.+?)\][-_. ]?)?(?<title>.+?)(?:(?:_|-|\s|\.)+(?:e|ep)(?<absoluteepisode>\d{2,4}(\.\d{1,2})?))+.*?(?<hash>\[\w{8}\])?(?:$|\.)",
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Anime - Title Episode Absolute Episode Number (Series Title Episode 01)
@@ -329,6 +339,11 @@ namespace NzbDrone.Core.Parser
 
                 // 170424_26 - Started appearing August 2018
                 new Regex(@"^\d{6}_\d{2}$"),
+            };
+
+        private static readonly Regex[] SeasonFolderRegexes = new Regex[]
+            {
+                new Regex(@"^(Season[ ._-]*\d+|Specials)$", RegexOptions.Compiled)
             };
 
         //Regex to detect whether the title was reversed.
@@ -575,9 +590,8 @@ namespace NzbDrone.Core.Parser
         public static string NormalizeEpisodeTitle(string title)
         {
             var match = SpecialEpisodeTitleRegex
-                .Select(v => v.Match(title))
-                .Where(v => v.Success)
-                .FirstOrDefault();
+                        .Select(v => v.Match(title))
+                        .FirstOrDefault(v => v.Success);
 
             if (match != null)
             {
@@ -905,6 +919,12 @@ namespace NzbDrone.Core.Parser
             if (RejectHashedReleasesRegexes.Any(v => v.IsMatch(titleWithoutExtension)))
             {
                 Logger.Debug("Rejected Hashed Release Title: " + title);
+                return false;
+            }
+
+            if (SeasonFolderRegexes.Any(v => v.IsMatch(titleWithoutExtension)))
+            {
+                Logger.Debug("Rejected Season Folder Release Title: " + title);
                 return false;
             }
 

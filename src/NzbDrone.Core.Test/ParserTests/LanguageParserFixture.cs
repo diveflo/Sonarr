@@ -33,7 +33,6 @@ namespace NzbDrone.Core.Test.ParserTests
         }
 
         [TestCase("Castle.2009.S01E14.French.HDTV.XviD-LOL")]
-        [TestCase("Extant.S01E01.VOSTFR.HDTV.x264-RiDERS")]
         [TestCase("Shield,.The.1x13.Tueurs.De.Flics.FR.DVDRip.XviD")]
         public void should_parse_language_french(string postTitle)
         {
@@ -73,8 +72,6 @@ namespace NzbDrone.Core.Test.ParserTests
         }
 
         [TestCase("Castle.2009.S01E14.Dutch.HDTV.XviD-LOL")]
-        [TestCase("Constantine.2014.S01E01.WEBRiP.H264.AAC.5.1-NL.SUBS")]
-        [TestCase("Ray Donovan - S01E01.720p.HDtv.x264-Evolve (NLsub)")]
         public void should_parse_language_dutch(string postTitle)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
@@ -152,7 +149,6 @@ namespace NzbDrone.Core.Test.ParserTests
         }
 
         [TestCase("Castle.2009.S01E14.Norwegian.HDTV.XviD-LOL")]
-        [TestCase("Revolution S01E03 No Quarter 2012 WEB-DL 720p Nordic-philipo mkv")]
         public void should_parse_language_norwegian(string postTitle)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
@@ -210,7 +206,6 @@ namespace NzbDrone.Core.Test.ParserTests
             result.Language.Id.Should().Be(Language.Hebrew.Id);
         }
 
-
         [TestCase("Prison.Break.S05E01.WEBRip.x264.AC3.LT.EN-CNN")]
         public void should_parse_language_lithuanian(string postTitle)
         {
@@ -218,14 +213,12 @@ namespace NzbDrone.Core.Test.ParserTests
             result.Language.Id.Should().Be(Language.Lithuanian.Id);
         }
 
-
         [TestCase("The.​Walking.​Dead.​S07E11.​WEB Rip.​XviD.​Louige-​CZ.​EN.​5.​1")]
         public void should_parse_language_czech(string postTitle)
         {
             var result = Parser.Parser.ParseTitle(postTitle);
             result.Language.Id.Should().Be(Language.Czech.Id);
         }
-
 
         [TestCase("Russian.Puppets.S01E07.Cold.Action.HDTV.XviD-Droned")]
         [TestCase("Russian.Puppets.S01E07E08.Cold.Action.HDTV.XviD-Droned")]
@@ -235,6 +228,5 @@ namespace NzbDrone.Core.Test.ParserTests
             var result = Parser.Parser.ParseTitle(postTitle);
             result.Language.Name.Should().Be(Language.English.Name);
         }
-
     }
 }

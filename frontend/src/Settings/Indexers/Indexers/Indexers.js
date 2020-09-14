@@ -63,6 +63,8 @@ class Indexers extends Component {
       isEditIndexerModalOpen
     } = this.state;
 
+    const showPriority = items.some((index) => index.priority !== 25);
+
     return (
       <FieldSet legend="Indexers">
         <PageSectionContent
@@ -76,6 +78,7 @@ class Indexers extends Component {
                   <Indexer
                     key={item.id}
                     {...item}
+                    showPriority={showPriority}
                     onCloneIndexerPress={this.onCloneIndexerPress}
                     onConfirmDeleteIndexer={onConfirmDeleteIndexer}
                   />

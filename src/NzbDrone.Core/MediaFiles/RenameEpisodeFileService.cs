@@ -90,8 +90,7 @@ namespace NzbDrone.Core.MediaFiles
                 }
 
                 var seasonNumber = episodesInFile.First().SeasonNumber;
-                var newName = _filenameBuilder.BuildFileName(episodesInFile, series, file);
-                var newPath = _filenameBuilder.BuildFilePath(series, seasonNumber, newName, Path.GetExtension(episodeFilePath));
+                var newPath = _filenameBuilder.BuildFilePath(episodesInFile, series, file, Path.GetExtension(episodeFilePath));
 
                 if (!episodeFilePath.PathEquals(newPath, StringComparison.Ordinal))
                 {
@@ -154,6 +153,8 @@ namespace NzbDrone.Core.MediaFiles
             _logger.ProgressInfo("Renaming {0} files for {1}", episodeFiles.Count, series.Title);
             RenameFiles(episodeFiles, series);
             _logger.ProgressInfo("Selected episode files renamed for {0}", series.Title);
+
+            _eventAggregator.PublishEvent(new RenameCompletedEvent());
         }
 
         public void Execute(RenameSeriesCommand message)
@@ -168,6 +169,8 @@ namespace NzbDrone.Core.MediaFiles
                 RenameFiles(episodeFiles, series);
                 _logger.ProgressInfo("All episode files renamed for {0}", series.Title);
             }
+
+            _eventAggregator.PublishEvent(new RenameCompletedEvent());
         }
     }
 }

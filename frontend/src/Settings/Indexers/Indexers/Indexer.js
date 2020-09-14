@@ -68,7 +68,9 @@ class Indexer extends Component {
       enableAutomaticSearch,
       enableInteractiveSearch,
       supportsRss,
-      supportsSearch
+      supportsSearch,
+      priority,
+      showPriority
     } = this.props;
 
     return (
@@ -84,7 +86,7 @@ class Indexer extends Component {
 
           <IconButton
             className={styles.cloneButton}
-            title="Clone Profile"
+            title="Clone Indexer"
             name={icons.CLONE}
             onPress={this.onCloneIndexerPress}
           />
@@ -113,6 +115,12 @@ class Indexer extends Component {
               </Label>
           }
 
+          {
+            showPriority &&
+              <Label kind={kinds.DEFAULT}>
+                Priority: {priority}
+              </Label>
+          }
           {
             !enableRss && !enableAutomaticSearch && !enableInteractiveSearch &&
             <Label
@@ -148,11 +156,13 @@ class Indexer extends Component {
 Indexer.propTypes = {
   id: PropTypes.number.isRequired,
   name: PropTypes.string.isRequired,
+  priority: PropTypes.number.isRequired,
   enableRss: PropTypes.bool.isRequired,
   enableAutomaticSearch: PropTypes.bool.isRequired,
   enableInteractiveSearch: PropTypes.bool.isRequired,
   supportsRss: PropTypes.bool.isRequired,
   supportsSearch: PropTypes.bool.isRequired,
+  showPriority: PropTypes.bool.isRequired,
   onCloneIndexerPress: PropTypes.func.isRequired,
   onConfirmDeleteIndexer: PropTypes.func.isRequired
 };
