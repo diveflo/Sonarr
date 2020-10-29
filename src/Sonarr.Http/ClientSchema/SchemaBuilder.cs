@@ -104,9 +104,16 @@ namespace Sonarr.Http.ClientSchema
                         Section = fieldAttribute.Section
                     };
 
-                    if (fieldAttribute.Type == FieldType.Select)
+                    if (fieldAttribute.Type == FieldType.Select || fieldAttribute.Type == FieldType.TagSelect)
                     {
-                        field.SelectOptions = GetSelectOptions(fieldAttribute.SelectOptions);
+                        if (fieldAttribute.SelectOptionsProviderAction.IsNotNullOrWhiteSpace())
+                        {
+                            field.SelectOptionsProviderAction = fieldAttribute.SelectOptionsProviderAction;
+                        }
+                        else
+                        {
+                            field.SelectOptions = GetSelectOptions(fieldAttribute.SelectOptions);
+                        }
                     }
 
                     if (fieldAttribute.Hidden != HiddenType.Visible)
@@ -144,10 +151,34 @@ namespace Sonarr.Http.ClientSchema
 
         private static List<SelectOption> GetSelectOptions(Type selectOptions)
         {
-            var options = from Enum e in Enum.GetValues(selectOptions)
-                          select new SelectOption { Value = Convert.ToInt32(e), Name = e.ToString() };
+            var options = selectOptions.GetFields().Where(v => v.IsStatic).Select(v =>
+            {
+                var name = v.Name.Replace('_', ' ');
+                var value = Convert.ToInt32(v.GetRawConstantValue());
+                var attrib = v.GetCustomAttribute<FieldOptionAttribute>();
+                if (attrib != null)
+                {
+                    return new SelectOption
+                    {
+                        Value = value,
+                        Name = attrib.Label ?? name,
+                        Order = attrib.Order,
+                        Hint = attrib.Hint ?? $"({value})"
+                    };
+                }
+                else
+                {
+                    return new SelectOption
+                    {
+                        Value = value,
+                        Name = name,
+                        Order = value,
+                        Hint = $"({value})"
+                    };
+                }
+            });
 
-            return options.OrderBy(o => o.Value).ToList();
+            return options.OrderBy(o => o.Order).ToList();
         }
 
         private static Func<object, object> GetValueConverter(Type propertyType)

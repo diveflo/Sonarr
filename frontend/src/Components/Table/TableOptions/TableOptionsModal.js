@@ -2,7 +2,7 @@ import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { DndProvider } from 'react-dnd';
-import HTML5Backend from 'react-dnd-html5-backend';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { inputTypes } from 'Helpers/Props';
 import Button from 'Components/Link/Button';
 import Form from 'Components/Form/Form';
@@ -136,7 +136,7 @@ class TableOptionsModal extends Component {
             isOpen ?
               <ModalContent onModalClose={onModalClose}>
                 <ModalHeader>
-            Table Options
+                  Table Options
                 </ModalHeader>
 
                 <ModalBody>
@@ -231,7 +231,7 @@ class TableOptionsModal extends Component {
                   <Button
                     onPress={onModalClose}
                   >
-              Close
+                    Close
                   </Button>
                 </ModalFooter>
               </ModalContent> :

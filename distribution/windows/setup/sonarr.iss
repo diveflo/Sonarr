@@ -37,13 +37,14 @@ Compression=lzma2/normal
 AppContact={#ForumsURL}
 VersionInfoVersion={#BuildNumber}
 SetupLogging=yes
+OutputDir=output
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopIcon"; Description: "{cm:CreateDesktopIcon}"
-Name: "windowsService"; Description: "Install Windows Service (Starts when the computer starts)"; GroupDescription: "Start automatically"; Flags: exclusive unchecked
+Name: "windowsService"; Description: "Install Windows Service (Starts when the computer starts as the LocalService user, you will need to change the user to access network shares)"; GroupDescription: "Start automatically"; Flags: exclusive unchecked
 Name: "startupShortcut"; Description: "Create shortcut in Startup folder (Starts when you log into Windows)"; GroupDescription: "Start automatically"; Flags: exclusive
 Name: "none"; Description: "Do not start automatically"; GroupDescription: "Start automatically"; Flags: exclusive unchecked
 
@@ -59,6 +60,7 @@ Name: "{userstartup}\{#AppName}"; Filename: "{app}\Sonarr.exe"; WorkingDir: "{ap
 
 [InstallDelete]
 Name: "{commonappdata}\NzbDrone\bin"; Type: filesandordirs
+Name: "{app}"; Type: filesandordirs
 
 [Run]
 Filename: "{app}\Sonarr.Console.exe"; StatusMsg: "Removing previous Windows Service"; Parameters: "/u"; Flags: runhidden waituntilterminated;
@@ -75,7 +77,8 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
 begin
-  Exec(ExpandConstant('{commonappdata}\NzbDrone\bin\NzbDrone.Console.exe'), '/u', '', 0, ewWaitUntilTerminated, ResultCode)
+  Exec('net', 'stop nzbdrone', '', 0, ewWaitUntilTerminated, ResultCode)
+  Exec('sc', 'delete nzbdrone', '', 0, ewWaitUntilTerminated, ResultCode)
 end;
 
 function Framework472IsNotInstalled(): Boolean;

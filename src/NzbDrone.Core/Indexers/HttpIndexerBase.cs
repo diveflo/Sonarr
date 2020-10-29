@@ -332,22 +332,29 @@ namespace NzbDrone.Core.Indexers
             {
                 var parser = GetParser();
                 var generator = GetRequestGenerator();
-                var releases = FetchPage(generator.GetRecentRequests().GetAllTiers().First().First(), parser);
+                var firstRequest = generator.GetRecentRequests().GetAllTiers().FirstOrDefault()?.FirstOrDefault();
+
+                if (firstRequest == null)
+                {
+                    return new ValidationFailure(string.Empty, "No rss feed query available. This may be an issue with the indexer or your indexer category settings.");
+                }
+
+                var releases = FetchPage(firstRequest, parser);
 
                 if (releases.Empty())
                 {
                     return new ValidationFailure(string.Empty, "Query successful, but no results were returned from your indexer. This may be an issue with the indexer or your indexer category settings.");
                 }
             }
-            catch (ApiKeyException)
+            catch (ApiKeyException ex)
             {
-                _logger.Warn("Indexer returned result for RSS URL, API Key appears to be invalid");
+                _logger.Warn("Indexer returned result for RSS URL, API Key appears to be invalid: " + ex.Message);
 
                 return new ValidationFailure("ApiKey", "Invalid API Key");
             }
-            catch (RequestLimitReachedException)
+            catch (RequestLimitReachedException ex)
             {
-                _logger.Warn("Request limit reached");
+                _logger.Warn("Request limit reached: " + ex.Message);
             }
             catch (CloudFlareCaptchaException ex)
             {

@@ -142,7 +142,7 @@ output/*
 _start
 
 src/.idea/
-
+/distribution/windows/setup/output/*
 
 #lock files
 yarn.lock

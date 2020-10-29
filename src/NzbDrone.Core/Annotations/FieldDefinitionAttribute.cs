@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace NzbDrone.Core.Annotations
 {
@@ -18,8 +19,33 @@ namespace NzbDrone.Core.Annotations
         public FieldType Type { get; set; }
         public bool Advanced { get; set; }
         public Type SelectOptions { get; set; }
+        public string SelectOptionsProviderAction { get; set; }
         public string Section { get; set; }
         public HiddenType Hidden { get; set; }
+        public PrivacyLevel Privacy { get; set; }
+    }
+
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
+    public class FieldOptionAttribute : Attribute
+    {
+        public FieldOptionAttribute([CallerLineNumber] int order = 0, string label = null)
+        {
+            Order = order;
+            Label = label;
+        }
+
+        public int Order { get; private set; }
+        public string Label { get; set; }
+        public string Hint { get; set; }
+    }
+
+    public class FieldSelectOption
+    {
+        public int Value { get; set; }
+        public string Name { get; set; }
+        public int Order { get; set; }
+        public string Hint { get; set; }
+        public int? ParentValue { get; set; }
     }
 
     public enum FieldType
@@ -36,7 +62,8 @@ namespace NzbDrone.Core.Annotations
         Url,
         Captcha,
         OAuth,
-        Device
+        Device,
+        TagSelect
     }
 
     public enum HiddenType
@@ -44,5 +71,13 @@ namespace NzbDrone.Core.Annotations
         Visible,
         Hidden,
         HiddenIfNotSet
+    }
+
+    public enum PrivacyLevel
+    {
+        Normal,
+        Password,
+        ApiKey,
+        UserName
     }
 }

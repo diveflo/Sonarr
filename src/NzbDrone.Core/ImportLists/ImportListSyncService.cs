@@ -125,18 +125,19 @@ namespace NzbDrone.Core.ImportLists
                         RootFolderPath = importList.RootFolderPath,
                         QualityProfileId = importList.QualityProfileId,
                         LanguageProfileId = importList.LanguageProfileId,
+                        SeriesType = importList.SeriesType,
+                        SeasonFolder = importList.SeasonFolder,
                         Tags = importList.Tags,
-                        SeasonFolder = true,
                         AddOptions = new AddSeriesOptions
-                        {
-                            SearchForMissingEpisodes = monitored,
-                            Monitor = importList.ShouldMonitor
-                        }
+                                     {
+                                         SearchForMissingEpisodes = monitored,
+                                         Monitor = importList.ShouldMonitor
+                                     }
                     });
                 }
             }
 
-            _addSeriesService.AddSeries(seriesToAdd);
+            _addSeriesService.AddSeries(seriesToAdd, true);
 
             var message = string.Format("Import List Sync Completed. Items found: {0}, Series added: {1}", reports.Count, seriesToAdd.Count);
 
