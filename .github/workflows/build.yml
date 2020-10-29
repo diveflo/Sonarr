@@ -16,7 +16,7 @@ jobs:
       - name: build
         run: msbuild src\Sonarr.sln /p:Configuration=Release /p:Platform=x86 /t:Build
       - name: setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2.1.2
         with:
           node-version: "12"
       - name: yarn/gulp
@@ -85,10 +85,8 @@ jobs:
           qemu-version: latest
       - name: login dockerhub
         if: success()
-        env:
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_ACCESSTOKEN }}
         run: |
-          echo "${DOCKER_PASSWORD}" | docker login --username floriang89 --password-stdin
+          echo "${{ secrets.DOCKER_ACCESSTOKEN }}" | docker login --username floriang89 --password-stdin
       - name: build & push images
         run: |
           docker buildx build \
