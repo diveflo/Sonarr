@@ -29,6 +29,7 @@ jobs:
           Rename-Item -Path .\_output\ -NewName Sonarr
           Remove-Item -Path .\Sonarr\Sonarr.exe
           Rename-Item -Path .\Sonarr\Sonarr.Console.exe -NewName Sonarr.exe
+          Copy-Item -Path .\src\NzbDrone.Core\Sonarr.Core.dll.config -Destination .\Sonarr
       - name: upload build artifacts
         uses: actions/upload-artifact@v1
         with:
