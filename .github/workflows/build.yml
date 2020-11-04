@@ -42,17 +42,20 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v2
-      - name: Github tagger
-        id: release-tagger
-        uses: mosfetlang/dev-tagger-action@v1
+      - name: latest tag
+        uses: richardsimko/update-tag@master
+        with:
+          tag_name: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: create release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{steps.release-tagger.outputs.newTag}}
-          release_name: Release ${{ steps.release-tagger.outputs.newTag }}
+          tag_name: latest
+          release_name: latest
       - name: download build artifacts
         uses: actions/download-artifact@v1
         with:
