@@ -120,7 +120,7 @@ namespace NzbDrone.Core.Parser
                 {
                     if (codecRegex.Groups["xvid"].Success || codecRegex.Groups["divx"].Success)
                     {
-                        result.Quality = Quality.DVD;
+                        result.Quality = Quality.Bluray480p;
                         return result;
                     }                    
 
