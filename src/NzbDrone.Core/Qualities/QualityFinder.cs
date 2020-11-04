@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Reflection;
 using NLog;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.Parser.Model;
@@ -11,7 +12,7 @@ namespace NzbDrone.Core.Qualities
 
         public static Quality FindBySourceAndResolution(QualitySource source, int resolution)
         {
-            var matchingQuality = Quality.All.SingleOrDefault(q => q.Source == source && q.Resolution == resolution);
+            var matchingQuality = Quality.All.SingleOrDefault(q => q.Source == source && q.Resolution == resolution && !q.Name.EndsWith("HEVC"));
 
             if (matchingQuality != null)
             {
@@ -40,18 +41,26 @@ namespace NzbDrone.Core.Qualities
 
         public static Quality FindBySourceResolutionAndCodec(QualitySource source, int resolution, LocalEpisode episode)
         {
-            var qualityMaybeHEVC = Quality.All.Where(q => q.Source == source && q.Resolution == resolution).ToList();
-            if (qualityMaybeHEVC.Count() == 1)
+            var sourceAndResolutionMatch = Quality.All.Where(q => q.Source == source && q.Resolution == resolution).ToList();
+            if (sourceAndResolutionMatch.Count() == 1)
             {
-                return qualityMaybeHEVC.SingleOrDefault();
+                return sourceAndResolutionMatch.SingleOrDefault();
             }
-            var mediaInfo = episode.MediaInfo;
-            string videoFormat = mediaInfo.VideoFormat;
-            if (qualityMaybeHEVC.Any(q => q.Name.EndsWith(videoFormat)))
+
+            var hevcQuality = sourceAndResolutionMatch.Single(m => m.Name.EndsWith("HEVC"));
+            sourceAndResolutionMatch.Remove(hevcQuality);
+
+            var mediaInfo = episode?.MediaInfo;
+            string videoFormat = mediaInfo?.VideoFormat;
+
+            if (videoFormat == "HEVC")
             {
-                return qualityMaybeHEVC.SingleOrDefault(q => q.Name.EndsWith(videoFormat));
+                return hevcQuality;
             }
-            return qualityMaybeHEVC.FirstOrDefault();
+            else
+            {
+                return sourceAndResolutionMatch.Single();
+            }
         }
     }
 }
