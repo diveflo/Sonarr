@@ -8,15 +8,15 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: setup msbuild
-        uses: microsoft/setup-msbuild@v1.0.0
+        uses: microsoft/setup-msbuild@v1
       - name: setup nuget
-        uses: NuGet/setup-nuget@v1.0.2
+        uses: NuGet/setup-nuget@v1
       - name: nuget restore
         run: nuget restore src\Sonarr.sln
       - name: build
         run: msbuild src\Sonarr.sln /p:Configuration=Release /p:Platform=x86 /t:Build
       - name: setup node
-        uses: actions/setup-node@v2.1.2
+        uses: actions/setup-node@v1
         with:
           node-version: "12"
       - name: yarn/gulp
