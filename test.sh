@@ -17,7 +17,7 @@ rm -f "$TEST_LOG_FILE"
 
 NUNIT="$TEST_DIR/NUnit.ConsoleRunner.3.10.0/tools/nunit3-console.exe"
 NUNIT_COMMAND="$NUNIT"
-NUNIT_PARAMS="--teamcity --workers=1"
+#NUNIT_PARAMS="--teamcity --workers=1"
 
 if [ "$PLATFORM" = "Windows" ]; then
   WHERE="$WHERE && cat != LINUX"

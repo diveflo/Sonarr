@@ -11,6 +11,8 @@ jobs:
         uses: microsoft/setup-msbuild@v1
       - name: setup nuget
         uses: NuGet/setup-nuget@v1
+        with:
+          nuget-version: '>=5.8.0'
       - name: nuget restore
         run: nuget restore src\Sonarr.sln
       - name: build
