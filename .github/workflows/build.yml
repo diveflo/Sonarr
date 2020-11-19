@@ -44,12 +44,6 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v2
-      - name: latest tag
-        uses: richardsimko/update-tag@master
-        with:
-          tag_name: latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: download build artifacts
         uses: actions/download-artifact@v1
         with:
@@ -62,6 +56,14 @@ jobs:
         uses: dev-drprasad/delete-tag-and-release@v0.1.2
         with:
           tag_name: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: latest tag
+        uses: richardsimko/update-tag@master
+        with:
+          tag_name: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: create latest release
         id: create_release
         uses: actions/create-release@v1
