@@ -59,6 +59,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: create release
+        id: create_release
         uses: GongT/actions-recreate-release@v1
         with:
           tag_name: latest
