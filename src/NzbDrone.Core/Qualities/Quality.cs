@@ -145,6 +145,7 @@ namespace NzbDrone.Core.Qualities
                 new QualityDefinition(Quality.WEBRip480p)  { Weight = 3,  MinSize = 2, MaxSize = 100,  GroupName = "WEB 480p" },
                 new QualityDefinition(Quality.WEBDL480p)   { Weight = 3,  MinSize = 2, MaxSize = 100,  GroupName = "WEB 480p" },
                 new QualityDefinition(Quality.DVD)         { Weight = 4,  MinSize = 2, MaxSize = 100,  GroupName = "DVD" },
+                new QualityDefinition(Quality.DVDHEVC)     { Weight = 4,  MinSize = 2, MaxSize = 100,  GroupName = "DVD"},
                 new QualityDefinition(Quality.Bluray480p)  { Weight = 5,  MinSize = 2, MaxSize = 100,  GroupName = "DVD" },
                 new QualityDefinition(Quality.HDTV720p)    { Weight = 6,  MinSize = 3, MaxSize = 125 },
                 new QualityDefinition(Quality.HDTV1080p)   { Weight = 7,  MinSize = 4, MaxSize = 125 },
