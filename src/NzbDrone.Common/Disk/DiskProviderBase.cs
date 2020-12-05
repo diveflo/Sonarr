@@ -32,7 +32,8 @@ namespace NzbDrone.Common.Disk
         public abstract long? GetAvailableSpace(string path);
         public abstract void InheritFolderPermissions(string filename);
         public abstract void SetEveryonePermissions(string filename);
-        public abstract void SetPermissions(string path, string mask);
+        public abstract void SetFilePermissions(string path, string mask, string group);
+        public abstract void SetPermissions(string path, string mask, string group);
         public abstract void CopyPermissions(string sourcePath, string targetPath);
         public abstract long? GetTotalSize(string path);
 
@@ -509,7 +510,7 @@ namespace NzbDrone.Common.Disk
             }
         }
 
-        public virtual bool IsValidFilePermissionMask(string mask)
+        public virtual bool IsValidFolderPermissionMask(string mask)
         {
             throw new NotSupportedException();
         }
