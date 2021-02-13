@@ -222,12 +222,7 @@ namespace NzbDrone.Api.Series
 
             if (mappings == null) return;
 
-            resource.AlternateTitles = mappings.Select(v => new AlternateTitleResource
-                                                            {
-                                                                Title = v.Title,
-                                                                SeasonNumber = v.SeasonNumber,
-                                                                SceneSeasonNumber = v.SceneSeasonNumber
-                                                            }).ToList();
+            resource.AlternateTitles = mappings.ConvertAll(AlternateTitleResourceMapper.ToResource);
         }
 
         public void Handle(EpisodeImportedEvent message)

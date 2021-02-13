@@ -15,14 +15,10 @@ namespace NzbDrone.Core.DataAugmentation.Scene
     public interface ISceneMappingService
     {
         List<string> GetSceneNames(int tvdbId, List<int> seasonNumbers, List<int> sceneSeasonNumbers);
-        List<SceneMapping> GetSceneMappings(int tvdbId, List<int> seasonNumbers);
-        int? FindTvdbId(string sceneTitle, string releaseTitle);
+        int? FindTvdbId(string sceneTitle, string releaseTitle, int sceneSeasonNumber);
         List<SceneMapping> FindByTvdbId(int tvdbId);
-        SceneMapping FindSceneMapping(string sceneTitle, string releaseTitle);
+        SceneMapping FindSceneMapping(string sceneTitle, string releaseTitle, int sceneSeasonNumber);
         int? GetSceneSeasonNumber(string seriesTitle, string releaseTitle);
-        int? GetTvdbSeasonNumber(string seriesTitle, string releaseTitle);
-        int GetTvdbSeasonNumber(string seriesTitle, string releaseTitle, int sceneSeasonNumber);
-        int? GetSceneSeasonNumber(int tvdbId, int seasonNumber);
     }
 
     public class SceneMappingService : ISceneMappingService,
@@ -60,37 +56,18 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                 return new List<string>();
             }
 
-            var names = mappings.Where(n => n.SeasonNumber.HasValue && seasonNumbers.Contains(n.SeasonNumber.Value) ||
-                                            n.SceneSeasonNumber.HasValue && sceneSeasonNumbers.Contains(n.SceneSeasonNumber.Value) ||
-                                            (n.SeasonNumber ?? -1) == -1 && (n.SceneSeasonNumber ?? -1) == -1)
+            var names = mappings.Where(n => seasonNumbers.Contains(n.SeasonNumber ?? -1) ||
+                                            sceneSeasonNumbers.Contains(n.SceneSeasonNumber ?? -1) ||
+                                            (n.SeasonNumber ?? -1) == -1 && (n.SceneSeasonNumber ?? -1) == -1 && n.SceneOrigin != "tvdb")
+                                .Where(n => IsEnglish(n.SearchTerm))
                                 .Select(n => n.SearchTerm).Distinct().ToList();
 
-            return FilterNonEnglish(names);
+            return names;
         }
 
-        public List<SceneMapping> GetSceneMappings(int tvdbId, List<int> seasonNumbers)
+        public int? FindTvdbId(string seriesTitle, string releaseTitle, int sceneSeasonNumber)
         {
-            var mappings = FindByTvdbId(tvdbId);
-
-            if (mappings == null)
-            {
-                return new List<SceneMapping>();
-            }
-
-            return mappings.Where(n => seasonNumbers.Contains(n.SeasonNumber ?? -1) &&
-                                       (n.SceneSeasonNumber ?? -1) != -1)
-                           .Where(n => IsEnglish(n.SearchTerm))
-                           .ToList();
-        }
-
-        public int? FindTvdbId(string seriesTitle)
-        {
-            return FindTvdbId(seriesTitle, null);
-        }
-
-        public int? FindTvdbId(string seriesTitle, string releaseTitle)
-        {
-            return FindSceneMapping(seriesTitle, releaseTitle)?.TvdbId;
+            return FindSceneMapping(seriesTitle, releaseTitle, sceneSeasonNumber)?.TvdbId;
         }
 
         public List<SceneMapping> FindByTvdbId(int tvdbId)
@@ -110,7 +87,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
             return mappings;
         }
 
-        public SceneMapping FindSceneMapping(string seriesTitle, string releaseTitle)
+        public SceneMapping FindSceneMapping(string seriesTitle, string releaseTitle, int sceneSeasonNumber)
         {
             var mappings = FindMappings(seriesTitle, releaseTitle);
 
@@ -118,6 +95,8 @@ namespace NzbDrone.Core.DataAugmentation.Scene
             {
                 return null;
             }
+
+            mappings = FilterSceneMappings(mappings, sceneSeasonNumber);
 
             var distinctMappings = mappings.DistinctBy(v => v.TvdbId).ToList();
 
@@ -138,45 +117,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
 
         public int? GetSceneSeasonNumber(string seriesTitle, string releaseTitle)
         {
-            return FindSceneMapping(seriesTitle, releaseTitle)?.SceneSeasonNumber;
-        }
-
-        public int? GetTvdbSeasonNumber(string seriesTitle, string releaseTitle)
-        {
-            return FindSceneMapping(seriesTitle, releaseTitle)?.SeasonNumber;
-        }
-
-        public int GetTvdbSeasonNumber(string seriesTitle, string releaseTitle, int sceneSeasonNumber)
-        {
-            var sceneMapping = FindSceneMapping(seriesTitle, releaseTitle);
-
-            if (sceneMapping != null && sceneMapping.SeasonNumber.HasValue && sceneMapping.SeasonNumber.Value >= 0 &&
-                sceneMapping.SceneSeasonNumber <= sceneSeasonNumber)
-            {
-                var offset = sceneSeasonNumber - sceneMapping.SceneSeasonNumber.Value;
-                return sceneMapping.SeasonNumber.Value + offset;
-            }
-
-            return sceneSeasonNumber;
-        }
-
-        public int? GetSceneSeasonNumber(int tvdbId, int seasonNumber)
-        {
-            var mappings = FindByTvdbId(tvdbId);
-
-            if (mappings == null)
-            {
-                return null;
-            }
-
-            var mapping = mappings.FirstOrDefault(e => e.SeasonNumber == seasonNumber && e.SceneSeasonNumber.HasValue);
-
-            if (mapping == null)
-            {
-                return null;
-            }
-
-            return mapping.SceneSeasonNumber;
+            return FindSceneMapping(seriesTitle, releaseTitle, -1)?.SceneSeasonNumber;
         }
 
         private void UpdateMappings()
@@ -295,9 +236,29 @@ namespace NzbDrone.Core.DataAugmentation.Scene
             return normalCandidates;
         }
 
-        private List<string> FilterNonEnglish(List<string> titles)
+        private List<SceneMapping> FilterSceneMappings(List<SceneMapping> candidates, int sceneSeasonNumber)
         {
-            return titles.Where(IsEnglish).ToList();
+            var filteredCandidates = candidates.Where(v => (v.SceneSeasonNumber ?? -1) != -1 && (v.SeasonNumber ?? -1) != -1).ToList();
+            var normalCandidates = candidates.Except(filteredCandidates).ToList();
+
+            if (sceneSeasonNumber == -1)
+            {
+                return normalCandidates;
+            }
+
+            if (filteredCandidates.Any())
+            {
+                filteredCandidates = filteredCandidates.Where(v => v.SceneSeasonNumber <= sceneSeasonNumber)
+                                                       .GroupBy(v => v.Title)
+                                                       .Select(d => d.OrderByDescending(v => v.SceneSeasonNumber)
+                                                                     .ThenByDescending(v => v.SeasonNumber)
+                                                                     .First())
+                                                       .ToList();
+
+                return filteredCandidates;
+            }
+
+            return normalCandidates;
         }
 
         private bool IsEnglish(string title)

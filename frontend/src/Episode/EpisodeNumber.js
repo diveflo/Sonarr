@@ -1,21 +1,12 @@
 import PropTypes from 'prop-types';
 import React, { Fragment } from 'react';
 import padNumber from 'Utilities/Number/padNumber';
+import filterAlternateTitles from 'Utilities/Series/filterAlternateTitles';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import Icon from 'Components/Icon';
 import Popover from 'Components/Tooltip/Popover';
 import SceneInfo from './SceneInfo';
 import styles from './EpisodeNumber.css';
-
-function getAlternateTitles(seasonNumber, sceneSeasonNumber, alternateTitles) {
-  return alternateTitles.filter((alternateTitle) => {
-    if (sceneSeasonNumber && sceneSeasonNumber === alternateTitle.sceneSeasonNumber) {
-      return true;
-    }
-
-    return seasonNumber === alternateTitle.seasonNumber;
-  });
-}
 
 function getWarningMessage(unverifiedSceneNumbering, seriesType, absoluteEpisodeNumber) {
   const messages = [];
@@ -39,13 +30,14 @@ function EpisodeNumber(props) {
     sceneSeasonNumber,
     sceneEpisodeNumber,
     sceneAbsoluteEpisodeNumber,
+    useSceneNumbering,
     unverifiedSceneNumbering,
     alternateTitles: seriesAlternateTitles,
     seriesType,
     showSeasonNumber
   } = props;
 
-  const alternateTitles = getAlternateTitles(seasonNumber, sceneSeasonNumber, seriesAlternateTitles);
+  const alternateTitles = filterAlternateTitles(seriesAlternateTitles, null, useSceneNumbering, seasonNumber, sceneSeasonNumber);
 
   const hasSceneInformation = sceneSeasonNumber !== undefined ||
     sceneEpisodeNumber !== undefined ||
@@ -81,6 +73,8 @@ function EpisodeNumber(props) {
             title="Scene Information"
             body={
               <SceneInfo
+                seasonNumber={seasonNumber}
+                episodeNumber={episodeNumber}
                 sceneSeasonNumber={sceneSeasonNumber}
                 sceneEpisodeNumber={sceneEpisodeNumber}
                 sceneAbsoluteEpisodeNumber={sceneAbsoluteEpisodeNumber}
@@ -131,6 +125,7 @@ EpisodeNumber.propTypes = {
   sceneSeasonNumber: PropTypes.number,
   sceneEpisodeNumber: PropTypes.number,
   sceneAbsoluteEpisodeNumber: PropTypes.number,
+  useSceneNumbering: PropTypes.bool.isRequired,
   unverifiedSceneNumbering: PropTypes.bool.isRequired,
   alternateTitles: PropTypes.arrayOf(PropTypes.object).isRequired,
   seriesType: PropTypes.string,
@@ -138,6 +133,7 @@ EpisodeNumber.propTypes = {
 };
 
 EpisodeNumber.defaultProps = {
+  useSceneNumbering: false,
   unverifiedSceneNumbering: false,
   alternateTitles: [],
   showSeasonNumber: false

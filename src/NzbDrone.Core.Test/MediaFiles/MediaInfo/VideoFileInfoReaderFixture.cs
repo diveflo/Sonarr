@@ -50,7 +50,10 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
             info.AudioProfile.Should().BeOneOf("", "LC");
             info.AudioCodecLibrary.Should().Be("");
             info.AudioBitrate.Should().Be(128000);
-            info.AudioChannels.Should().Be(2);
+            info.AudioChannelsContainer.Should().Be(2);
+            info.AudioChannelsStream.Should().Be(0);
+            info.AudioChannelPositionsTextContainer.Should().Be("Front: L R");
+            info.AudioChannelPositionsTextStream.Should().Be("");
             info.AudioLanguages.Should().Be("English");
             info.Height.Should().Be(320);
             info.RunTime.Seconds.Should().Be(10);
@@ -62,6 +65,8 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
             info.VideoColourPrimaries.Should().Be("BT.601 NTSC");
             info.VideoTransferCharacteristics.Should().Be("BT.709");
             info.AudioAdditionalFeatures.Should().BeOneOf("", "LC");
+            info.VideoHdrFormat.Should().BeEmpty();
+            info.VideoHdrFormatCompatibility.Should().BeEmpty();
 
         }
 
@@ -89,7 +94,10 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
             info.AudioProfile.Should().BeOneOf("", "LC");
             info.AudioCodecLibrary.Should().Be("");
             info.AudioBitrate.Should().Be(128000);
-            info.AudioChannels.Should().Be(2);
+            info.AudioChannelsContainer.Should().Be(2);
+            info.AudioChannelsStream.Should().Be(0);
+            info.AudioChannelPositionsTextContainer.Should().Be("Front: L R");
+            info.AudioChannelPositionsTextStream.Should().Be("");
             info.AudioLanguages.Should().Be("English");
             info.Height.Should().Be(320);
             info.RunTime.Seconds.Should().Be(10);
@@ -101,6 +109,8 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
             info.VideoColourPrimaries.Should().Be("BT.601 NTSC");
             info.VideoTransferCharacteristics.Should().Be("BT.709");
             info.AudioAdditionalFeatures.Should().BeOneOf("", "LC");
+            info.VideoHdrFormat.Should().BeEmpty();
+            info.VideoHdrFormatCompatibility.Should().BeEmpty();
         }
 
         [Test]

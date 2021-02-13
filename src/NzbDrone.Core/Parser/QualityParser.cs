@@ -46,7 +46,11 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex RealRegex = new Regex(@"\b(?<real>REAL)\b",
                                                                 RegexOptions.Compiled);
 
-        private static readonly Regex ResolutionRegex = new Regex(@"\b(?:(?<R360p>360p)|(?<R480p>480p|640x480|848x480)|(?<R576p>576p)|(?<R720p>720p|1280x720)|(?<R1080p>1080p|1920x1080|1440p|FHD|1080i)|(?<R2160p>2160p|4k[-_. ](?:UHD|HEVC|BD)|(?:UHD|HEVC|BD)[-_. ]4k))\b",
+        private static readonly Regex ResolutionRegex = new Regex(@"\b(?:(?<R360p>360p)|(?<R480p>480p|640x480|848x480)|(?<R576p>576p)|(?<R720p>720p|1280x720)|(?<R1080p>1080p|1920x1080|1440p|FHD|1080i|4kto1080p)|(?<R2160p>2160p|4k[-_. ](?:UHD|HEVC|BD)|(?:UHD|HEVC|BD)[-_. ]4k))\b",
+                                                                RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        //Handle cases where no resolution is in the release name; assume if UHD then 4k
+        private static readonly Regex ImpliedResolutionRegex = new Regex(@"\b(?<R2160p>UHD)\b",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<h265>h265)|(?<x265>x265)|(?<x264>x264)|(?<h264>h264)|(?<xvidhd>XvidHD)|(?<xvid>Xvid)|(?<divx>divx))\b",
@@ -55,6 +59,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex OtherSourceRegex = new Regex(@"(?<hdtv>HD[-_. ]TV)|(?<sdtv>SD[-_. ]TV)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex AnimeBlurayRegex = new Regex(@"bd(?:720|1080|2160)|(?<=[-_. (\[])bd(?=[-_. )\]])", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex AnimeWebDlRegex = new Regex(@"\[WEB\]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex HighDefPdtvRegex = new Regex(@"hr[-_. ]ws", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -406,6 +411,39 @@ namespace NzbDrone.Core.Parser
                 return result;
             }
 
+            if (AnimeWebDlRegex.Match(normalizedName).Success)
+            {
+                result.SourceDetectionSource = QualityDetectionSource.Name;
+
+                if (resolution == Resolution.R360P || resolution == Resolution.R480P ||
+                    resolution == Resolution.R576p || normalizedName.ContainsIgnoreCase("480p"))
+                {
+                    result.ResolutionDetectionSource = QualityDetectionSource.Name;
+                    result.Quality = Quality.WEBDL480p;
+
+                    return result;
+                }
+
+                if (resolution == Resolution.R1080p || normalizedName.ContainsIgnoreCase("1080p"))
+                {
+                    result.ResolutionDetectionSource = QualityDetectionSource.Name;
+                    result.Quality = Quality.WEBDL1080p;
+
+                    return result;
+                }
+
+                if (resolution == Resolution.R2160p || normalizedName.ContainsIgnoreCase("2160p"))
+                {
+                    result.ResolutionDetectionSource = QualityDetectionSource.Name;
+                    result.Quality = Quality.WEBDL2160p;
+
+                    return result;
+                }
+
+                result.Quality = Quality.WEBDL720p;
+                return result;
+            }
+
             if (resolution != Resolution.Unknown)
             {
                 var source = QualitySource.Unknown;
@@ -597,13 +635,17 @@ namespace NzbDrone.Core.Parser
         {
             var match = ResolutionRegex.Match(name);
 
-            if (!match.Success) return Resolution.Unknown;
+            var matchimplied = ImpliedResolutionRegex.Match(name);
+
+            if (!match.Success & !matchimplied.Success) return Resolution.Unknown;
             if (match.Groups["R360p"].Success) return Resolution.R360P;
             if (match.Groups["R480p"].Success) return Resolution.R480P;
             if (match.Groups["R576p"].Success) return Resolution.R576p;
             if (match.Groups["R720p"].Success) return Resolution.R720p;
             if (match.Groups["R1080p"].Success) return Resolution.R1080p;
             if (match.Groups["R2160p"].Success) return Resolution.R2160p;
+
+            if (matchimplied.Groups["R2160p"].Success) return Resolution.R2160p;
 
             return Resolution.Unknown;
         }

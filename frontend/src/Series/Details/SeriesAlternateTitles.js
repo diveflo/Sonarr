@@ -9,10 +9,14 @@ function SeriesAlternateTitles({ alternateTitles }) {
         alternateTitles.map((alternateTitle) => {
           return (
             <li
-              key={alternateTitle}
+              key={alternateTitle.title}
               className={styles.alternateTitle}
             >
-              {alternateTitle}
+              {alternateTitle.title}
+              {
+                alternateTitle.comment &&
+                <span className={styles.comment}> {alternateTitle.comment}</span>
+              }
             </li>
           );
         })
@@ -22,7 +26,7 @@ function SeriesAlternateTitles({ alternateTitles }) {
 }
 
 SeriesAlternateTitles.propTypes = {
-  alternateTitles: PropTypes.arrayOf(PropTypes.string).isRequired
+  alternateTitles: PropTypes.arrayOf(PropTypes.object).isRequired
 };
 
 export default SeriesAlternateTitles;

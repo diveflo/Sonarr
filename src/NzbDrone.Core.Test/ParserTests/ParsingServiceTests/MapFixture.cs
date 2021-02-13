@@ -26,8 +26,8 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
         public void Setup()
         {
             _series = Builder<Series>.CreateNew()
-                .With(s => s.Title = "30 Rock")
-                .With(s => s.CleanTitle = "rock")
+                .With(s => s.Title = "30 Stone")
+                .With(s => s.CleanTitle = "stone")
                 .Build();
 
             _episodes = Builder<Episode>.CreateListOfSize(1)
@@ -51,10 +51,6 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
                 SeasonNumber = _episodes.First().SeasonNumber,
                 Episodes = _episodes
             };
-
-            Mocker.GetMock<ISceneMappingService>()
-                  .Setup(v => v.GetTvdbSeasonNumber(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
-                  .Returns<string, string, int>((s, r, i) => i);
         }
 
         private void GivenMatchBySeriesTitle()
@@ -122,8 +118,8 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
             GivenMatchByTvRageId();
 
             Mocker.GetMock<ISceneMappingService>()
-                  .Setup(v => v.FindTvdbId(It.IsAny<string>(), It.IsAny<string>()))
-                  .Returns(10);
+                  .Setup(v => v.FindSceneMapping(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
+                  .Returns(new SceneMapping { TvdbId = 10 });
 
             var result = Subject.Map(_parsedEpisodeInfo, _series.TvdbId, _series.TvRageId);
 
@@ -203,7 +199,7 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
         public void should_use_tvdbid_matching_when_alias_is_found()
         {
             Mocker.GetMock<ISceneMappingService>()
-                  .Setup(s => s.FindTvdbId(It.IsAny<string>(), It.IsAny<string>()))
+                  .Setup(s => s.FindTvdbId(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
                   .Returns(_series.TvdbId);
 
             Subject.Map(_parsedEpisodeInfo, _series.TvdbId, _series.TvRageId, _singleEpisodeSearchCriteria);

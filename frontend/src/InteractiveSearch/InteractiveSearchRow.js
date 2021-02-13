@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import formatAge from 'Utilities/Number/formatAge';
 import formatBytes from 'Utilities/Number/formatBytes';
+import formatPreferredWordScore from 'Utilities/Number/formatPreferredWordScore';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import Icon from 'Components/Icon';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
@@ -14,6 +15,7 @@ import Popover from 'Components/Tooltip/Popover';
 import EpisodeLanguage from 'Episode/EpisodeLanguage';
 import EpisodeQuality from 'Episode/EpisodeQuality';
 import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
+import ReleaseSceneIndicator from './ReleaseSceneIndicator';
 import Peers from './Peers';
 import styles from './InteractiveSearchRow.css';
 
@@ -114,8 +116,17 @@ class InteractiveSearchRow extends Component {
       quality,
       language,
       preferredWordScore,
+      sceneMapping,
+      seasonNumber,
+      episodeNumbers,
+      absoluteEpisodeNumbers,
+      mappedSeasonNumber,
+      mappedEpisodeNumbers,
+      mappedAbsoluteEpisodeNumbers,
       rejections,
+      episodeRequested,
       downloadAllowed,
+      isDaily,
       isGrabbing,
       isGrabbed,
       longDateFormat,
@@ -142,6 +153,18 @@ class InteractiveSearchRow extends Component {
           <Link to={infoUrl}>
             {title}
           </Link>
+          <ReleaseSceneIndicator
+            className={styles.sceneMapping}
+            seasonNumber={mappedSeasonNumber}
+            episodeNumbers={mappedEpisodeNumbers}
+            absoluteEpisodeNumbers={mappedAbsoluteEpisodeNumbers}
+            sceneSeasonNumber={seasonNumber}
+            sceneEpisodeNumbers={episodeNumbers}
+            sceneAbsoluteEpisodeNumbers={absoluteEpisodeNumbers}
+            sceneMapping={sceneMapping}
+            episodeRequested={episodeRequested}
+            isDaily={isDaily}
+          />
         </TableRowCell>
 
         <TableRowCell className={styles.indexer}>
@@ -171,8 +194,7 @@ class InteractiveSearchRow extends Component {
         </TableRowCell>
 
         <TableRowCell className={styles.preferredWordScore}>
-          {preferredWordScore > 0 && `+${preferredWordScore}`}
-          {preferredWordScore < 0 && preferredWordScore}
+          {formatPreferredWordScore(preferredWordScore)}
         </TableRowCell>
 
         <TableRowCell className={styles.rejected}>
@@ -245,8 +267,17 @@ InteractiveSearchRow.propTypes = {
   quality: PropTypes.object.isRequired,
   language: PropTypes.object.isRequired,
   preferredWordScore: PropTypes.number.isRequired,
+  sceneMapping: PropTypes.object,
+  seasonNumber: PropTypes.number,
+  episodeNumbers: PropTypes.arrayOf(PropTypes.number),
+  absoluteEpisodeNumbers: PropTypes.arrayOf(PropTypes.number),
+  mappedSeasonNumber: PropTypes.number,
+  mappedEpisodeNumbers: PropTypes.arrayOf(PropTypes.number),
+  mappedAbsoluteEpisodeNumbers: PropTypes.arrayOf(PropTypes.number),
   rejections: PropTypes.arrayOf(PropTypes.string).isRequired,
+  episodeRequested: PropTypes.bool.isRequired,
   downloadAllowed: PropTypes.bool.isRequired,
+  isDaily: PropTypes.bool.isRequired,
   isGrabbing: PropTypes.bool.isRequired,
   isGrabbed: PropTypes.bool.isRequired,
   grabError: PropTypes.string,

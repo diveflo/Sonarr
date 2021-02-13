@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             _proxy = proxy;
         }
 
-        public override string Link => "https://github.com/Sonarr/Sonarr/wiki/Webhook";
+        public override string Link => "https://wiki.servarr.com/Sonarr_Settings#Connections";
 
         public override void OnGrab(GrabMessage message)
         {
@@ -71,6 +71,31 @@ namespace NzbDrone.Core.Notifications.Webhook
             {
                 EventType = WebhookEventType.Rename,
                 Series = new WebhookSeries(series)
+            };
+
+            _proxy.SendWebhook(payload, Settings);
+        }
+
+        public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        {
+            var payload = new WebhookEpisodeDeletePayload
+            {
+                EventType = WebhookEventType.EpisodeFileDelete,
+                Series = new WebhookSeries(deleteMessage.Series),
+                Episodes = deleteMessage.EpisodeFile.Episodes.Value.ConvertAll(x => new WebhookEpisode(x)),
+                DeleteReason = deleteMessage.Reason                
+            };
+
+            _proxy.SendWebhook(payload, Settings);
+        }
+
+        public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        {
+            var payload = new WebhookSeriesDeletePayload
+            {
+                EventType = WebhookEventType.SeriesDelete,
+                Series = new WebhookSeries(deleteMessage.Series),
+                DeletedFiles = deleteMessage.DeletedFiles
             };
 
             _proxy.SendWebhook(payload, Settings);

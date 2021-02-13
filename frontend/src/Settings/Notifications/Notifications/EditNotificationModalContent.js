@@ -42,11 +42,17 @@ function EditNotificationModalContent(props) {
     onDownload,
     onUpgrade,
     onRename,
+    onSeriesDelete,
+    onEpisodeFileDelete,
+    onEpisodeFileDeleteForUpgrade,
     onHealthIssue,
     supportsOnGrab,
     supportsOnDownload,
     supportsOnUpgrade,
     supportsOnRename,
+    supportsOnSeriesDelete,
+    supportsOnEpisodeFileDelete,
+    supportsOnEpisodeFileDeleteForUpgrade,
     supportsOnHealthIssue,
     includeHealthWarnings,
     tags,
@@ -149,6 +155,49 @@ function EditNotificationModalContent(props) {
                   onChange={onInputChange}
                 />
               </FormGroup>
+
+              <FormGroup>
+                <FormLabel>On Series Delete</FormLabel>
+
+                <FormInputGroup
+                  type={inputTypes.CHECK}
+                  name="onSeriesDelete"
+                  helpText="Be notified when series are deleted"
+                  isDisabled={!supportsOnSeriesDelete.value}
+                  {...onSeriesDelete}
+                  onChange={onInputChange}
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <FormLabel>On Episode File Delete</FormLabel>
+
+                <FormInputGroup
+                  type={inputTypes.CHECK}
+                  name="onEpisodeFileDelete"
+                  helpText="Be notified when episode files are deleted"
+                  isDisabled={!supportsOnEpisodeFileDelete.value}
+                  {...onEpisodeFileDelete}
+                  onChange={onInputChange}
+                />
+              </FormGroup>
+
+              {
+                onEpisodeFileDelete.value ?
+                  <FormGroup>
+                    <FormLabel>On Episode File Delete For Upgrade</FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.CHECK}
+                      name="onEpisodeFileDeleteForUpgrade"
+                      helpText="Be notified when episode files are deleted for upgrades"
+                      isDisabled={!supportsOnEpisodeFileDeleteForUpgrade.value}
+                      {...onEpisodeFileDeleteForUpgrade}
+                      onChange={onInputChange}
+                    />
+                  </FormGroup> :
+                  null
+              }
 
               <FormGroup>
                 <FormLabel>On Health Issue</FormLabel>
