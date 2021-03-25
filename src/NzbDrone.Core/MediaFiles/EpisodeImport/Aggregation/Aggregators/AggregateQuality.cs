@@ -75,7 +75,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators
 
             _logger.Trace("Selected Source {0} ({1}) Resolution {2} ({3}) Revision {4}", source, sourceConfidence, resolution, resolutionConfidence, revision);
 
-            var quality = new QualityModel(QualityFinder.FindBySourceAndResolution(source, resolution), revision);
+            var quality = new QualityModel(QualityFinder.FindBySourceResolutionAndCodec(source, resolution, localEpisode), revision);
 
             if (resolutionConfidence == Confidence.MediaInfo)
             {
