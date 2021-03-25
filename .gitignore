@@ -71,6 +71,7 @@ publish
 
 # NuGet Packages Directory
 packages
+package-lock.json
 
 # Windows Azure Build Output
 csx
@@ -142,3 +143,9 @@ _start
 
 src/.idea/
 /distribution/windows/setup/output/*
+
+#lock files
+yarn.lock
+
+# nohupout
+nohup.out
