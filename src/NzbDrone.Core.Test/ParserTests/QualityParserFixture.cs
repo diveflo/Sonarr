@@ -163,6 +163,12 @@ namespace NzbDrone.Core.Test.ParserTests
             ParseAndVerifyQuality(title, Quality.HDTV1080p, proper);
         }
 
+        [TestCase("小谢尔顿.Young.Sheldon.S04E01.1080p.H265-NEW字幕组.mp4", false)]
+        public void should_parse_hdtv1080phevc_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.HDTV1080pHEVC, proper);
+        }
+
         [TestCase("My Title - S01E01 - EpTitle [HEVC 4k DTSHD-MA-6ch]", false)]
         [TestCase("My Title - S01E01 - EpTitle [HEVC-4k DTSHD-MA-6ch]", false)]
         [TestCase("My Title - S01E01 - EpTitle [4k HEVC DTSHD-MA-6ch]", false)]
