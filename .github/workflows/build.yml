@@ -1,0 +1,102 @@
+name: continuous integration
+on: push
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: setup msbuild
+        uses: microsoft/setup-msbuild@v1
+      - name: setup nuget
+        uses: NuGet/setup-nuget@v1
+        with:
+          nuget-version: '>=5.8.0'
+      - name: nuget restore
+        run: nuget restore src\Sonarr.sln
+      - name: build
+        run: msbuild src\Sonarr.sln /p:Configuration=Release /p:Platform=x86 /t:Build
+      - name: setup node
+        uses: actions/setup-node@v1
+        with:
+          node-version: "12"
+      - name: yarn/gulp
+        run: |
+          yarn install
+          yarn run build --production
+      - name: prepare artifact upload
+        shell: powershell
+        run: | 
+          Rename-Item -Path .\_output\ -NewName Sonarr
+          Remove-Item -Path .\Sonarr\Sonarr.exe
+          Rename-Item -Path .\Sonarr\Sonarr.Console.exe -NewName Sonarr.exe
+          Copy-Item -Path .\src\NzbDrone.Core\Sonarr.Core.dll.config -Destination .\Sonarr
+      - name: upload build artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: sonarr-hevc-build
+          path: Sonarr
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/phantom-develop'
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: download build artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: sonarr-hevc-build
+          path: ${{runner.temp}}/Sonarr
+      - name: prepare release asset
+        shell: pwsh
+        run: Compress-Archive -Path ${{runner.temp}}/Sonarr -DestinationPath sonarr-hevc.zip
+      - name: delete previous release
+        uses: dev-drprasad/delete-tag-and-release@v0.1.2
+        with:
+          tag_name: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: create release
+        id: create_release
+        uses: GongT/actions-recreate-release@v1
+        with:
+          tag_name: latest
+          release_name: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: upload release asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./sonarr-hevc.zip
+          asset_name: sonarr-hevc.zip
+          asset_content_type: application/zip
+  docker:
+    runs-on: ubuntu-latest
+    needs: [build, release]
+    if: github.ref == 'refs/heads/phantom-develop'
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: setup platform emulator
+        uses: docker/setup-qemu-action@v1
+      - name: setup multi-arch docker build
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: build & push images
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm,linux/arm64/v8
+          push: true
+          tags: floriang89/sonarr-hevc:latest
