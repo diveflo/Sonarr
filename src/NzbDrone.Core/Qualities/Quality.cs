@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Qualities
 {
@@ -79,8 +80,21 @@ namespace NzbDrone.Core.Qualities
         public static Quality WEBRip2160p { get { return new Quality(17, "WEBRip-2160p", QualitySource.WebRip, 2160); } }
         public static Quality WEBDL2160p => new Quality(18, "WEBDL-2160p", QualitySource.Web, 2160);
         public static Quality Bluray2160p => new Quality(19, "Bluray-2160p", QualitySource.Bluray, 2160);
-        public static Quality Bluray1080pRemux => new Quality(20,  "Bluray-1080p Remux", QualitySource.BlurayRaw, 1080);
-        public static Quality Bluray2160pRemux => new Quality(21, "Bluray-2160p Remux", QualitySource.BlurayRaw, 2160);
+        public static Quality Bluray1080pRemux => new Quality(99, "Bluray-1080p Remux", QualitySource.BlurayRaw, 1080);
+        public static Quality Bluray2160pRemux => new Quality(98, "Bluray-2160p Remux", QualitySource.BlurayRaw, 2160);
+        public static Quality HDTV720pHEVC => new Quality(20, "HDTV-720p-HEVC", QualitySource.Television, 720);
+        public static Quality WEBDL720pHEVC => new Quality(21, "WEBDL-720p-HEVC", QualitySource.Web, 720);
+        public static Quality WEBRip720pHEVC => new Quality(97, "WEBRip-720p-HEVC", QualitySource.WebRip, 720);
+        public static Quality Bluray720pHEVC => new Quality(22, "Bluray-720p-HEVC", QualitySource.Bluray, 720);
+        public static Quality HDTV1080pHEVC => new Quality(23, "HDTV-1080p-HEVC", QualitySource.Television, 1080);
+        public static Quality WEBDL1080pHEVC => new Quality(24, "WEBDL-1080p-HEVC", QualitySource.Web, 1080);
+        public static Quality WEBRip1080pHEVC => new Quality(96, "WEBRip-1080p-HEVC", QualitySource.WebRip, 1080);
+        public static Quality Bluray1080pHEVC => new Quality(25, "Bluray-1080p-HEVC", QualitySource.Bluray, 1080);
+        public static Quality DVDHEVC => new Quality(26, "DVD-HEVC", QualitySource.DVD, 480);
+        public static Quality HDTV2160pHEVC => new Quality(27, "HDTV-2160p-HEVC", QualitySource.Television, 2160);
+        public static Quality WEBDL2160pHEVC => new Quality(28, "WEBDL-2160p-HEVC", QualitySource.Web, 2160);
+        public static Quality WEBRip2160pHEVC => new Quality(95, "WEBRip-2160p-HEVC", QualitySource.WebRip, 2160);
+        public static Quality Bluray2160pHEVC => new Quality(29, "Bluray-2160p-HEVC", QualitySource.Bluray, 2160);
 
         static Quality()
         {
@@ -89,22 +103,35 @@ namespace NzbDrone.Core.Qualities
                 Unknown,
                 SDTV,
                 DVD,
+                DVDHEVC,
                 WEBRip480p,
                 WEBDL480p,
                 Bluray480p,
                 HDTV720p,
+                HDTV720pHEVC,
                 WEBRip720p,
                 WEBDL720p,
+                WEBDL720pHEVC,
+                WEBRip720pHEVC,
                 Bluray720p,
+                Bluray720pHEVC,
                 Bluray1080p,
+                Bluray1080pHEVC,
                 HDTV1080p,
+                HDTV1080pHEVC,
                 WEBRip1080p,
                 WEBDL1080p,
+                WEBDL1080pHEVC,
+                WEBRip1080pHEVC,
                 RAWHD,
                 HDTV2160p,
-                WEBRip2160p,
+                HDTV2160pHEVC,
+				WEBRip2160p,
                 WEBDL2160p,
+                WEBDL2160pHEVC,
+                WEBRip2160pHEVC,
                 Bluray2160p,
+                Bluray2160pHEVC,
                 Bluray1080pRemux,
                 Bluray2160pRemux
             };
@@ -118,6 +145,7 @@ namespace NzbDrone.Core.Qualities
                 new QualityDefinition(Quality.WEBRip480p)  { Weight = 3,  MinSize = 2, MaxSize = 100,  GroupName = "WEB 480p" },
                 new QualityDefinition(Quality.WEBDL480p)   { Weight = 3,  MinSize = 2, MaxSize = 100,  GroupName = "WEB 480p" },
                 new QualityDefinition(Quality.DVD)         { Weight = 4,  MinSize = 2, MaxSize = 100,  GroupName = "DVD" },
+                new QualityDefinition(Quality.DVDHEVC)     { Weight = 4,  MinSize = 2, MaxSize = 100,  GroupName = "DVD"},
                 new QualityDefinition(Quality.Bluray480p)  { Weight = 5,  MinSize = 2, MaxSize = 100,  GroupName = "DVD" },
                 new QualityDefinition(Quality.HDTV720p)    { Weight = 6,  MinSize = 3, MaxSize = 125 },
                 new QualityDefinition(Quality.HDTV1080p)   { Weight = 7,  MinSize = 4, MaxSize = 125 },
@@ -133,7 +161,19 @@ namespace NzbDrone.Core.Qualities
                 new QualityDefinition(Quality.WEBRip2160p) { Weight = 15, MinSize = 35, MaxSize = null, GroupName = "WEB 2160p" },
                 new QualityDefinition(Quality.WEBDL2160p)  { Weight = 15, MinSize = 35, MaxSize = null, GroupName = "WEB 2160p" },
                 new QualityDefinition(Quality.Bluray2160p) { Weight = 16, MinSize = 35, MaxSize = null },
-                new QualityDefinition(Quality.Bluray2160pRemux) { Weight = 17, MinSize = 35, MaxSize = null }
+                new QualityDefinition(Quality.HDTV720pHEVC)     { Weight = 17, MinSize = 0, MaxSize = null },
+                new QualityDefinition(Quality.WEBDL720pHEVC)    { Weight = 18, MinSize = 0, MaxSize = null , GroupName = "WEB HEVC 720p" },
+                new QualityDefinition(Quality.WEBRip720pHEVC)   { Weight = 18, MinSize = 0, MaxSize = null , GroupName = "WEB HEVC 720p" },
+                new QualityDefinition(Quality.Bluray720pHEVC)   { Weight = 19, MinSize = 0, MaxSize = null },
+                new QualityDefinition(Quality.HDTV1080pHEVC)    { Weight = 20, MinSize = 0, MaxSize = null },
+                new QualityDefinition(Quality.WEBDL1080pHEVC)   { Weight = 21, MinSize = 0, MaxSize = null , GroupName = "WEB HEVC 1080p" },
+                new QualityDefinition(Quality.WEBRip1080pHEVC)  { Weight = 21, MinSize = 0, MaxSize = null , GroupName = "WEB HEVC 1080p" },
+                new QualityDefinition(Quality.Bluray1080pHEVC)  { Weight = 22, MinSize = 0, MaxSize = null },
+                new QualityDefinition(Quality.HDTV2160pHEVC)    { Weight = 23, MinSize = 0, MaxSize = null },
+                new QualityDefinition(Quality.WEBDL2160pHEVC)   { Weight = 24, MinSize = 0, MaxSize = null , GroupName = "WEB HEVC 2160p" },
+                new QualityDefinition(Quality.WEBRip2160pHEVC)  { Weight = 24, MinSize = 0, MaxSize = null , GroupName = "WEB HEVC 2160p" },
+                new QualityDefinition(Quality.Bluray2160pHEVC)  { Weight = 25, MinSize = 0, MaxSize = null },
+                new QualityDefinition(Quality.Bluray2160pRemux) { Weight = 26, MinSize = 35, MaxSize = null }
             };
         }
 
@@ -163,6 +203,22 @@ namespace NzbDrone.Core.Qualities
         public static explicit operator int(Quality quality)
         {
             return quality.Id;
+        }
+
+        public static Quality FindBySourceResolutionAndCodec(QualitySource source, int resolution, LocalEpisode episode)
+        {
+            var qualityMaybeHEVC = All.Where(q => q.Source == source && q.Resolution == resolution).ToList();
+            if (qualityMaybeHEVC.Count() == 1)
+            {
+                return qualityMaybeHEVC.SingleOrDefault();
+            }
+            var mediaInfo = episode.MediaInfo;
+            string videoFormat = mediaInfo.VideoFormat;
+            if (qualityMaybeHEVC.Any(q => q.Name.EndsWith(videoFormat)))
+            {
+                return qualityMaybeHEVC.SingleOrDefault(q => q.Name.EndsWith(videoFormat));
+            }
+            return qualityMaybeHEVC.FirstOrDefault();
         }
     }
 }

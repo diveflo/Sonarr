@@ -54,7 +54,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex ImpliedResolutionRegex = new Regex(@"\b(?<R2160p>UHD)\b",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<x264>x264)|(?<h264>h264)|(?<xvidhd>XvidHD)|(?<xvid>Xvid)|(?<divx>divx))\b",
+        private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<h265>h265)|(?<x265>x265)|(?<x264>x264)|(?<h264>h264)|(?<xvidhd>XvidHD)|(?<xvid>Xvid)|(?<divx>divx))\b",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex OtherSourceRegex = new Regex(@"(?<hdtv>HD[-_. ]TV)|(?<sdtv>SD[-_. ]TV)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -130,6 +130,25 @@ namespace NzbDrone.Core.Parser
                         return result;
                     }
 
+                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    {
+                        switch (resolution)
+                        {
+                            case Resolution.R720p:
+                                result.Quality = Quality.Bluray720pHEVC;
+                                break;
+                            case Resolution.R1080p:
+                                result.Quality = Quality.Bluray1080pHEVC;
+                                break;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.Bluray2160pHEVC;
+                                break;
+                            default:
+                                result.Quality = Quality.Unknown;
+                                break;
+                        }
+                        return result;
+                    }
                     if (resolution == Resolution.R2160p)
                     {
                         result.Quality = remuxMatch ? Quality.Bluray2160pRemux : Quality.Bluray2160p;
@@ -163,6 +182,21 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["webdl"].Success)
                 {
+                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    {
+                        switch (resolution)
+                        {
+                            case Resolution.R720p:
+                                result.Quality = Quality.WEBDL720pHEVC;
+                                return result;
+                            case Resolution.R1080p:
+                                result.Quality = Quality.WEBDL1080pHEVC;
+                                return result;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.WEBDL2160pHEVC;
+                                return result;
+                        }
+                    }
                     if (resolution == Resolution.R2160p)
                     {
                         result.Quality = Quality.WEBDL2160p;
@@ -193,6 +227,22 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["webrip"].Success)
                 {
+                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    {
+                        switch (resolution)
+                        {
+                            case Resolution.R720p:
+                                result.Quality = Quality.WEBRip720pHEVC;
+                                return result;
+                            case Resolution.R1080p:
+                                result.Quality = Quality.WEBRip1080pHEVC;
+                                return result;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.WEBRip2160pHEVC;
+                                return result;
+                        }
+                    }
+
                     if (resolution == Resolution.R2160p)
                     {
                         result.Quality = Quality.WEBRip2160p;
@@ -217,7 +267,22 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["hdtv"].Success)
                 {
-                    if (MPEG2Regex.IsMatch(normalizedName))
+                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    {
+                        switch (resolution)
+                        {
+                            case Resolution.R720p:
+                                result.Quality = Quality.HDTV720pHEVC;
+                                return result;
+                            case Resolution.R1080p:
+                                result.Quality = Quality.HDTV1080pHEVC;
+                                return result;
+                            case Resolution.R2160p:
+                                result.Quality = Quality.HDTV2160pHEVC;
+                                return result;
+                        }
+                    }
+					if (MPEG2Regex.IsMatch(normalizedName))
                     {
                         result.Quality = Quality.RAWHD;
                         return result;
@@ -270,6 +335,11 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["dvd"].Success)
                 {
+                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    {
+                        result.Quality = Quality.DVDHEVC;
+                        return result;
+                    }
                     result.Quality = Quality.DVD;
                     return result;
                 }
@@ -410,6 +480,12 @@ namespace NzbDrone.Core.Parser
                 {
                     result.ResolutionDetectionSource = QualityDetectionSource.Name;
 
+                	if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                	{
+                    	result.Quality = Quality.HDTV2160pHEVC;
+                    	return result;
+                	}
+
                     result.Quality = source == QualitySource.Unknown
                         ? Quality.HDTV2160p
                         : QualityFinder.FindBySourceAndResolution(source, 2160);
@@ -419,8 +495,12 @@ namespace NzbDrone.Core.Parser
 
                 if (resolution == Resolution.R1080p)
                 {
-                    result.ResolutionDetectionSource = QualityDetectionSource.Name;
-
+					result.ResolutionDetectionSource = QualityDetectionSource.Name;
+                	if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                	{
+                    	result.Quality = Quality.HDTV1080pHEVC;
+                    	return result;
+                	}
                     result.Quality = source == QualitySource.Unknown
                         ? Quality.HDTV1080p
                         : QualityFinder.FindBySourceAndResolution(source, 1080);
@@ -430,9 +510,13 @@ namespace NzbDrone.Core.Parser
 
                 if (resolution == Resolution.R720p)
                 {
-                    result.ResolutionDetectionSource = QualityDetectionSource.Name;
-
-                    result.Quality = source == QualitySource.Unknown
+					result.ResolutionDetectionSource = QualityDetectionSource.Name;
+                	if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                	{
+                    	result.Quality = Quality.HDTV720pHEVC;
+                    	return result;
+                	}
+					result.Quality = source == QualitySource.Unknown
                         ? Quality.HDTV720p
                         : QualityFinder.FindBySourceAndResolution(source, 720);
 
