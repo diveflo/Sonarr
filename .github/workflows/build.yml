@@ -24,7 +24,7 @@ jobs:
       - name: yarn/gulp
         run: |
           yarn install
-          yarn run build --production
+          yarn run build
       - name: prepare artifact upload
         shell: powershell
         run: | 
