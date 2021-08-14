@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using FluentMigrator.Builders.Create.Column;
 using NLog;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Disk;
@@ -13,7 +12,6 @@ using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MediaInfo;
-using NzbDrone.Core.Parser;
 using NzbDrone.Core.Profiles.Releases;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
@@ -22,8 +20,8 @@ namespace NzbDrone.Core.Organizer
 {
     public interface IBuildFileNames
     {
-        string BuildFileName(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension = "", NamingConfig namingConfig = null, List<string> preferredWords = null);
-        string BuildFilePath(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension, NamingConfig namingConfig = null, List<string> preferredWords = null);
+        string BuildFileName(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension = "", NamingConfig namingConfig = null, PreferredWordMatchResults preferredWords = null);
+        string BuildFilePath(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension, NamingConfig namingConfig = null, PreferredWordMatchResults preferredWords = null);
         string BuildSeasonPath(Series series, int seasonNumber);
         BasicNamingConfig GetBasicNamingConfig(NamingConfig nameSpec);
         string GetSeriesFolder(Series series, NamingConfig namingConfig = null);
@@ -82,6 +80,8 @@ namespace NzbDrone.Core.Organizer
 
         private static readonly Regex YearRegex = new Regex(@"\(\d{4}\)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        private static readonly Regex ReservedDeviceNamesRegex = new Regex(@"^(?:aux|com[1-9]|con|lpt[1-9]|nul|prn)\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         public FileNameBuilder(INamingConfigService namingConfigService,
                                IQualityDefinitionService qualityDefinitionService,
                                ICacheManager cacheManager,
@@ -100,7 +100,7 @@ namespace NzbDrone.Core.Organizer
             _logger = logger;
         }
 
-        private string BuildFileName(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension, int maxPath, NamingConfig namingConfig = null, List<string> preferredWords = null)
+        private string BuildFileName(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension, int maxPath, NamingConfig namingConfig = null, PreferredWordMatchResults preferredWords = null)
         {
             if (namingConfig == null)
             {
@@ -176,6 +176,7 @@ namespace NzbDrone.Core.Organizer
                 component = FileNameCleanupRegex.Replace(component, match => match.Captures[0].Value[0].ToString());
                 component = TrimSeparatorsRegex.Replace(component, string.Empty);
                 component = component.Replace("{ellipsis}", "...");
+                component = ReplaceReservedDeviceNames(component);
 
                 components.Add(component);
             }
@@ -183,12 +184,12 @@ namespace NzbDrone.Core.Organizer
             return string.Join(Path.DirectorySeparatorChar.ToString(), components) + extension;
         }
 
-        public string BuildFileName(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension = "", NamingConfig namingConfig = null, List<string> preferredWords = null)
+        public string BuildFileName(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension = "", NamingConfig namingConfig = null, PreferredWordMatchResults preferredWords = null)
         {
             return BuildFileName(episodes, series, episodeFile, extension, LongPathSupport.MaxFilePathLength, namingConfig, preferredWords);
         }
 
-        public string BuildFilePath(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension, NamingConfig namingConfig = null, List<string> preferredWords = null)
+        public string BuildFilePath(List<Episode> episodes, Series series, EpisodeFile episodeFile, string extension, NamingConfig namingConfig = null, PreferredWordMatchResults preferredWords = null)
         {
             Ensure.That(extension, () => extension).IsNotNullOrWhiteSpace();
             
@@ -274,7 +275,11 @@ namespace NzbDrone.Core.Organizer
             AddIdTokens(tokenHandlers, series);
 
             var folderName = ReplaceTokens(namingConfig.SeriesFolderFormat, tokenHandlers, namingConfig);
-            return CleanFolderName(folderName);
+
+            folderName = CleanFolderName(folderName);
+            folderName = ReplaceReservedDeviceNames(folderName);
+
+            return folderName;
         }
 
         public string GetSeasonFolder(Series series, int seasonNumber, NamingConfig namingConfig = null)
@@ -291,9 +296,12 @@ namespace NzbDrone.Core.Organizer
             AddSeasonTokens(tokenHandlers, seasonNumber);
 
             var format = seasonNumber == 0 ? namingConfig.SpecialsFolderFormat : namingConfig.SeasonFolderFormat;
-
             var folderName = ReplaceTokens(format, tokenHandlers, namingConfig);
-            return CleanFolderName(folderName);
+
+            folderName = CleanFolderName(folderName);
+            folderName = ReplaceReservedDeviceNames(folderName);
+
+            return folderName;
         }
 
         public static string CleanTitle(string title)
@@ -651,14 +659,34 @@ namespace NzbDrone.Core.Organizer
             tokenHandlers["{TvMazeId}"] = m => series.TvMazeId > 0 ? series.TvMazeId.ToString() : string.Empty;
         }
 
-        private void AddPreferredWords(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Series series, EpisodeFile episodeFile, List<string> preferredWords = null)
+        private void AddPreferredWords(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Series series, EpisodeFile episodeFile, PreferredWordMatchResults preferredWords = null)
         {
             if (preferredWords == null)
             {
                 preferredWords = _preferredWordService.GetMatchingPreferredWords(series, episodeFile.GetSceneOrFileName());
             }
 
-            tokenHandlers["{Preferred Words}"] = m => string.Join(" ", preferredWords);
+            tokenHandlers["{Preferred Words}"] = m => {
+
+                var profileName = "";
+
+                if (m.CustomFormat != null)
+                {
+                    profileName = m.CustomFormat.Trim();
+                }
+
+                if (profileName.IsNullOrWhiteSpace())
+                {
+                    return string.Join(" ", preferredWords.All);
+                }
+
+                if (preferredWords.ByReleaseProfile.TryGetValue(profileName, out var profilePreferredWords))
+                { 
+                    return string.Join(" ", profilePreferredWords);
+                }
+
+                return string.Empty;
+            };
         }
 
         private string GetLanguagesToken(string mediaInfoLanguages, string filter, bool skipEnglishOnly, bool quoted)
@@ -1027,6 +1055,12 @@ namespace NzbDrone.Core.Organizer
             var result = ReplaceTokens(pattern, tokenHandlers, namingConfig);
 
             return result.GetByteCount();
+        }
+
+        private string ReplaceReservedDeviceNames(string input)
+        {
+            // Replace reserved windows device names with an alternative
+            return ReservedDeviceNamesRegex.Replace(input, match => match.Value.Replace(".", "_"));
         }
     }
 

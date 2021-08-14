@@ -1,30 +1,32 @@
-﻿using NzbDrone.Core.Blacklisting;
+﻿// Blacklist has been deprecated for blocklist.
+using NzbDrone.Api.Blocklist;
+using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Datastore;
 using Sonarr.Http;
 
 namespace NzbDrone.Api.Blacklist
 {
-    public class BlacklistModule : SonarrRestModule<BlacklistResource>
+    public class BlacklistModule : SonarrRestModule<BlocklistResource>
     {
-        private readonly IBlacklistService _blacklistService;
+        private readonly BlocklistService _blocklistService;
 
-        public BlacklistModule(IBlacklistService blacklistService)
+        public BlacklistModule(BlocklistService blocklistService)
         {
-            _blacklistService = blacklistService;
-            GetResourcePaged = GetBlacklist;
-            DeleteResource = DeleteBlacklist;
+            _blocklistService = blocklistService;
+            GetResourcePaged = Blocklist;
+            DeleteResource = DeleteBlockList;
         }
 
-        private PagingResource<BlacklistResource> GetBlacklist(PagingResource<BlacklistResource> pagingResource)
+        private PagingResource<BlocklistResource> Blocklist(PagingResource<BlocklistResource> pagingResource)
         {
-            var pagingSpec = pagingResource.MapToPagingSpec<BlacklistResource, Core.Blacklisting.Blacklist>("id", SortDirection.Ascending);
+            var pagingSpec = pagingResource.MapToPagingSpec<BlocklistResource, Core.Blocklisting.Blocklist>("id", SortDirection.Ascending);
 
-            return ApplyToPage(_blacklistService.Paged, pagingSpec, BlacklistResourceMapper.MapToResource);
+            return ApplyToPage(_blocklistService.Paged, pagingSpec, BlocklistResourceMapper.MapToResource);
         }
 
-        private void DeleteBlacklist(int id)
+        private void DeleteBlockList(int id)
         {
-            _blacklistService.Delete(id);
+            _blocklistService.Delete(id);
         }
     }
 }

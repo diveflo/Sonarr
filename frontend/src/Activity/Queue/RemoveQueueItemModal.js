@@ -21,7 +21,7 @@ class RemoveQueueItemModal extends Component {
 
     this.state = {
       remove: true,
-      blacklist: false
+      blocklist: false
     };
   }
 
@@ -31,7 +31,7 @@ class RemoveQueueItemModal extends Component {
   resetState = function() {
     this.setState({
       remove: true,
-      blacklist: false
+      blocklist: false
     });
   }
 
@@ -42,8 +42,8 @@ class RemoveQueueItemModal extends Component {
     this.setState({ remove: value });
   }
 
-  onBlacklistChange = ({ value }) => {
-    this.setState({ blacklist: value });
+  onBlocklistChange = ({ value }) => {
+    this.setState({ blocklist: value });
   }
 
   onRemoveConfirmed = () => {
@@ -65,10 +65,11 @@ class RemoveQueueItemModal extends Component {
     const {
       isOpen,
       sourceTitle,
-      canIgnore
+      canIgnore,
+      isPending
     } = this.props;
 
-    const { remove, blacklist } = this.state;
+    const { remove, blocklist } = this.state;
 
     return (
       <Modal
@@ -88,28 +89,32 @@ class RemoveQueueItemModal extends Component {
               Are you sure you want to remove '{sourceTitle}' from the queue?
             </div>
 
+            {
+              isPending ?
+                null :
+                <FormGroup>
+                  <FormLabel>Remove From Download Client</FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.CHECK}
+                    name="remove"
+                    value={remove}
+                    helpTextWarning="Removing will remove the download and the file(s) from the download client."
+                    isDisabled={!canIgnore}
+                    onChange={this.onRemoveChange}
+                  />
+                </FormGroup>
+            }
+
             <FormGroup>
-              <FormLabel>Remove From Download Client</FormLabel>
+              <FormLabel>Add Release To Blocklist</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
-                name="remove"
-                value={remove}
-                helpTextWarning="Removing will remove the download and the file(s) from the download client."
-                isDisabled={!canIgnore}
-                onChange={this.onRemoveChange}
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <FormLabel>Blacklist Release</FormLabel>
-
-              <FormInputGroup
-                type={inputTypes.CHECK}
-                name="blacklist"
-                value={blacklist}
+                name="blocklist"
+                value={blocklist}
                 helpText="Starts a search for this episode again and prevents this release from being grabbed again"
-                onChange={this.onBlacklistChange}
+                onChange={this.onBlocklistChange}
               />
             </FormGroup>
 
@@ -137,6 +142,7 @@ RemoveQueueItemModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   sourceTitle: PropTypes.string.isRequired,
   canIgnore: PropTypes.bool.isRequired,
+  isPending: PropTypes.bool.isRequired,
   onRemovePress: PropTypes.func.isRequired,
   onModalClose: PropTypes.func.isRequired
 };

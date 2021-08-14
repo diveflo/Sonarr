@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Nancy;
+using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Download.TrackedDownloads;
@@ -21,6 +22,7 @@ namespace Sonarr.Api.V3.Queue
         private readonly IProvideDownloadClient _downloadClientProvider;
         private readonly IPendingReleaseService _pendingReleaseService;
         private readonly IDownloadService _downloadService;
+        private readonly IBlocklistService _blocklistService;
 
         public QueueActionModule(IQueueService queueService,
                                  ITrackedDownloadService trackedDownloadService,
@@ -28,7 +30,8 @@ namespace Sonarr.Api.V3.Queue
                                  IIgnoredDownloadService ignoredDownloadService,
                                  IProvideDownloadClient downloadClientProvider,
                                  IPendingReleaseService pendingReleaseService,
-                                 IDownloadService downloadService)
+                                 IDownloadService downloadService,
+                                 IBlocklistService blocklistService)
         {
             _queueService = queueService;
             _trackedDownloadService = trackedDownloadService;
@@ -37,6 +40,7 @@ namespace Sonarr.Api.V3.Queue
             _downloadClientProvider = downloadClientProvider;
             _pendingReleaseService = pendingReleaseService;
             _downloadService = downloadService;
+            _blocklistService = blocklistService;
 
             Post(@"/grab/(?<id>[\d]{1,10})",  x => Grab((int)x.Id));
             Post("/grab/bulk",  x => Grab());
@@ -81,9 +85,11 @@ namespace Sonarr.Api.V3.Queue
         private object Remove(int id)
         {
             var removeFromClient = Request.GetBooleanQueryParameter("removeFromClient", true);
-            var blacklist = Request.GetBooleanQueryParameter("blacklist");
 
-            var trackedDownload = Remove(id, removeFromClient, blacklist);
+            // blacklist maintained for backwards compatability, UI uses blocklist.
+            var blocklist = Request.GetBooleanQueryParameter("blocklist") ? Request.GetBooleanQueryParameter("blocklist") : Request.GetBooleanQueryParameter("blacklist");
+
+            var trackedDownload = Remove(id, removeFromClient, blocklist);
 
             if (trackedDownload != null)
             {
@@ -96,14 +102,16 @@ namespace Sonarr.Api.V3.Queue
         private object Remove()
         {
             var removeFromClient = Request.GetBooleanQueryParameter("removeFromClient", true);
-            var blacklist = Request.GetBooleanQueryParameter("blacklist");
+
+            // blacklist maintained for backwards compatability, UI uses blocklist.
+            var blocklist = Request.GetBooleanQueryParameter("blocklist") ? Request.GetBooleanQueryParameter("blocklist") : Request.GetBooleanQueryParameter("blacklist");
 
             var resource = Request.Body.FromJson<QueueBulkResource>();
             var trackedDownloadIds = new List<string>();
 
             foreach (var id in resource.Ids)
             {
-                var trackedDownload = Remove(id, removeFromClient, blacklist);
+                var trackedDownload = Remove(id, removeFromClient, blocklist);
 
                 if (trackedDownload != null)
                 {
@@ -116,12 +124,13 @@ namespace Sonarr.Api.V3.Queue
             return new object();
         }
 
-        private TrackedDownload Remove(int id, bool removeFromClient, bool blacklist)
+        private TrackedDownload Remove(int id, bool removeFromClient, bool blocklist)
         {
             var pendingRelease = _pendingReleaseService.FindPendingQueueItem(id);
 
             if (pendingRelease != null)
             {
+                _blocklistService.Block(pendingRelease.RemoteEpisode, "Pending release manually blocklisted");
                 _pendingReleaseService.RemovePendingQueueItems(pendingRelease.Id);
 
                 return null;
@@ -146,12 +155,12 @@ namespace Sonarr.Api.V3.Queue
                 downloadClient.RemoveItem(trackedDownload.DownloadItem, true);
             }
 
-            if (blacklist)
+            if (blocklist)
             {
                 _failedDownloadService.MarkAsFailed(trackedDownload.DownloadItem.DownloadId);
             }
             
-            if (!removeFromClient && !blacklist)
+            if (!removeFromClient && !blocklist)
             {
                 if (!_ignoredDownloadService.IgnoreDownload(trackedDownload))
                 {

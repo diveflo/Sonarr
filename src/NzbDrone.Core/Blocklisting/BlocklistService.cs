@@ -10,31 +10,31 @@ using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv.Events;
 
-namespace NzbDrone.Core.Blacklisting
+namespace NzbDrone.Core.Blocklisting
 {
-    public interface IBlacklistService
+    public interface IBlocklistService
     {
-        bool Blacklisted(int seriesId, ReleaseInfo release);
-        PagingSpec<Blacklist> Paged(PagingSpec<Blacklist> pagingSpec);
+        bool Blocklisted(int seriesId, ReleaseInfo release);
+        PagingSpec<Blocklist> Paged(PagingSpec<Blocklist> pagingSpec);
+        void Block(RemoteEpisode remoteEpisode, string message);
         void Delete(int id);
         void Delete(List<int> ids);
     }
-    public class BlacklistService : IBlacklistService,
-
-                                    IExecute<ClearBlacklistCommand>,
+    public class BlocklistService : IBlocklistService,
+                                    IExecute<ClearBlocklistCommand>,
                                     IHandle<DownloadFailedEvent>,
                                     IHandleAsync<SeriesDeletedEvent>
     {
-        private readonly IBlacklistRepository _blacklistRepository;
+        private readonly IBlocklistRepository _blocklistRepository;
 
-        public BlacklistService(IBlacklistRepository blacklistRepository)
+        public BlocklistService(IBlocklistRepository blocklistRepository)
         {
-            _blacklistRepository = blacklistRepository;
+            _blocklistRepository = blocklistRepository;
         }
 
-        public bool Blacklisted(int seriesId, ReleaseInfo release)
+        public bool Blocklisted(int seriesId, ReleaseInfo release)
         {
-            var blacklistedByTitle = _blacklistRepository.BlacklistedByTitle(seriesId, release.Title);
+            var blocklistedByTitle = _blocklistRepository.BlocklistedByTitle(seriesId, release.Title);
             
             if (release.DownloadProtocol == DownloadProtocol.Torrent)
             {
@@ -44,35 +44,61 @@ namespace NzbDrone.Core.Blacklisting
 
                 if (torrentInfo.InfoHash.IsNullOrWhiteSpace())
                 {
-                    return blacklistedByTitle.Where(b => b.Protocol == DownloadProtocol.Torrent)
+                    return blocklistedByTitle.Where(b => b.Protocol == DownloadProtocol.Torrent)
                                              .Any(b => SameTorrent(b, torrentInfo));
                 }
 
-                var blacklistedByTorrentInfohash = _blacklistRepository.BlacklistedByTorrentInfoHash(seriesId, torrentInfo.InfoHash);
+                var blocklistedByTorrentInfohash = _blocklistRepository.BlocklistedByTorrentInfoHash(seriesId, torrentInfo.InfoHash);
 
-                return blacklistedByTorrentInfohash.Any(b => SameTorrent(b, torrentInfo));
+                return blocklistedByTorrentInfohash.Any(b => SameTorrent(b, torrentInfo));
             }
 
-            return blacklistedByTitle.Where(b => b.Protocol == DownloadProtocol.Usenet)
+            return blocklistedByTitle.Where(b => b.Protocol == DownloadProtocol.Usenet)
                                      .Any(b => SameNzb(b, release));
         }
 
-        public PagingSpec<Blacklist> Paged(PagingSpec<Blacklist> pagingSpec)
+        public PagingSpec<Blocklist> Paged(PagingSpec<Blocklist> pagingSpec)
         {
-            return _blacklistRepository.GetPaged(pagingSpec);
+            return _blocklistRepository.GetPaged(pagingSpec);
+        }
+
+        public void Block(RemoteEpisode remoteEpisode, string message)
+        {
+            var blocklist = new Blocklist
+                            {
+                                SeriesId = remoteEpisode.Series.Id,
+                                EpisodeIds = remoteEpisode.Episodes.Select(e => e.Id).ToList(),
+                                SourceTitle =  remoteEpisode.Release.Title,
+                                Quality = remoteEpisode.ParsedEpisodeInfo.Quality,
+                                Date = DateTime.UtcNow,
+                                PublishedDate = remoteEpisode.Release.PublishDate,
+                                Size = remoteEpisode.Release.Size,
+                                Indexer = remoteEpisode.Release.Indexer,
+                                Protocol = remoteEpisode.Release.DownloadProtocol,
+                                Message = message,
+                                Language = remoteEpisode.ParsedEpisodeInfo.Language
+                            };
+
+
+            if (remoteEpisode.Release is TorrentInfo torrentRelease)
+            {
+                blocklist.TorrentInfoHash = torrentRelease.InfoHash;
+            }
+
+            _blocklistRepository.Insert(blocklist);
         }
 
         public void Delete(int id)
         {
-            _blacklistRepository.Delete(id);
+            _blocklistRepository.Delete(id);
         }
 
         public void Delete(List<int> ids)
         {
-            _blacklistRepository.DeleteMany(ids);
+            _blocklistRepository.DeleteMany(ids);
         }
 
-        private bool SameNzb(Blacklist item, ReleaseInfo release)
+        private bool SameNzb(Blocklist item, ReleaseInfo release)
         {
             if (item.PublishedDate == release.PublishDate)
             {
@@ -89,7 +115,7 @@ namespace NzbDrone.Core.Blacklisting
             return false;
         }
 
-        private bool SameTorrent(Blacklist item, TorrentInfo release)
+        private bool SameTorrent(Blocklist item, TorrentInfo release)
         {
             if (release.InfoHash.IsNotNullOrWhiteSpace())
             {
@@ -99,7 +125,7 @@ namespace NzbDrone.Core.Blacklisting
             return item.Indexer.Equals(release.Indexer, StringComparison.InvariantCultureIgnoreCase);
         }
 
-        private bool HasSameIndexer(Blacklist item, string indexer)
+        private bool HasSameIndexer(Blocklist item, string indexer)
         {
             if (item.Indexer.IsNullOrWhiteSpace())
             {
@@ -109,7 +135,7 @@ namespace NzbDrone.Core.Blacklisting
             return item.Indexer.Equals(indexer, StringComparison.InvariantCultureIgnoreCase);
         }
 
-        private bool HasSamePublishedDate(Blacklist item, DateTime publishedDate)
+        private bool HasSamePublishedDate(Blocklist item, DateTime publishedDate)
         {
             if (!item.PublishedDate.HasValue) return true;
 
@@ -117,7 +143,7 @@ namespace NzbDrone.Core.Blacklisting
                    item.PublishedDate.Value.AddMinutes(2) >= publishedDate;
         }
 
-        private bool HasSameSize(Blacklist item, long size)
+        private bool HasSameSize(Blocklist item, long size)
         {
             if (!item.Size.HasValue) return true;
 
@@ -126,14 +152,14 @@ namespace NzbDrone.Core.Blacklisting
             return difference <= 2.Megabytes();
         }
 
-        public void Execute(ClearBlacklistCommand message)
+        public void Execute(ClearBlocklistCommand message)
         {
-            _blacklistRepository.Purge();
+            _blocklistRepository.Purge();
         }
 
         public void Handle(DownloadFailedEvent message)
         {
-            var blacklist = new Blacklist
+            var blocklist = new Blocklist
                             {
                                 SeriesId = message.SeriesId,
                                 EpisodeIds = message.EpisodeIds,
@@ -149,14 +175,14 @@ namespace NzbDrone.Core.Blacklisting
                                 Language = message.Language
                             };
 
-            _blacklistRepository.Insert(blacklist);
+            _blocklistRepository.Insert(blocklist);
         }
 
         public void HandleAsync(SeriesDeletedEvent message)
         {
-            var blacklisted = _blacklistRepository.BlacklistedBySeries(message.Series.Id);
+            var blocklisted = _blocklistRepository.BlocklistedBySeries(message.Series.Id);
 
-            _blacklistRepository.DeleteMany(blacklisted);
+            _blocklistRepository.DeleteMany(blocklisted);
         }
     }
 }

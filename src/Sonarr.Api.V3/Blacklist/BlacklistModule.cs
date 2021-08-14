@@ -1,40 +1,42 @@
-﻿using NzbDrone.Core.Blacklisting;
+﻿// Blacklist has been deprecated for blocklist.
+using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Datastore;
+using Sonarr.Api.V3.Blocklist;
 using Sonarr.Http;
 using Sonarr.Http.Extensions;
 
 namespace Sonarr.Api.V3.Blacklist
 {
-    public class BlacklistModule : SonarrRestModule<BlacklistResource>
+    public class BlacklistModule : SonarrRestModule<BlocklistResource>
     {
-        private readonly IBlacklistService _blacklistService;
+        private readonly BlocklistService _blocklistService;
 
-        public BlacklistModule(IBlacklistService blacklistService)
+        public BlacklistModule(BlocklistService blocklistService)
         {
-            _blacklistService = blacklistService;
-            GetResourcePaged = GetBlacklist;
-            DeleteResource = DeleteBlacklist;
+            _blocklistService = blocklistService;
+            GetResourcePaged = Blocklist;
+            DeleteResource = DeleteBlockList;
 
             Delete("/bulk", x => Remove());
         }
 
-        private PagingResource<BlacklistResource> GetBlacklist(PagingResource<BlacklistResource> pagingResource)
+        private PagingResource<BlocklistResource> Blocklist(PagingResource<BlocklistResource> pagingResource)
         {
-            var pagingSpec = pagingResource.MapToPagingSpec<BlacklistResource, NzbDrone.Core.Blacklisting.Blacklist>("date", SortDirection.Descending);
+            var pagingSpec = pagingResource.MapToPagingSpec<BlocklistResource, NzbDrone.Core.Blocklisting.Blocklist>("date", SortDirection.Descending);
 
-            return ApplyToPage(_blacklistService.Paged, pagingSpec, BlacklistResourceMapper.MapToResource);
+            return ApplyToPage(_blocklistService.Paged, pagingSpec, BlocklistResourceMapper.MapToResource);
         }
 
-        private void DeleteBlacklist(int id)
+        private void DeleteBlockList(int id)
         {
-            _blacklistService.Delete(id);
+            _blocklistService.Delete(id);
         }
 
         private object Remove()
         {
-            var resource = Request.Body.FromJson<BlacklistBulkResource>();
+            var resource = Request.Body.FromJson<BlocklistBulkResource>();
 
-            _blacklistService.Delete(resource.Ids);
+            _blocklistService.Delete(resource.Ids);
 
             return new object();
         }
