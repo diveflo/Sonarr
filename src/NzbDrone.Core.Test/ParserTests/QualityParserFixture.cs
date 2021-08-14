@@ -149,6 +149,13 @@ namespace NzbDrone.Core.Test.ParserTests
             ParseAndVerifyQuality(title, Quality.HDTV720p, proper);
         }
 
+        [TestCase("Last Week Tonight with John Oliver S08E06 720p HEVC x265-MeGusta EZTV", false)]
+        [TestCase("Stephen Colbert 2021 04 22 Joe Scarborough 720p HEVC x265-MeGusta", false)]
+        public void should_parse_hdtv720phevc_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.HDTV720pHEVC, proper);
+        }
+
         [TestCase("Under the Series S01E10 Let the Sonarr Begin 1080p", false)]
         [TestCase("Series.S07E01.ARE.YOU.1080P.HDTV.X264-QCF", false)]
         [TestCase("Series.S07E01.ARE.YOU.1080P.HDTV.x264-QCF", false)]
@@ -170,7 +177,10 @@ namespace NzbDrone.Core.Test.ParserTests
             ParseAndVerifyQuality(title, Quality.HDTV1080p, proper);
         }
 
+        [TestCase("Last.Week.Tonight.with.John.Oliver.S07E30.1080p.HEVC.x265-MeGusta[eztv.re]", false)]
         [TestCase("小谢尔顿.Young.Sheldon.S04E01.1080p.H265-NEW字幕组.mp4", false)]
+        [TestCase("Stephen Colbert 2021 06 07 Chris Matthews 1080p HEVC x265-MeGusta", false)]
+        [TestCase("Blackish.S07E16.1080p.HEVC.x265-MeGusta[eztv.re]", false)]
         public void should_parse_hdtv1080phevc_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.HDTV1080pHEVC, proper);
@@ -254,15 +264,28 @@ namespace NzbDrone.Core.Test.ParserTests
             ParseAndVerifyQuality(title, Quality.WEBDL1080p, proper);
         }
 
+        [TestCase("Brooklyn.Nine-Nine.S08E02.1080p.10bit.DDP.5.1.x265.[HashMiner]", false)]
+        public void should_parse_webdl1080phevc_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.WEBDL1080pHEVC, proper);
+        }
+
         [TestCase("Series.Title.S04E01.iNTERNAL.1080p.WEBRip.x264-QRUS", false)]
         [TestCase("Series.Title.S07E20.1080p.AMZN.WEBRip.DDP5.1.x264-ViSUM ac3.(NLsub)", false)]
         [TestCase("Series.Title.S03E09.1080p.NF.WEBRip.DD5.1.x264-ViSUM", false)]
         [TestCase("The Series 42 S09E13 1.54 GB WEB-RIP 1080p Dual-Audio 2019 MKV", false)]
         [TestCase("Series.Title.1x04.ITA.1080p.WEBMux.x264-NovaRip", false)]
-        [TestCase("Series.Title.2019.S02E07.Chapter.15.The.Believer.4Kto1080p.DSNYP.Webrip.x265.10bit.EAC3.5.1.Atmos.GokiTAoE", false)]
         public void should_parse_webrip1080p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBRip1080p, proper);
+        }
+
+        [TestCase("Series.Title.2019.S02E07.Chapter.15.The.Believer.4Kto1080p.DSNYP.Webrip.x265.10bit.EAC3.5.1.Atmos.GokiTAoE", false)]
+        [TestCase("Rick and Morty S05E08 Rickternal Friendshine of the Spotless Mort 1080p WEBRip 6CH x265 HEVC PSA", false)]
+        [TestCase("Rick and Morty S05E03 A Rickconvenient Mort 1080p WEBRip 6CH x265 HEVC-PSA", false)]
+        public void should_parse_webrip1080phevc_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.WEBRip1080pHEVC, proper);
         }
 
         [TestCase("Series.Title.2016.03.14.2160p.WEB.x264-spamTV", false)]
@@ -276,6 +299,15 @@ namespace NzbDrone.Core.Test.ParserTests
             ParseAndVerifyQuality(title, Quality.WEBDL2160p, proper);
         }
 
+        [TestCase("Ted.Lasso.S02E01.HDR.2160p.WEB.H265-EXPLOIT[rartv]", false)]
+        [TestCase("Ted.Lasso.S02E02.HDR.2160p.WEB.H265-GLHF[rartv]", false)]
+        [TestCase("Ted.Lasso.S02E04.HDR.2160p.WEB.H265-GGEZ[rarbg]", false)]
+        [TestCase("The.Grand.Tour.S04E03.HDR.2160p.WEB.H265-WHOSNEXT[rartv]", false)]
+        public void should_parse_webdl2160phevc_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.WEBDL2160pHEVC, proper);
+        }
+
         [TestCase("Series S01E01.2160P AMZN WEBRIP DD2.0 HI10P X264-TROLLUHD", false)]
         [TestCase("JUST ADD SONARR S01E01.2160P AMZN WEBRIP DD2.0 X264-TROLLUHD", false)]
         [TestCase("The.Man.In.The.Series.S01E01.2160p.AMZN.WEBRip.DD2.0.Hi10p.X264-TrollUHD", false)]
@@ -285,6 +317,13 @@ namespace NzbDrone.Core.Test.ParserTests
         public void should_parse_webrip2160p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBRip2160p, proper);
+        }
+
+        [TestCase("Lucifer.S05E05.Detective.Amenadiel.2160p.NF.WEBRip.DDP5.1.x265-NTb", false)]
+        [TestCase("Lucifer.S05E07.Our.Mojo.2160p.NF.WEBRip.DDP5.1.x265-NTb", false)]
+        public void should_parse_webrip2160phevc_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.WEBRip2160pHEVC, proper);
         }
 
         [TestCase("SERIES.S03E01-06.DUAL.Bluray.AC3.-HELLYWOOD.avi", false)]
@@ -319,11 +358,16 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Planet.Series.S01E11.Code.Deep.1080p.HD-DVD.DD.VC1-TRB", false)]
         [TestCase("Series Away(2001) Bluray FHD Hi10P.mkv", false)]
         [TestCase("S for Series 2005 1080p UHD BluRay DD+7.1 x264-LoRD.mkv", false)]
-        [TestCase("Series.Title.2011.1080p.UHD.BluRay.DD5.1.HDR.x265-CtrlHD.mkv", false)]
-        [TestCase("Fall.Of.The.Release.Groups.S02E13.1080p.BDLight.x265-AVCDVD", false)]
         public void should_parse_bluray1080p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.Bluray1080p, proper);
+        }
+
+        [TestCase("Series.Title.2011.1080p.UHD.BluRay.DD5.1.HDR.x265-CtrlHD.mkv", false)]
+        [TestCase("Series.Title.2011.UHD.BluRay.DD5.1.HDR.x265-CtrlHD/ctrlhd-rotpota-1080p.mkv", false)]
+        public void should_parse_bluray1080phevc_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.Bluray1080pHEVC, proper);
         }
 
         [TestCase("Series!!! on ICE - S01E12[JP BD Remux][ENG subs]", false)]
@@ -339,12 +383,15 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.Title.US.s05e13.4K.UHD.Bluray", false)]
         [TestCase("Series.Title.US.s05e13.UHD.4K.Bluray", false)]
         [TestCase("[DameDesuYo] Series Bundle - Part 1 (BD 4K 8bit FLAC)", false)]
-        [TestCase("Series.Title.2014.2160p.UHD.BluRay.X265-IAMABLE.mkv", false)]
-        [TestCase("Series.Title.2014.2160p.UHD.BluRay.X265-IAMABLE.mkv", false)]
-        [TestCase("Series.Title.S05EO1.Episode.Title.2160p.BDRip.AAC.7.1.HDR10.x265.10bit-Markll", false)]
         public void should_parse_bluray2160p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.Bluray2160p, proper);
+        }
+
+        [TestCase("Series.Title.2014.2160p.UHD.BluRay.X265-IAMABLE.mkv", false)]
+        public void should_parse_bluray2160phevc_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.Bluray2160pHEVC, proper);
         }
 
         [TestCase("Series!!! on ICE - S01E12[JP BD 2160p Remux][ENG subs]", false)]
