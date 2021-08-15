@@ -1,27 +1,30 @@
-# <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr 
+# <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr
 
 Sonarr is a PVR for Usenet and BitTorrent users. It can monitor multiple RSS feeds for new episodes of your favorite shows and will grab, sort and rename them. It can also be configured to automatically upgrade the quality of files already downloaded when a better quality format becomes available.
 
-# This fork
+## This fork
 
-![continuous integration](https://github.com/diveflo/Sonarr/workflows/continuous%20integration/badge.svg?branch=phantom-develop)
+![continuous integration](https://github.com/diveflo/Sonarr/workflows/continuous%20integration/badge.svg?branch=develop)
 
-This fork tracks the phantom-develop branch of the original Sonarr/Sonarr repo but adds HEVC/x265 quality types. The following qualities are added:
+This fork tracks the develop branch of the original Sonarr/Sonarr repo but adds HEVC/x265 quality types. The following qualities are added:
 
-* Bluray-2160p-HEVC
+* BluRay-2160p-HEVC
+* WEBRip-2160p-HEVC
 * WEBDL-2160p-HEVC
 * HDTV-2160p-HEVC
-* Bluray-1080p-HEVC
+* BluRay-1080p-HEVC
+* WEBRip-1080p-HEVC
 * WEBDL-1080p-HEVC
 * HDTV-1080p-HEVC
-* Bluray-720p-HEVC
+* BluRay-720p-HEVC
+* WEBRip-720p-HEVC
 * WEBDL-720p-HEVC
 * HDTV-720p-HEVC
 * DVD-HEVC
 
-Sonarr V3 added prefered tags, similar to Radarr, to download HEVC/x265 content. However, this doesn't allow for the same configuration, e.g., cut-off, as adding specific quality types. Additionally, it will not upgrade your local file to the HEVC version once it comes available.
+Sonarr V3 added preferred tags, similar to Radarr, to download HEVC/x265 content. However, this doesn't allow for the same configuration, e.g., cut-off, as adding specific quality types. Additionally, it will not upgrade your local file to the HEVC version once it comes available.
 
-The current build is always availble in the [Releases](https://github.com/diveflo/Sonarr/releases) section. Additionally, these releases are used to automatically build multi-arch docker images. These can be found on [dockerhub](https://hub.docker.com/r/floriang89/sonarr-hevc) for *linux/amd64*, *linux/arm/v7* and *linux/arm64/v8*.
+The current build is always available in the [Releases](https://github.com/diveflo/Sonarr/releases) section. Additionally, these releases are used to automatically build multi-arch docker images. These can be found on [dockerhub](https://hub.docker.com/r/floriang89/sonarr-hevc) for *linux/amd64*, *linux/arm/v7* and *linux/arm64/v8*.
 
 ## Getting Started
 
@@ -32,6 +35,7 @@ The current build is always availble in the [Releases](https://github.com/divefl
 - [Donate](https://sonarr.tv/donate)
 
 ## Support
+
 Note: GitHub Issues are for Bugs and Feature Requests Only
 
 - [Forums](https://forums.sonarr.tv/)
@@ -40,8 +44,6 @@ Note: GitHub Issues are for Bugs and Feature Requests Only
 - [IRC](https://web.libera.chat/?channels=#sonarr)
 - [Reddit](https://www.reddit.com/r/sonarr)
 - [Wiki](https://wiki.servarr.com/sonarr)
-
-
 
 ## Features
 
@@ -62,13 +64,14 @@ Note: GitHub Issues are for Bugs and Feature Requests Only
 ## Contributing
 
 ### Development
+
 This project exists thanks to all the people who contribute. [Contribute](CONTRIBUTING.md).
 
 <a href="https://github.com/Sonarr/Sonarr/graphs/contributors"><img src="https://opencollective.com/Sonarr/contributors.svg?width=890&button=false" /></a>
 
 ### Supporters
 
-This project would not be possible without the support of our users and software providers. 
+This project would not be possible without the support of our users and software providers.
 [**Become a sponsor or backer**](https://opencollective.com/sonarr) to help us out!
 
 #### Mega Sponsors
@@ -93,5 +96,5 @@ Thank you to [<img src="/Logo/Jetbrains/jetbrains.svg" alt="JetBrains" width="32
 
 ### Licenses
 
-- [GNU GPL v3](http://www.gnu.org/licenses/gpl.html)	
+- [GNU GPL v3](http://www.gnu.org/licenses/gpl.html)
 - Copyright 2010-2021
