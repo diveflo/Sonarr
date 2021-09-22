@@ -1,4 +1,8 @@
-﻿using CookComputing.XmlRpc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using CookComputing.XmlRpc;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -9,10 +13,6 @@ using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 
 namespace NzbDrone.Core.Download.Clients.Aria2
 {
@@ -31,7 +31,7 @@ namespace NzbDrone.Core.Download.Clients.Aria2
                         Logger logger)
             : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, logger)
         {
-            _proxy = proxy; ;
+            _proxy = proxy;
         }
 
         protected override string AddFromMagnetLink(RemoteEpisode remoteEpisode, string hash, string magnetLink)
@@ -48,7 +48,7 @@ namespace NzbDrone.Core.Download.Clients.Aria2
                 return hash;
             }
 
-            _logger.Debug($"Äria2 AddFromMagnetLink '{hash}' -> '{gid}'");
+            _logger.Debug($"Aria2 AddFromMagnetLink '{hash}' -> '{gid}'");
 
             return hash;
         }
@@ -83,12 +83,12 @@ namespace NzbDrone.Core.Download.Clients.Aria2
                     continue;
                 }
 
-                long completedLength = long.Parse(torrent.CompletedLength);
-                long totalLength = long.Parse(torrent.TotalLength);
-                long uploadedLength = long.Parse(torrent.UploadLength);
-                long downloadSpeed = long.Parse(torrent.DownloadSpeed);
+                var completedLength = long.Parse(torrent.CompletedLength);
+                var totalLength = long.Parse(torrent.TotalLength);
+                var uploadedLength = long.Parse(torrent.UploadLength);
+                var downloadSpeed = long.Parse(torrent.DownloadSpeed);
 
-                var sta = DownloadItemStatus.Failed;
+                var status = DownloadItemStatus.Failed;
                 var title = "";
 
                 if(torrent.Bittorrent?.ContainsKey("info") == true && ((XmlRpcStruct)torrent.Bittorrent["info"]).ContainsKey("name"))
@@ -99,42 +99,52 @@ namespace NzbDrone.Core.Download.Clients.Aria2
                 switch (torrent.Status)
                 {
                     case "active":
-                        sta = DownloadItemStatus.Downloading;
+                        if (completedLength == totalLength)
+                        {
+                            status = DownloadItemStatus.Completed;
+                        }
+                        else
+                        {
+                            status = DownloadItemStatus.Downloading;
+                        }
+
                         break;
                     case "waiting":
-                        sta = DownloadItemStatus.Queued;
+                        status = DownloadItemStatus.Queued;
                         break;
                     case "paused":
-                        sta = DownloadItemStatus.Paused;
+                        status = DownloadItemStatus.Paused;
                         break;
                     case "error":
-                        sta = DownloadItemStatus.Failed;
+                        status = DownloadItemStatus.Failed;
                         break;
                     case "complete":
-                        sta = DownloadItemStatus.Completed;
+                        status = DownloadItemStatus.Completed;
                         break;
                     case "removed":
-                        sta = DownloadItemStatus.Failed;
+                        status = DownloadItemStatus.Failed;
                         break;
                 }
 
-                _logger.Debug($"- aria2 getstatus hash:'{torrent.InfoHash}' gid:'{torrent.Gid}' sta:'{sta}' tot:{totalLength} comp:'{completedLength}'");
+                _logger.Trace($"- aria2 getstatus hash:'{torrent.InfoHash}' gid:'{torrent.Gid}' status:'{status}' total:{totalLength} completed:'{completedLength}'");
 
-                yield return new DownloadClientItem()
+                var outputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(GetOutputPath(torrent)));
+
+                yield return new DownloadClientItem
                 {
                     CanMoveFiles = false,
-                    CanBeRemoved = true,
+                    CanBeRemoved = torrent.Status == "complete",
                     Category = null,
                     DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this),
                     DownloadId = torrent.InfoHash?.ToUpper(),
                     IsEncrypted = false,
                     Message = torrent.ErrorMessage,
-                    OutputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.Dir)),
+                    OutputPath = outputPath,
                     RemainingSize = totalLength - completedLength,
                     RemainingTime = downloadSpeed == 0 ? (TimeSpan?)null : new TimeSpan(0,0, (int)((totalLength - completedLength) / downloadSpeed)),
                     Removed = torrent.Status == "removed",
                     SeedRatio = totalLength > 0 ? (double)uploadedLength / totalLength : 0,
-                    Status = sta,
+                    Status = status,
                     Title = title,
                     TotalSize = totalLength,
                 };              
@@ -143,7 +153,7 @@ namespace NzbDrone.Core.Download.Clients.Aria2
 
         public override void RemoveItem(DownloadClientItem item, bool deleteData)
         {
-            //Aria2 doesn't support file deletion: https://github.com/aria2/aria2/issues/728
+            // Aria2 doesn't support file deletion: https://github.com/aria2/aria2/issues/728
             var hash = item.DownloadId.ToLower();
             var aria2Item = _proxy.GetTorrents(Settings).FirstOrDefault(t => t.InfoHash?.ToLower() == hash);
 
@@ -155,10 +165,23 @@ namespace NzbDrone.Core.Download.Clients.Aria2
 
             _logger.Debug($"Aria2 removing hash:'{hash}' gid:'{aria2Item.Gid}'");
 
-            if (!_proxy.RemoveTorrent(Settings, aria2Item.Gid))
+            if (aria2Item.Status == "complete" || aria2Item.Status == "error" || aria2Item.Status == "removed")
             {
-                _logger.Error($"Aria2 error while deleting {hash}.");
-                return;
+                if (!_proxy.RemoveCompletedTorrent(Settings, aria2Item.Gid))
+                {
+                    _logger.Error($"Aria2 error while deleting {hash}.");
+
+                    return;
+                }
+            }
+            else
+            {
+                if (!_proxy.RemoveTorrent(Settings, aria2Item.Gid))
+                {
+                    _logger.Error($"Aria2 error while deleting {hash}.");
+
+                    return;
+                }
             }
 
             if (deleteData)
@@ -201,7 +224,10 @@ namespace NzbDrone.Core.Download.Clients.Aria2
         {
             failures.AddIfNotNull(TestConnection());
 
-            if (failures.HasErrors()) return;
+            if (failures.HasErrors())
+            {
+                return;
+            }
         }
 
         private ValidationFailure TestConnection()
@@ -226,6 +252,16 @@ namespace NzbDrone.Core.Download.Clients.Aria2
             }
 
             return null;
+        }
+
+        private string GetOutputPath(Aria2Status torrent)
+        {
+            if (torrent.Files.Length == 1)
+            {
+                return torrent.Files.First().Path;
+            }
+
+            return torrent.Files.Select(f => f.Path).ToList().GetLongestCommonPath();
         }
     }
 }
