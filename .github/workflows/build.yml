@@ -45,7 +45,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: download build artifacts
-        uses: actions/download-artifact@v2.0.10
+        uses: actions/download-artifact@v2.1.0
         with:
           name: sonarr-hevc-build
           path: ${{runner.temp}}/Sonarr
