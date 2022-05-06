@@ -52,19 +52,12 @@ jobs:
       - name: prepare release asset
         shell: pwsh
         run: Compress-Archive -Path ${{runner.temp}}/Sonarr -DestinationPath sonarr-hevc.zip
-      - name: delete previous release
-        uses: dev-drprasad/delete-tag-and-release@v0.2.0
-        with:
-          tag_name: latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: create release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
           prerelease: false
-          title: "Development Build"
           files: sonarr-hevc.zip
   docker:
     runs-on: ubuntu-latest
