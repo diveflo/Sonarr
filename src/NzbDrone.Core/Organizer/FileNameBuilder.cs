@@ -40,6 +40,7 @@ namespace NzbDrone.Core.Organizer
         private readonly ICached<AbsoluteEpisodeFormat[]> _absoluteEpisodeFormatCache;
         private readonly ICached<bool> _requiresEpisodeTitleCache;
         private readonly ICached<bool> _requiresAbsoluteEpisodeNumberCache;
+        private readonly ICached<bool> _patternHasEpisodeIdentifierCache;
         private readonly Logger _logger;
 
         private static readonly Regex TitleRegex = new Regex(@"(?<escaped>\{\{|\}\})|\{(?<prefix>[- ._\[(]*)(?<token>(?:[a-z0-9]+)(?:(?<separator>[- ._]+)(?:[a-z0-9]+))?)(?::(?<customFormat>[a-z0-9+-]+(?<!-)))?(?<suffix>[- ._)\]]*)\}",
@@ -97,6 +98,7 @@ namespace NzbDrone.Core.Organizer
             _absoluteEpisodeFormatCache = cacheManager.GetCache<AbsoluteEpisodeFormat[]>(GetType(), "absoluteEpisodeFormat");
             _requiresEpisodeTitleCache = cacheManager.GetCache<bool>(GetType(), "requiresEpisodeTitle");
             _requiresAbsoluteEpisodeNumberCache = cacheManager.GetCache<bool>(GetType(), "requiresAbsoluteEpisodeNumber");
+            _patternHasEpisodeIdentifierCache = cacheManager.GetCache<bool>(GetType(), "patternHasEpisodeIdentifier");
             _logger = logger;
         }
 
@@ -109,7 +111,7 @@ namespace NzbDrone.Core.Organizer
 
             if (!namingConfig.RenameEpisodes)
             {
-                return GetOriginalTitle(episodeFile) + extension;
+                return GetOriginalTitle(episodeFile, true) + extension;
             }
 
             if (namingConfig.StandardEpisodeFormat.IsNullOrWhiteSpace() && series.SeriesType == SeriesTypes.Standard)
@@ -148,6 +150,8 @@ namespace NzbDrone.Core.Organizer
             {
                 var splitPattern = splitPatterns[i];
                 var tokenHandlers = new Dictionary<string, Func<TokenMatch, string>>(FileNameBuilderTokenEqualityComparer.Instance);
+                var patternHasEpisodeIdentifier = GetPatternHasEpisodeIdentifier(splitPattern);
+
                 splitPattern = AddSeasonEpisodeNumberingTokens(splitPattern, tokenHandlers, episodes, namingConfig);
                 splitPattern = AddAbsoluteNumberingTokens(splitPattern, tokenHandlers, series, episodes, namingConfig);
 
@@ -157,7 +161,7 @@ namespace NzbDrone.Core.Organizer
                 AddIdTokens(tokenHandlers, series);
                 AddEpisodeTokens(tokenHandlers, episodes);
                 AddEpisodeTitlePlaceholderTokens(tokenHandlers);
-                AddEpisodeFileTokens(tokenHandlers, episodeFile);
+                AddEpisodeFileTokens(tokenHandlers, episodeFile, !patternHasEpisodeIdentifier);
                 AddQualityTokens(tokenHandlers, series, episodeFile);
                 AddMediaInfoTokens(tokenHandlers, episodeFile);
                 AddPreferredWords(tokenHandlers, series, episodeFile, preferredWords);
@@ -583,10 +587,10 @@ namespace NzbDrone.Core.Organizer
             tokenHandlers["{Episode CleanTitle}"] = m => GetEpisodeTitle(GetEpisodeTitles(episodes).Select(CleanTitle).ToList(), "and", maxLength);
         }
 
-        private void AddEpisodeFileTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, EpisodeFile episodeFile)
+        private void AddEpisodeFileTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, EpisodeFile episodeFile, bool useCurrentFilenameAsFallback)
         {
-            tokenHandlers["{Original Title}"] = m => GetOriginalTitle(episodeFile);
-            tokenHandlers["{Original Filename}"] = m => GetOriginalFileName(episodeFile);
+            tokenHandlers["{Original Title}"] = m => GetOriginalTitle(episodeFile, useCurrentFilenameAsFallback);
+            tokenHandlers["{Original Filename}"] = m => GetOriginalFileName(episodeFile, useCurrentFilenameAsFallback);
             tokenHandlers["{Release Group}"] = m => episodeFile.ReleaseGroup ?? m.DefaultValue("Sonarr");
         }
 
@@ -929,12 +933,35 @@ namespace NzbDrone.Core.Organizer
 
         private AbsoluteEpisodeFormat[] GetAbsoluteFormat(string pattern)
         {
-            return _absoluteEpisodeFormatCache.Get(pattern, () =>  AbsoluteEpisodePatternRegex.Matches(pattern).OfType<Match>()
+            return _absoluteEpisodeFormatCache.Get(pattern, () => AbsoluteEpisodePatternRegex.Matches(pattern).OfType<Match>()
                 .Select(match => new AbsoluteEpisodeFormat
                 {
                     Separator = match.Groups["separator"].Value.IsNotNullOrWhiteSpace() ? match.Groups["separator"].Value : "-",
                     AbsoluteEpisodePattern = match.Groups["absolute"].Value
                 }).ToArray());
+        }
+
+        private bool GetPatternHasEpisodeIdentifier(string pattern)
+        {
+            return _patternHasEpisodeIdentifierCache.Get(pattern, () =>
+            {
+                if (SeasonEpisodePatternRegex.IsMatch(pattern))
+                {
+                    return true;
+                }
+
+                if (AbsoluteEpisodePatternRegex.IsMatch(pattern))
+                {
+                    return true;
+                }
+
+                if (AirDateRegex.IsMatch(pattern))
+                {
+                    return true;
+                }
+
+                return false;
+            });
         }
 
         private List<string> GetEpisodeTitles(List<Episode> episodes)
@@ -1030,18 +1057,23 @@ namespace NzbDrone.Core.Organizer
             return string.Empty;
         }
 
-        private string GetOriginalTitle(EpisodeFile episodeFile)
+        private string GetOriginalTitle(EpisodeFile episodeFile, bool useCurrentFilenameAsFallback)
         {
             if (episodeFile.SceneName.IsNullOrWhiteSpace())
             {
-                return GetOriginalFileName(episodeFile);
+                return GetOriginalFileName(episodeFile, useCurrentFilenameAsFallback);
             }
 
             return episodeFile.SceneName;
         }
 
-        private string GetOriginalFileName(EpisodeFile episodeFile)
+        private string GetOriginalFileName(EpisodeFile episodeFile, bool useCurrentFilenameAsFallback)
         {
+            if (!useCurrentFilenameAsFallback)
+            {
+                return string.Empty;
+            }
+
             if (episodeFile.RelativePath.IsNullOrWhiteSpace())
             {
                 return Path.GetFileNameWithoutExtension(episodeFile.Path);

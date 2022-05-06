@@ -279,7 +279,6 @@ class SeriesDetails extends Component {
             <PageToolbarButton
               label="Manage Episodes"
               iconName={icons.EPISODE_FILE}
-              isDisabled={!hasEpisodeFiles}
               onPress={this.onManageEpisodesPress}
             />
 
@@ -651,6 +650,7 @@ class SeriesDetails extends Component {
             autoSelectRow={false}
             showDelete={true}
             showImportMode={false}
+            modalTitle={'Manage Episodes'}
             onModalClose={this.onManageEpisodesModalClose}
           />
 

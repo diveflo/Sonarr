@@ -48,11 +48,45 @@ namespace NzbDrone.Core.Notifications.Emby
             }
         }
 
+        public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        {
+            if (Settings.Notify)
+            {
+                _mediaBrowserService.Notify(Settings, EPISODE_DELETED_TITLE_BRANDED, deleteMessage.Message);
+            }
+
+            if (Settings.UpdateLibrary)
+            {
+                _mediaBrowserService.Update(Settings, deleteMessage.Series, "Deleted");
+            }
+        }
+
+        public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        {
+            if (Settings.Notify)
+            {
+                _mediaBrowserService.Notify(Settings, SERIES_DELETED_TITLE_BRANDED, deleteMessage.Message);
+            }
+
+            if (Settings.UpdateLibrary)
+            {
+                _mediaBrowserService.Update(Settings, deleteMessage.Series, "Deleted");
+            }
+        }
+
         public override void OnHealthIssue(HealthCheck.HealthCheck message)
         {
             if (Settings.Notify)
             {
                 _mediaBrowserService.Notify(Settings, HEALTH_ISSUE_TITLE_BRANDED, message.Message);
+            }
+        }
+
+        public override void OnApplicationUpdate(ApplicationUpdateMessage updateMessage)
+        {
+            if (Settings.Notify)
+            {
+                _mediaBrowserService.Notify(Settings, APPLICATION_UPDATE_TITLE_BRANDED, updateMessage.Message);
             }
         }
 

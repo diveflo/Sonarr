@@ -196,6 +196,34 @@ class EpisodeRow extends Component {
               );
             }
 
+            if (name === 'audioLanguages') {
+              return (
+                <TableRowCell
+                  key={name}
+                  className={styles.audioLanguages}
+                >
+                  <MediaInfoConnector
+                    type={mediaInfoTypes.AUDIO_LANGUAGES}
+                    episodeFileId={episodeFileId}
+                  />
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'subtitleLanguages') {
+              return (
+                <TableRowCell
+                  key={name}
+                  className={styles.subtitles}
+                >
+                  <MediaInfoConnector
+                    type={mediaInfoTypes.SUBTITLES}
+                    episodeFileId={episodeFileId}
+                  />
+                </TableRowCell>
+              );
+            }
+
             if (name === 'videoCodec') {
               return (
                 <TableRowCell
@@ -204,6 +232,20 @@ class EpisodeRow extends Component {
                 >
                   <MediaInfoConnector
                     type={mediaInfoTypes.VIDEO}
+                    episodeFileId={episodeFileId}
+                  />
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'videoDynamicRangeType') {
+              return (
+                <TableRowCell
+                  key={name}
+                  className={styles.videoDynamicRangeType}
+                >
+                  <MediaInfoConnector
+                    type={mediaInfoTypes.VIDEO_DYNAMIC_RANGE_TYPE}
                     episodeFileId={episodeFileId}
                   />
                 </TableRowCell>

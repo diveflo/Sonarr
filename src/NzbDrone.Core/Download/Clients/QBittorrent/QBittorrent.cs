@@ -286,7 +286,8 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                         }
                         break;
 
-                    case "forcedDL": //torrent is being downloaded, and was forced started 
+                    case "forcedDL": // torrent is being downloaded, and was forced started
+                    case "forcedMetaDL": // torrent metadata is being forcibly downloaded
                     case "moving": // torrent is being moved from a folder
                     case "downloading": // torrent is being downloaded and data is being transferred
                         item.Status = DownloadItemStatus.Downloading;
@@ -308,7 +309,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                     else if (item.Status == DownloadItemStatus.Completed)
                     {
                         item.Status = DownloadItemStatus.Warning;
-                        item.Message = "Unable to import since content path is equal to root download directory, perhaps Keep top-level folder was disabled for this torrent?";
+                        item.Message = "Unable to Import. Path matches client base download directory, it's possible 'Keep top-level folder' is disabled for this torrent or 'Torrent Content Layout' is NOT set to 'Original' or 'Create Subfolder'?";
                     }
                 }
 

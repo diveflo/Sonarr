@@ -169,6 +169,7 @@ namespace NzbDrone.Core.History
                 history.Data.Add("TvRageId", message.Episode.Release.TvRageId.ToString());
                 history.Data.Add("Protocol", ((int)message.Episode.Release.DownloadProtocol).ToString());
                 history.Data.Add("PreferredWordScore", message.Episode.PreferredWordScore.ToString());
+                history.Data.Add("SeriesMatchType", message.Episode.SeriesMatchType.ToString());
 
                 if (!message.Episode.ParsedEpisodeInfo.ReleaseHash.IsNullOrWhiteSpace())
                 {
@@ -220,6 +221,7 @@ namespace NzbDrone.Core.History
                 history.Data.Add("DownloadClient", message.DownloadClientInfo?.Type);
                 history.Data.Add("DownloadClientName", message.DownloadClientInfo?.Name);
                 history.Data.Add("PreferredWordScore", message.EpisodeInfo.PreferredWordScore.ToString());
+                history.Data.Add("ReleaseGroup", message.EpisodeInfo.ReleaseGroup);
 
                 _historyRepository.Insert(history);
             }
@@ -244,6 +246,7 @@ namespace NzbDrone.Core.History
                 history.Data.Add("DownloadClient", message.DownloadClient);
                 history.Data.Add("DownloadClientName", message.TrackedDownload?.DownloadItem.DownloadClientInfo.Name);
                 history.Data.Add("Message", message.Message);
+                history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup);
 
                 _historyRepository.Insert(history);
             }
@@ -279,6 +282,7 @@ namespace NzbDrone.Core.History
 
                 history.Data.Add("Reason", message.Reason.ToString());
                 history.Data.Add("PreferredWordScore", episodeFilePreferredWordScore.ToString());
+                history.Data.Add("ReleaseGroup", message.EpisodeFile.ReleaseGroup);
 
                 _historyRepository.Insert(history);
             }
@@ -308,6 +312,7 @@ namespace NzbDrone.Core.History
                 history.Data.Add("SourceRelativePath", sourceRelativePath);
                 history.Data.Add("Path", path);
                 history.Data.Add("RelativePath", relativePath);
+                history.Data.Add("ReleaseGroup", message.EpisodeFile.ReleaseGroup);
 
                 _historyRepository.Insert(history);
             }
@@ -334,6 +339,7 @@ namespace NzbDrone.Core.History
                 history.Data.Add("DownloadClient", message.DownloadClientInfo.Type);
                 history.Data.Add("DownloadClientName", message.DownloadClientInfo.Name);
                 history.Data.Add("Message", message.Message);
+                history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup);
 
                 historyToAdd.Add(history);
             }

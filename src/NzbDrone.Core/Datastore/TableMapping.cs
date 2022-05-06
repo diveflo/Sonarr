@@ -60,7 +60,8 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(r => r.FreeSpace)
                   .Ignore(r => r.TotalSpace);
 
-            Mapper.Entity<ScheduledTask>().RegisterModel("ScheduledTasks");
+            Mapper.Entity<ScheduledTask>().RegisterModel("ScheduledTasks")
+                  .Ignore(i => i.Priority);
 
             Mapper.Entity<IndexerDefinition>().RegisterDefinition("Indexers")
                   .Ignore(i => i.Enable)
@@ -76,7 +77,8 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(i => i.SupportsOnSeriesDelete)
                   .Ignore(i => i.SupportsOnEpisodeFileDelete)
                   .Ignore(i => i.SupportsOnEpisodeFileDeleteForUpgrade)
-                  .Ignore(i => i.SupportsOnHealthIssue);
+                  .Ignore(i => i.SupportsOnHealthIssue)
+                  .Ignore(i => i.SupportsOnApplicationUpdate);
 
             Mapper.Entity<MetadataDefinition>().RegisterDefinition("Metadata")
                   .Ignore(d => d.Tags);
@@ -175,6 +177,7 @@ namespace NzbDrone.Core.Datastore
             MapRepository.Instance.RegisterTypeConverter(typeof(List<LanguageProfileItem>), new EmbeddedDocumentConverter(new LanguageIntConverter()));
             MapRepository.Instance.RegisterTypeConverter(typeof(ParsedEpisodeInfo), new EmbeddedDocumentConverter());
             MapRepository.Instance.RegisterTypeConverter(typeof(ReleaseInfo), new EmbeddedDocumentConverter());
+            MapRepository.Instance.RegisterTypeConverter(typeof(PendingReleaseAdditionalInfo), new EmbeddedDocumentConverter());
             MapRepository.Instance.RegisterTypeConverter(typeof(HashSet<int>), new EmbeddedDocumentConverter());
             MapRepository.Instance.RegisterTypeConverter(typeof(OsPath), new OsPathConverter());
             MapRepository.Instance.RegisterTypeConverter(typeof(Guid), new GuidConverter());

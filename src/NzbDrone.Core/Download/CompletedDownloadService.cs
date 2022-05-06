@@ -13,6 +13,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Download
@@ -93,7 +94,15 @@ namespace NzbDrone.Core.Download
 
                 if (series == null)
                 {
-                    trackedDownload.Warn("Series title mismatch, automatic import is not possible.");
+                    trackedDownload.Warn("Series title mismatch; automatic import is not possible.");
+                    return;
+                }
+
+                Enum.TryParse(historyItem.Data.GetValueOrDefault(EpisodeHistory.SERIES_MATCH_TYPE, SeriesMatchType.Unknown.ToString()), out SeriesMatchType seriesMatchType);
+
+                if (seriesMatchType == SeriesMatchType.Id)
+                {
+                    trackedDownload.Warn("Found matching series via grab history, but release was matched to series by ID. Automatic import is not possible.");
                     return;
                 }
             }
@@ -120,7 +129,7 @@ namespace NzbDrone.Core.Download
 
             var outputPath = trackedDownload.ImportItem.OutputPath.FullPath;
             var importResults = _downloadedEpisodesImportService.ProcessPath(outputPath, ImportMode.Auto,
-                trackedDownload.RemoteEpisode.Series, trackedDownload.DownloadItem);
+                trackedDownload.RemoteEpisode.Series, trackedDownload.ImportItem);
 
             if (VerifyImport(trackedDownload, importResults))
             {

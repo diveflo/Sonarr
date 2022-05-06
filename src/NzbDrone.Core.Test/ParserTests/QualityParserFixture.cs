@@ -219,6 +219,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[HorribleSubs] Series Title! S01 [Web][MKV][h264][720p][AAC 2.0][Softsubs (HorribleSubs)]", false)]
         [TestCase("[HorribleSubs] Series Title! S01 [Web][MKV][h264][AAC 2.0][Softsubs (HorribleSubs)]", false)]
         [TestCase("Series.Title.S04E13.960p.WEB-DL.AAC2.0.H.264-squalor", false)]
+        [TestCase("Series.Title.S16.DP.WEB.720p.DDP.5.1.H.264.PLEX", false)]
         public void should_parse_webdl720p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBDL720p, proper);
@@ -303,6 +304,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Ted.Lasso.S02E02.HDR.2160p.WEB.H265-GLHF[rartv]", false)]
         [TestCase("Ted.Lasso.S02E04.HDR.2160p.WEB.H265-GGEZ[rarbg]", false)]
         [TestCase("The.Grand.Tour.S04E03.HDR.2160p.WEB.H265-WHOSNEXT[rartv]", false)]
+        [TestCase("Series Title S02 2013 WEB-DL 4k H265 AAC 2Audio-HDSWEB", false)]
         public void should_parse_webdl2160phevc_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBDL2160pHEVC, proper);
@@ -457,7 +459,7 @@ namespace NzbDrone.Core.Test.ParserTests
         public void should_parse_full_quality_from_name(string title)
         {
             var result = QualityParser.ParseQuality(title);
-                
+
             result.SourceDetectionSource.Should().Be(QualityDetectionSource.Name);
             result.ResolutionDetectionSource.Should().Be(QualityDetectionSource.Name);
         }

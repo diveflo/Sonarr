@@ -176,6 +176,10 @@ namespace NzbDrone.Core.Parser
                 new Regex(@"^(?<title>.+?)(?:\W+S(?<season>(?<!\d+)(?:\d{1,2})(?!\d+))\W+(?:(?:Part\W?|(?<!\d+\W+)e)(?<seasonpart>\d{1,2}(?!\d+)))+)",
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
+                //Anime - Title 4-digit Absolute Episode Number [SubGroup]
+                new Regex(@"^(?<title>.+?)[-_. ]+(?<absoluteepisode>(?<!\d+)\d{4}(?!\d+))[-_. ]\[(?<subgroup>.+?)\]",
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled),
+
                 //Mini-Series with year in title, treated as season 1, episodes are labelled as Part01, Part 01, Part.1
                 new Regex(@"^(?<title>.+?\d{4})(?:\W+(?:(?:Part\W?|e)(?<episode>\d{1,2}(?!\d+)))+)",
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
@@ -189,7 +193,7 @@ namespace NzbDrone.Core.Parser
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Mini-Series, treated as season 1, episodes are labelled as Part01, Part 01, Part.1
-                new Regex(@"^(?<title>.+?)(?:\W+(?:(?:Part\W?|(?<!\d+\W+)e)(?<episode>\d{1,2}(?!\d+)))+)",
+                new Regex(@"^(?<title>.+?)(?:\W+(?:(?:(?<!\()Part\W?|(?<!\d+\W+)e)(?<episode>\d{1,2}(?!\d+|\))))+)",
                           RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 //Mini-Series, treated as season 1, episodes are labelled as Part One/Two/Three/...Nine, Part.One, Part_One
@@ -312,6 +316,10 @@ namespace NzbDrone.Core.Parser
                 new Regex(@"^(?:(?<season>(?<!\d+)(?:\d{1,2})(?!\d+))(?:-(?<episode>\d{2,3}(?!\d+))))",
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
+                // Spanish tracker releases
+                new Regex(@"^(?<title>.+?)(?:[-_. ]+?Temporada.+?\[Cap[-_.])(?<season>(?<!\d+)\d{1,2})(?<episode>(?<!e|x)(?:[1-9][0-9]|[0][1-9]))(?:\])",
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled),
+
                 //Anime Range - Title Absolute Episode Number (ep01-12)
                 new Regex(@"^(?:\[(?<subgroup>.+?)\][-_. ]?)?(?<title>.+?)(?:_|\s|\.)+(?:e|ep)(?<absoluteepisode>\d{2,3}(\.\d{1,2})?)-(?<absoluteepisode>(?<!\d+)\d{1,2}(\.\d{1,2})?(?!\d+|-)).*?(?<hash>\[\w{8}\])?(?:$|\.)",
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
@@ -416,7 +424,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex FileExtensionRegex = new Regex(@"\.[a-z0-9]{2,4}$",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly RegexReplace SimpleTitleRegex = new RegexReplace(@"(?:(480|720|1080|2160)[ip]|[xh][\W_]?26[45]|DD\W?5\W1|[<>?*]|848x480|1280x720|1920x1080|3840x2160|4096x2160|(8|10)b(it)?|10-bit)\s*?",
+        private static readonly RegexReplace SimpleTitleRegex = new RegexReplace(@"(?:(480|540|576|720|1080|2160)[ip]|[xh][\W_]?26[45]|DD\W?5\W1|[<>?*]|848x480|1280x720|1920x1080|3840x2160|4096x2160|(8|10)b(it)?|10-bit)\s*?",
                                                                 string.Empty,
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -442,7 +450,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex CleanQualityBracketsRegex = new Regex(@"\[[a-z0-9 ._-]+\]$",
                                                                    RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly Regex ReleaseGroupRegex = new Regex(@"-(?<releasegroup>[a-z0-9]+(?!.+?(?:480p|720p|1080p|2160p)))(?<!.*?WEB-DL|Blu-Ray|480p|720p|1080p|2160p|DTS-HD|DTS-X|DTS-MA|DTS-ES)(?:\b|[-._ ]|$)|[-._ ]\[(?<releasegroup>[a-z0-9]+)\]$",
+        private static readonly Regex ReleaseGroupRegex = new Regex(@"-(?<releasegroup>[a-z0-9]+(?<part2>-[a-z0-9]+)?(?!.+?(?:480p|576p|720p|1080p|2160p)))(?<!(?:WEB-DL|Blu-Ray|480p|576p|720p|1080p|2160p|DTS-HD|DTS-X|DTS-MA|DTS-ES|-ES|-EN|-CAT|[ ._]\d{4}-\d{2}|-\d{2})(?:\k<part2>)?)(?:\b|[-._ ]|$)|[-._ ]\[(?<releasegroup>[a-z0-9]+)\]$",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
 
@@ -452,18 +460,21 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex AnimeReleaseGroupRegex = new Regex(@"^(?:\[(?<subgroup>(?!\s).+?(?<!\s))\](?:_|-|\s|\.)?)",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly Regex LanguageRegex = new Regex(@"(?:\W|_)(?<italian>\b(?:ita|italian)\b)|(?<german>german\b|videomann)|(?<flemish>flemish)|(?<greek>greek)|(?<french>(?:\W|_)(?:FR|VOSTFR)(?:\W|_))|(?<russian>\brus\b)|(?<dutch>nl\W?subs?)|(?<hungarian>\b(?:HUNDUB|HUN)\b)|(?<spanish>\b(?:español|castellano)\b)",
-                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        //Handle Exception Release Groups that don't follow -RlsGrp; Manual List
+        // name only...be very careful with this last; high chance of false positives
+        private static readonly Regex ExceptionReleaseGroupRegexExact = new Regex(@"(?<releasegroup>(?:D\-Z0N3|Fight-BB)\b)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly Regex YearInTitleRegex = new Regex(@"^(?<title>.+?)(?:\W|_)?(?<year>\d{4})",
+        //groups whose releases end with RlsGroup) or RlsGroup]
+        private static readonly Regex ExceptionReleaseGroupRegex = new Regex(@"(?<releasegroup>(Silence|afm72|Panda|Ghost|MONOLITH|Tigole|Joy|ImE|UTR|t3nzin|Anime Time|Project Angel|Hakata Ramen)(?=\]|\)))", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex YearInTitleRegex = new Regex(@"^(?<title>.+?)[-_. ]+?\(?(?<year>\d{4})\)?",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex TitleComponentsRegex = new Regex(@"^(?:(?<title>.+?) \((?<title>.+?)\)|(?<title>.+?) \| (?<title>.+?))$",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly Regex WordDelimiterRegex = new Regex(@"(\s|\.|,|_|-|=|\|)+", RegexOptions.Compiled);
         private static readonly Regex PunctuationRegex = new Regex(@"[^\w\s]", RegexOptions.Compiled);
-        private static readonly Regex CommonWordRegex = new Regex(@"\b(a|an|the|and|or|of)\b\s?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex ArticleWordRegex = new Regex(@"^(a|an|the)\s", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex SpecialEpisodeWordRegex = new Regex(@"\b(part|special|edition|christmas)\b\s?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DuplicateSpacesRegex = new Regex(@"\s{2,}", RegexOptions.Compiled);
 
@@ -694,9 +705,8 @@ namespace NzbDrone.Core.Parser
 
         public static string NormalizeTitle(string title)
         {
-            title = WordDelimiterRegex.Replace(title, " ");
             title = PunctuationRegex.Replace(title, string.Empty);
-            title = CommonWordRegex.Replace(title, string.Empty);
+            title = ArticleWordRegex.Replace(title, string.Empty);
             title = DuplicateSpacesRegex.Replace(title, " ");
 
             return title.Trim().ToLower();
@@ -722,6 +732,20 @@ namespace NzbDrone.Core.Parser
             }
 
             title = CleanReleaseGroupRegex.Replace(title);
+
+            var exceptionReleaseGroupRegex = ExceptionReleaseGroupRegex.Matches(title);
+
+            if (exceptionReleaseGroupRegex.Count != 0)
+            {
+                return exceptionReleaseGroupRegex.OfType<Match>().Last().Groups["releasegroup"].Value;
+            }
+
+            var exceptionExactMatch = ExceptionReleaseGroupRegexExact.Matches(title);
+
+            if (exceptionExactMatch.Count != 0)
+            {
+                return exceptionExactMatch.OfType<Match>().Last().Groups["releasegroup"].Value;
+            }
 
             var matches = ReleaseGroupRegex.Matches(title);
 
@@ -803,11 +827,11 @@ namespace NzbDrone.Core.Parser
             if (airYear < 1900)
             {
                 result = new ParsedEpisodeInfo
-                         {
-                             ReleaseTitle = releaseTitle,
-                             EpisodeNumbers = new int[0],
-                             AbsoluteEpisodeNumbers = new int[0]
-                         };
+                {
+                    ReleaseTitle = releaseTitle,
+                    EpisodeNumbers = new int[0],
+                    AbsoluteEpisodeNumbers = new int[0]
+                };
 
                 foreach (Match matchGroup in matchCollection)
                 {
