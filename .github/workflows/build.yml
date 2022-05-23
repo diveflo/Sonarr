@@ -33,7 +33,7 @@ jobs:
           Rename-Item -Path .\Sonarr\Sonarr.Console.exe -NewName Sonarr.exe
           Copy-Item -Path .\src\NzbDrone.Core\Sonarr.Core.dll.config -Destination .\Sonarr
       - name: upload build artifacts
-        uses: actions/upload-artifact@v3.0.0
+        uses: actions/upload-artifact@v3.1.0
         with:
           name: sonarr-hevc-build
           path: Sonarr
