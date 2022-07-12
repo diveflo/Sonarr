@@ -18,7 +18,7 @@ jobs:
       - name: build
         run: msbuild src\Sonarr.sln /p:Configuration=Release /p:Platform=x86 /t:Build
       - name: setup node
-        uses: actions/setup-node@v3.1.1
+        uses: actions/setup-node@v3.4.0
         with:
           node-version: "12"
       - name: yarn/gulp
