@@ -23,6 +23,8 @@ jobs:
           node-version: "12"
       - name: yarn/gulp
         run: |
+          npm install rimraf
+          npm install webpack
           yarn install
           yarn run build
       - name: prepare artifact upload
