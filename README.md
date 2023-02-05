@@ -31,7 +31,7 @@ The current build is always available in the [Releases](https://github.com/divef
 - [Download/Installation](https://sonarr.tv/#downloads-v3)
 - [FAQ](https://wiki.servarr.com/sonarr/faq)
 - [Wiki](https://wiki.servarr.com/Sonarr)
-- [(WIP) API Documentation](https://github.com/Sonarr/Sonarr/wiki/API)
+- [v4 Beta API Documentation](https://sonarr.tv/docs/api)
 - [Donate](https://sonarr.tv/donate)
 
 ## Support
@@ -97,4 +97,4 @@ Thank you to [<img src="/Logo/Jetbrains/jetbrains.svg" alt="JetBrains" width="32
 ### Licenses
 
 - [GNU GPL v3](http://www.gnu.org/licenses/gpl.html)
-- Copyright 2010-2021
+- Copyright 2010-2023

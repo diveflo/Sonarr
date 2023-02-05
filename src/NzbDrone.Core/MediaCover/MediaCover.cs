@@ -2,7 +2,6 @@ using NzbDrone.Core.Datastore;
 
 namespace NzbDrone.Core.MediaCover
 {
-
     public enum MediaCoverTypes
     {
         Unknown = 0,
@@ -23,10 +22,10 @@ namespace NzbDrone.Core.MediaCover
         {
         }
 
-        public MediaCover(MediaCoverTypes coverType, string url)
+        public MediaCover(MediaCoverTypes coverType, string remoteUrl)
         {
             CoverType = coverType;
-            Url = url;
+            RemoteUrl = remoteUrl;
         }
     }
 }

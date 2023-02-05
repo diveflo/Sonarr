@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { sizes, icons } from 'Helpers/Props';
 import FieldSet from 'Components/FieldSet';
-import Button from 'Components/Link/Button';
-import Icon from 'Components/Icon';
 import SelectInput from 'Components/Form/SelectInput';
 import TextInput from 'Components/Form/TextInput';
+import Icon from 'Components/Icon';
+import Button from 'Components/Link/Button';
 import Modal from 'Components/Modal/Modal';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { icons, sizes } from 'Helpers/Props';
 import NamingOption from './NamingOption';
 import styles from './NamingModal.css';
 
@@ -46,9 +46,12 @@ const seriesTokens = [
   { token: '{Series Title}', example: 'Series Title\'s' },
   { token: '{Series CleanTitle}', example: 'Series Titles' },
   { token: '{Series CleanTitleYear}', example: 'Series Titles! 2010' },
+  { token: '{Series CleanTitleWithoutYear}', example: 'Series Titles!' },
   { token: '{Series TitleThe}', example: 'Series Title\'s, The' },
   { token: '{Series TitleTheYear}', example: 'Series Title\'s, The (2010)' },
+  { token: '{Series TitleTheWithoutYear}', example: 'Series Title\'s, The' },
   { token: '{Series TitleYear}', example: 'Series Title\'s (2010)' },
+  { token: '{Series TitleWithoutYear}', example: 'Series Title\'s' },
   { token: '{Series TitleFirstCharacter}', example: 'S' },
   { token: '{Series Year}', example: '2010' }
 ];
@@ -107,7 +110,7 @@ const mediaInfoTokens = [
 
 const otherTokens = [
   { token: '{Release Group}', example: 'Rls Grp' },
-  { token: '{Preferred Words}', example: 'iNTERNAL' }
+  { token: '{Custom Formats}', example: 'iNTERNAL' }
 ];
 
 const originalTokens = [
@@ -137,16 +140,16 @@ class NamingModal extends Component {
 
   onTokenSeparatorChange = (event) => {
     this.setState({ separator: event.value });
-  }
+  };
 
   onTokenCaseChange = (event) => {
     this.setState({ case: event.value });
-  }
+  };
 
   onInputSelectionChange = (selectionStart, selectionEnd) => {
     this._selectionStart = selectionStart;
     this._selectionEnd = selectionEnd;
-  }
+  };
 
   onOptionPress = ({ isFullFilename, tokenValue }) => {
     const {
@@ -174,7 +177,7 @@ class NamingModal extends Component {
       this._selectionStart = newValue.length - 1;
       this._selectionEnd = newValue.length - 1;
     }
-  }
+  };
 
   //
   // Render

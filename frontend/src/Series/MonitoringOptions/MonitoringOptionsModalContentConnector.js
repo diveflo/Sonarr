@@ -42,14 +42,14 @@ class MonitoringOptionsModalContentConnector extends Component {
 
   onInputChange = ({ name, value }) => {
     this.setState({ name, value });
-  }
+  };
 
   onSavePress = ({ monitor }) => {
     this.props.dispatchUpdateMonitoringOptions({
       id: this.props.seriesId,
       monitor
     });
-  }
+  };
 
   //
   // Render
@@ -70,8 +70,7 @@ MonitoringOptionsModalContentConnector.propTypes = {
   isSaving: PropTypes.bool.isRequired,
   saveError: PropTypes.object,
   dispatchUpdateMonitoringOptions: PropTypes.func.isRequired,
-  onModalClose: PropTypes.func.isRequired,
-  onSavePress: PropTypes.func.isRequired
+  onModalClose: PropTypes.func.isRequired
 };
 
 export default connect(createMapStateToProps, mapDispatchToProps)(MonitoringOptionsModalContentConnector);

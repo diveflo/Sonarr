@@ -7,7 +7,6 @@ using NzbDrone.Core.Test.Framework;
 namespace NzbDrone.Core.Test.ParserTests
 {
     [TestFixture]
-
     public class QualityParserFixture : CoreTest
     {
         public static object[] SelfQualityParserCases =
@@ -189,6 +188,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("My Title - S01E01 - EpTitle [HEVC 4k DTSHD-MA-6ch]", false)]
         [TestCase("My Title - S01E01 - EpTitle [HEVC-4k DTSHD-MA-6ch]", false)]
         [TestCase("My Title - S01E01 - EpTitle [4k HEVC DTSHD-MA-6ch]", false)]
+        [TestCase("[GM-Team][国漫][诛仙][Series Title][2022][19][HEVC][GB][4K]", false)]
         public void should_parse_hdtv2160p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.HDTV2160p, proper);
@@ -260,6 +260,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[HorribleSubs] Series Title! S01 [Web][MKV][h264][1080p][AAC 2.0][Softsubs (HorribleSubs)]", false)]
         [TestCase("[LostYears] Series Title - 01-17 (WEB 1080p x264 10-bit AAC) [Dual-Audio]", false)]
         [TestCase("Series.and.Titles.S01.1080p.NF.WEB.DD2.0.x264-SNEAkY", false)]
+        [TestCase("Series.Title.S02E02.This.Year.Will.Be.Different.1080p.WEB.H 265", false)]
+        [TestCase("Series Title Season 2 [WEB 1080p HEVC Opus] [Netaro]", false)]
+        [TestCase("Series Title Season 2 (WEB 1080p HEVC Opus) [Netaro]", false)]
         public void should_parse_webdl1080p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBDL1080p, proper);
@@ -276,6 +279,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.Title.S03E09.1080p.NF.WEBRip.DD5.1.x264-ViSUM", false)]
         [TestCase("The Series 42 S09E13 1.54 GB WEB-RIP 1080p Dual-Audio 2019 MKV", false)]
         [TestCase("Series.Title.1x04.ITA.1080p.WEBMux.x264-NovaRip", false)]
+        [TestCase("Series.Title.S01.1080p.AMZN.WEB-Rip.DDP5.1.H.264-Telly", false)]
         public void should_parse_webrip1080p_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.WEBRip1080p, proper);
@@ -377,6 +381,8 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.Title.2x11.Nato.Per.La.Truffa.Bluray.Remux.AVC.1080p.AC3.ITA", false)]
         [TestCase("Series.Title.2x11.Nato.Per.La.Truffa.Bluray.Remux.AVC.AC3.ITA", false)]
         [TestCase("Series.Title.S03E01.The.Calm.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR", false)]
+        [TestCase("Series Title Season 2 (BDRemux 1080p HEVC FLAC) [Netaro]", false)]
+        [TestCase("[Vodes] Series Title - Other Title (2020) [BDRemux 1080p HEVC Dual-Audio]", false)]
         public void should_parse_bluray1080p_remux_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.Bluray1080pRemux, proper);
@@ -428,7 +434,8 @@ namespace NzbDrone.Core.Test.ParserTests
             ParseAndVerifyQuality(title, Quality.Unknown, proper);
         }
 
-        [Test, TestCaseSource(nameof(SelfQualityParserCases))]
+        [Test]
+        [TestCaseSource(nameof(SelfQualityParserCases))]
         public void parsing_our_own_quality_enum_name(Quality quality)
         {
             var fileName = string.Format("My series S01E01 [{0}]", quality.Name);
@@ -436,7 +443,8 @@ namespace NzbDrone.Core.Test.ParserTests
             result.Quality.Should().Be(quality);
         }
 
-        [Test, TestCaseSource(nameof(OtherSourceQualityParserCases))]
+        [Test]
+        [TestCaseSource(nameof(OtherSourceQualityParserCases))]
         public void should_parse_quality_from_other_source(string qualityString, Quality quality)
         {
             foreach (var c in new char[] { '-', '.', ' ', '_' })
@@ -510,14 +518,16 @@ namespace NzbDrone.Core.Test.ParserTests
             result.ResolutionDetectionSource.Should().Be(QualityDetectionSource.Name);
         }
 
-        [TestCase("Series Title S04E87 REPACK 720p HDTV x264 aAF", true)]
-        [TestCase("Series.Title.S04E87.REPACK.720p.HDTV.x264-aAF", true)]
-        [TestCase("Series.Title.S04E87.PROPER.720p.HDTV.x264-aAF", false)]
-        [TestCase("Series.Title.S01E07.RERIP.720p.BluRay.x264-DEMAND", true)]
-        public void should_be_able_to_parse_repack(string title, bool isRepack)
+        [TestCase("Series Title S04E87 REPACK 720p HDTV x264 aAF", true, 2)]
+        [TestCase("Series.Title.S04E87.REPACK.720p.HDTV.x264-aAF", true, 2)]
+        [TestCase("Series.Title.S04E87.REPACK2.720p.HDTV.x264-aAF", true, 3)]
+        [TestCase("Series.Title.S04E87.PROPER.720p.HDTV.x264-aAF", false, 2)]
+        [TestCase("Series.Title.S01E07.RERIP.720p.BluRay.x264-DEMAND", true, 2)]
+        [TestCase("Series.Title.S01E07.RERIP2.720p.BluRay.x264-DEMAND", true, 3)]
+        public void should_be_able_to_parse_repack(string title, bool isRepack, int version)
         {
             var result = QualityParser.ParseQuality(title);
-            result.Revision.Version.Should().Be(2);
+            result.Revision.Version.Should().Be(version);
             result.Revision.IsRepack.Should().Be(isRepack);
         }
 

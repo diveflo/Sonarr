@@ -1,20 +1,27 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes, kinds } from 'Helpers/Props';
-import { boolSettingShape, numberSettingShape, tagSettingShape } from 'Helpers/Props/Shapes/settingShape';
+import Alert from 'Components/Alert';
+import Form from 'Components/Form/Form';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
 import Button from 'Components/Link/Button';
 import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import Alert from 'Components/Alert';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
-import Form from 'Components/Form/Form';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds } from 'Helpers/Props';
+import { boolSettingShape, numberSettingShape, tagSettingShape } from 'Helpers/Props/Shapes/settingShape';
 import styles from './EditDelayProfileModalContent.css';
+
+const protocolOptions = [
+  { key: 'preferUsenet', value: 'Prefer Usenet' },
+  { key: 'preferTorrent', value: 'Prefer Torrent' },
+  { key: 'onlyUsenet', value: 'Only Usenet' },
+  { key: 'onlyTorrent', value: 'Only Torrent' }
+];
 
 function EditDelayProfileModalContent(props) {
   const {
@@ -25,7 +32,6 @@ function EditDelayProfileModalContent(props) {
     saveError,
     item,
     protocol,
-    protocolOptions,
     onInputChange,
     onProtocolChange,
     onSavePress,
@@ -40,6 +46,8 @@ function EditDelayProfileModalContent(props) {
     usenetDelay,
     torrentDelay,
     bypassIfHighestQuality,
+    bypassIfAboveCustomFormatScore,
+    minimumCustomFormatScore,
     tags
   } = item;
 
@@ -51,20 +59,22 @@ function EditDelayProfileModalContent(props) {
 
       <ModalBody>
         {
-          isFetching &&
-            <LoadingIndicator />
+          isFetching ?
+            <LoadingIndicator /> :
+            null
         }
 
         {
-          !isFetching && !!error &&
-            <div>Unable to add a new quality profile, please try again.</div>
+          !isFetching && !!error ?
+            <div>Unable to add a new quality profile, please try again.</div> :
+            null
         }
 
         {
-          !isFetching && !error &&
+          !isFetching && !error ?
             <Form {...otherProps}>
               <FormGroup>
-                <FormLabel>Protocol</FormLabel>
+                <FormLabel>Preferred Protocol</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.SELECT}
@@ -77,7 +87,7 @@ function EditDelayProfileModalContent(props) {
               </FormGroup>
 
               {
-                enableUsenet.value &&
+                enableUsenet.value ?
                   <FormGroup>
                     <FormLabel>Usenet Delay</FormLabel>
 
@@ -89,11 +99,12 @@ function EditDelayProfileModalContent(props) {
                       helpText="Delay in minutes to wait before grabbing a release from Usenet"
                       onChange={onInputChange}
                     />
-                  </FormGroup>
+                  </FormGroup> :
+                  null
               }
 
               {
-                enableTorrent.value &&
+                enableTorrent.value ?
                   <FormGroup>
                     <FormLabel>Torrent Delay</FormLabel>
 
@@ -105,21 +116,48 @@ function EditDelayProfileModalContent(props) {
                       helpText="Delay in minutes to wait before grabbing a torrent"
                       onChange={onInputChange}
                     />
-                  </FormGroup>
+                  </FormGroup> :
+                  null
               }
 
-              {
-                <FormGroup>
-                  <FormLabel>Bypass if Highest Quality</FormLabel>
+              <FormGroup>
+                <FormLabel>Bypass if Highest Quality</FormLabel>
 
-                  <FormInputGroup
-                    type={inputTypes.CHECK}
-                    name="bypassIfHighestQuality"
-                    {...bypassIfHighestQuality}
-                    helpText="Bypass delay when release has the highest enabled quality in the quality profile with the preferred protocol"
-                    onChange={onInputChange}
-                  />
-                </FormGroup>
+                <FormInputGroup
+                  type={inputTypes.CHECK}
+                  name="bypassIfHighestQuality"
+                  {...bypassIfHighestQuality}
+                  helpText="Bypass delay when release has the highest enabled quality in the quality profile with the preferred protocol"
+                  onChange={onInputChange}
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <FormLabel>Bypass if Above Custom Format Score</FormLabel>
+
+                <FormInputGroup
+                  type={inputTypes.CHECK}
+                  name="bypassIfAboveCustomFormatScore"
+                  {...bypassIfAboveCustomFormatScore}
+                  helpText="Enable bypass when release has a score higher than the configured minimum custom format score"
+                  onChange={onInputChange}
+                />
+              </FormGroup>
+
+              {
+                bypassIfAboveCustomFormatScore.value ?
+                  <FormGroup>
+                    <FormLabel>Minimum Custom Format Score</FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.NUMBER}
+                      name="minimumCustomFormatScore"
+                      {...minimumCustomFormatScore}
+                      helpText="Minimum Custom Format Score required to bypass delay for the preferred protocol"
+                      onChange={onInputChange}
+                    />
+                  </FormGroup> :
+                  null
               }
 
               {
@@ -140,19 +178,21 @@ function EditDelayProfileModalContent(props) {
                     />
                   </FormGroup>
               }
-            </Form>
+            </Form> :
+            null
         }
       </ModalBody>
       <ModalFooter>
         {
-          id && id > 1 &&
+          id && id > 1 ?
             <Button
               className={styles.deleteButton}
               kind={kinds.DANGER}
               onPress={onDeleteDelayProfilePress}
             >
               Delete
-            </Button>
+            </Button> :
+            null
         }
 
         <Button
@@ -190,7 +230,6 @@ EditDelayProfileModalContent.propTypes = {
   saveError: PropTypes.object,
   item: PropTypes.shape(delayProfileShape).isRequired,
   protocol: PropTypes.string.isRequired,
-  protocolOptions: PropTypes.arrayOf(PropTypes.object).isRequired,
   onInputChange: PropTypes.func.isRequired,
   onProtocolChange: PropTypes.func.isRequired,
   onSavePress: PropTypes.func.isRequired,
