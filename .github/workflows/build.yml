@@ -31,7 +31,7 @@ jobs:
           Rename-Item -Path .\_output\net6.0 -NewName Sonarr
           Rename-Item -Path .\_output\Sonarr\Sonarr.Console.exe -NewName Sonarr.exe
       - name: upload build artifacts
-        uses: actions/upload-artifact@v3.0.0
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: sonarr-hevc-build
           path: .\_output\Sonarr
