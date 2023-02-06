@@ -7,7 +7,8 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v3
-      - uses: actions/setup-dotnet@v3
+      - name: setup dotnet
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.x'
       - name: build app
@@ -23,12 +24,18 @@ jobs:
       - name: copy UI
         run: |
           cp -R _output/UI _output/net6.0/linux-arm/publish
+          cp -R _output/UI _output/net6.0/linux-arm64/publish
           cp -R _output/UI _output/net6.0/linux-x64/publish
       - name: upload build artifacts (linux/arm)
         uses: actions/upload-artifact@v3
         with:
           name: sonarr-hevc-linux-arm
           path: _output/net6.0/linux-arm/publish
+      - name: upload build artifacts (linux/arm64)
+        uses: actions/upload-artifact@v3
+        with:
+          name: sonarr-hevc-linux-arm64
+          path: _output/net6.0/linux-arm64/publish
       - name: upload build artifacts (linux/x64)
         uses: actions/upload-artifact@v3
         with:
@@ -46,6 +53,11 @@ jobs:
         with:
           name: sonarr-hevc-linux-arm
           path: ${{runner.temp}}/linux-arm/Sonarr
+      - name: download build artifacts (linux/arm64)
+        uses: actions/download-artifact@v3
+        with:
+          name: sonarr-hevc-linux-arm64
+          path: ${{runner.temp}}/linux-arm64/Sonarr
       - name: download build artifacts (linux/x64)
         uses: actions/download-artifact@v3
         with:
@@ -55,6 +67,7 @@ jobs:
         shell: pwsh
         run: |
           Compress-Archive -Path ${{runner.temp}}/linux-arm/Sonarr -DestinationPath sonarr-hevc-linux-arm.zip
+          Compress-Archive -Path ${{runner.temp}}/linux-arm64/Sonarr -DestinationPath sonarr-hevc-linux-arm64.zip
           Compress-Archive -Path ${{runner.temp}}/linux-x64/Sonarr -DestinationPath sonarr-hevc-linux-amd64.zip
       - name: create release
         uses: "marvinpinto/action-automatic-releases@latest"
@@ -64,6 +77,7 @@ jobs:
           prerelease: false
           files: |
             sonarr-hevc-linux-arm.zip
+            sonarr-hevc-linux-arm64.zip
             sonarr-hevc-linux-amd64.zip
   docker:
     runs-on: ubuntu-latest
@@ -86,6 +100,6 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm
+          platforms: linux/amd64,linux/arm, linux/arm64
           push: true
           tags: floriang89/sonarr-hevc:latest
