@@ -1,12 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0-jammy
 WORKDIR /source
 
-RUN apt-get update && rm -rf /var/lib/apt/lists/*
+RUN apt-get update
 RUN curl -fsSL https://deb.nodesource.com/setup_19.x | bash
 RUN apt-get -y install nodejs
 RUN curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | tee /usr/share/keyrings/yarnkey.gpg >/dev/null
 RUN echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" | tee /etc/apt/sources.list.d/yarn.list
-RUN apt-get update && rm -rf /var/lib/apt/lists/* && apt-get -y install yarn
+RUN apt-get update && apt-get -y install yarn
 
 COPY . .
 COPY scripts/docker-entrypoint.sh /sbin/docker-entrypoint.sh
