@@ -209,7 +209,7 @@ namespace NzbDrone.Core.Qualities
                 new QualityDefinition(Quality.WEBDL2160pHEVC)   { Weight = 24, MinSize = 0, MaxSize = null, GroupName = "WEB HEVC 2160p" },
                 new QualityDefinition(Quality.WEBRip2160pHEVC)  { Weight = 24, MinSize = 0, MaxSize = null, GroupName = "WEB HEVC 2160p" },
                 new QualityDefinition(Quality.Bluray2160pHEVC)  { Weight = 25, MinSize = 0, MaxSize = null },
-                new QualityDefinition(Quality.Bluray2160pRemux) { Weight = 17, MinSize = 35, MaxSize = null }
+                new QualityDefinition(Quality.Bluray2160pRemux) { Weight = 26, MinSize = 35, MaxSize = null }
             };
         }
 
