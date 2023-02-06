@@ -10,5 +10,5 @@ chown -R "$PUID":"$PGID" /opt/Sonarr
 chown -R "$PUID":"$PGID" /config
 
 exec \
- mono Sonarr.exe \
+ /opt/Sonarr/Sonarr \
  -nobrowser -debug -data=/config
