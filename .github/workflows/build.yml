@@ -3,7 +3,7 @@ on: push
 
 jobs:
   docker:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -20,7 +20,6 @@ jobs:
       - name: build & push images
         uses: docker/build-push-action@v3
         with:
-          context: backend
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm,linux/arm64/v8
           push: true
