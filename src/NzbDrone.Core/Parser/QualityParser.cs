@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex AlternativeResolutionRegex = new Regex(@"\b(?<R2160p>UHD)\b|(?<R2160p>\[4K\])",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<h265>h265)|(?<x265>x265)|(?<x264>x264)|(?<h264>h264)|(?<xvidhd>XvidHD)|(?<xvid>Xvid)|(?<divx>divx))\b",
+        private static readonly Regex CodecRegex = new Regex(@"\b(?:(?<HEVC>h265|x265|HEVC)|(?<x264>x264)|(?<h264>h264)|(?<xvidhd>XvidHD)|(?<xvid>Xvid)|(?<divx>divx))\b",
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex OtherSourceRegex = new Regex(@"(?<hdtv>HD[-_. ]TV)|(?<sdtv>SD[-_. ]TV)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -129,7 +129,7 @@ namespace NzbDrone.Core.Parser
                         return result;
                     }
 
-                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    if (codecRegex.Groups["HEVC"].Success)
                     {
                         switch (resolution)
                         {
@@ -183,7 +183,7 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["webdl"].Success)
                 {
-                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    if (codecRegex.Groups["HEVC"].Success)
                     {
                         switch (resolution)
                         {
@@ -229,7 +229,7 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["webrip"].Success)
                 {
-                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    if (codecRegex.Groups["HEVC"].Success)
                     {
                         switch (resolution)
                         {
@@ -269,7 +269,7 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["hdtv"].Success)
                 {
-                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    if (codecRegex.Groups["HEVC"].Success)
                     {
                         switch (resolution)
                         {
@@ -341,7 +341,7 @@ namespace NzbDrone.Core.Parser
 
                 if (sourceMatch.Groups["dvd"].Success)
                 {
-                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    if (codecRegex.Groups["HEVC"].Success)
                     {
                         result.Quality = Quality.DVDHEVC;
                         return result;
@@ -487,7 +487,7 @@ namespace NzbDrone.Core.Parser
                 {
                     result.ResolutionDetectionSource = QualityDetectionSource.Name;
 
-                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    if (codecRegex.Groups["HEVC"].Success)
                     {
                         result.Quality = Quality.HDTV2160pHEVC;
                         return result;
@@ -503,7 +503,7 @@ namespace NzbDrone.Core.Parser
                 if (resolution == Resolution.R1080p)
                 {
                     result.ResolutionDetectionSource = QualityDetectionSource.Name;
-                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    if (codecRegex.Groups["HEVC"].Success)
                     {
                         result.Quality = Quality.HDTV1080pHEVC;
                         return result;
@@ -519,7 +519,7 @@ namespace NzbDrone.Core.Parser
                 if (resolution == Resolution.R720p)
                 {
                     result.ResolutionDetectionSource = QualityDetectionSource.Name;
-                    if (codecRegex.Groups["x265"].Success || codecRegex.Groups["h265"].Success)
+                    if (codecRegex.Groups["HEVC"].Success)
                     {
                         result.Quality = Quality.HDTV720pHEVC;
                         return result;

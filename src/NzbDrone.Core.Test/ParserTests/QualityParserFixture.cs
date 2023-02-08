@@ -185,13 +185,19 @@ namespace NzbDrone.Core.Test.ParserTests
             ParseAndVerifyQuality(title, Quality.HDTV1080pHEVC, proper);
         }
 
+        [TestCase("[GM-Team][国漫][诛仙][Series Title][2022][19][GB][4K]", false)]
+        public void should_parse_hdtv2160p_quality(string title, bool proper)
+        {
+            ParseAndVerifyQuality(title, Quality.HDTV2160p, proper);
+        }
+
         [TestCase("My Title - S01E01 - EpTitle [HEVC 4k DTSHD-MA-6ch]", false)]
         [TestCase("My Title - S01E01 - EpTitle [HEVC-4k DTSHD-MA-6ch]", false)]
         [TestCase("My Title - S01E01 - EpTitle [4k HEVC DTSHD-MA-6ch]", false)]
         [TestCase("[GM-Team][国漫][诛仙][Series Title][2022][19][HEVC][GB][4K]", false)]
-        public void should_parse_hdtv2160p_quality(string title, bool proper)
+        public void should_parse_hdtv2160phevc_quality(string title, bool proper)
         {
-            ParseAndVerifyQuality(title, Quality.HDTV2160p, proper);
+            ParseAndVerifyQuality(title, Quality.HDTV2160pHEVC, proper);
         }
 
         [TestCase("Series S01E04 Mexicos Death Train 720p WEB DL", false)]
@@ -381,8 +387,8 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.Title.2x11.Nato.Per.La.Truffa.Bluray.Remux.AVC.1080p.AC3.ITA", false)]
         [TestCase("Series.Title.2x11.Nato.Per.La.Truffa.Bluray.Remux.AVC.AC3.ITA", false)]
         [TestCase("Series.Title.S03E01.The.Calm.1080p.DTS-HD.MA.5.1.AVC.REMUX-FraMeSToR", false)]
-        [TestCase("Series Title Season 2 (BDRemux 1080p HEVC FLAC) [Netaro]", false)]
-        [TestCase("[Vodes] Series Title - Other Title (2020) [BDRemux 1080p HEVC Dual-Audio]", false)]
+        [TestCase("Series Title Season 2 (BDRemux 1080p FLAC) [Netaro]", false)]
+        [TestCase("[Vodes] Series Title - Other Title (2020) [BDRemux 1080p Dual-Audio]", false)]
         public void should_parse_bluray1080p_remux_quality(string title, bool proper)
         {
             ParseAndVerifyQuality(title, Quality.Bluray1080pRemux, proper);
