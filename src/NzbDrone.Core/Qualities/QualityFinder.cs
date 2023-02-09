@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Qualities
             var mediaInfo = episode?.MediaInfo;
             string videoFormat = mediaInfo?.VideoFormat;
 
-            if (videoFormat == "HEVC")
+            if (videoFormat == "HEVC" || videoFormat == "hevc")
             {
                 return hevcQuality;
             }
