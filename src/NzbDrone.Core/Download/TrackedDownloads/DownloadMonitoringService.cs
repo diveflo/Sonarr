@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                                              IExecute<CheckForFinishedDownloadCommand>,
                                              IHandle<EpisodeGrabbedEvent>,
                                              IHandle<EpisodeImportedEvent>,
+                                             IHandle<ManualInteractionRequiredEvent>,
                                              IHandle<DownloadsProcessedEvent>,
                                              IHandle<TrackedDownloadsRemovedEvent>
     {
@@ -121,7 +122,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                     _trackedDownloadService.TrackDownload((DownloadClientDefinition)downloadClient.Definition,
                         downloadItem);
 
-                if (trackedDownload != null && trackedDownload.State == TrackedDownloadState.Downloading)
+                if (trackedDownload is { State: TrackedDownloadState.Downloading or TrackedDownloadState.ImportBlocked })
                 {
                     _failedDownloadService.Check(trackedDownload);
                     _completedDownloadService.Check(trackedDownload);
@@ -166,6 +167,11 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         }
 
         public void Handle(EpisodeGrabbedEvent message)
+        {
+            _refreshDebounce.Execute();
+        }
+
+        public void Handle(ManualInteractionRequiredEvent message)
         {
             _refreshDebounce.Execute();
         }

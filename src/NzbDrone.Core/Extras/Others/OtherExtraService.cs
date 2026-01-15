@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -42,6 +42,11 @@ namespace NzbDrone.Core.Extras.Others
         }
 
         public override IEnumerable<ExtraFile> CreateAfterSeriesScan(Series series, List<EpisodeFile> episodeFiles)
+        {
+            return Enumerable.Empty<ExtraFile>();
+        }
+
+        public override IEnumerable<ExtraFile> CreateAfterEpisodesImported(Series series)
         {
             return Enumerable.Empty<ExtraFile>();
         }
@@ -133,7 +138,7 @@ namespace NzbDrone.Core.Extras.Others
                 }
             }
 
-            foreach (string file in matchingFiles)
+            foreach (var file in matchingFiles)
             {
                 try
                 {

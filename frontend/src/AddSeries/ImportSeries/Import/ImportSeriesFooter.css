@@ -4,7 +4,7 @@
 }
 
 .label {
-  margin-bottom: 3px;
+  margin-bottom: 10px;
   font-weight: bold;
 }
 
@@ -34,4 +34,18 @@
 
 .importError {
   margin-left: 10px;
+}
+
+@media only screen and (max-width: $breakpointSmall) {
+  .inputContainer {
+    margin-top: 10px;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  .importButtonContainer {
+    margin-top: 10px;
+  }
 }

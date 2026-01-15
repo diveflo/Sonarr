@@ -3,7 +3,9 @@ using System.Linq;
 using NzbDrone.Common.Crypto;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Manual;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using Sonarr.Api.V3.CustomFormats;
 using Sonarr.Api.V3.Episodes;
@@ -29,7 +31,10 @@ namespace Sonarr.Api.V3.ManualImport
         public int QualityWeight { get; set; }
         public string DownloadId { get; set; }
         public List<CustomFormatResource> CustomFormats { get; set; }
-        public IEnumerable<Rejection> Rejections { get; set; }
+        public int CustomFormatScore { get; set; }
+        public int IndexerFlags { get; set; }
+        public ReleaseType ReleaseType { get; set; }
+        public IEnumerable<ImportRejectionResource> Rejections { get; set; }
     }
 
     public static class ManualImportResourceMapper
@@ -40,6 +45,9 @@ namespace Sonarr.Api.V3.ManualImport
             {
                 return null;
             }
+
+            var customFormats = model.CustomFormats;
+            var customFormatScore = model.Series?.QualityProfile?.Value?.CalculateCustomFormatScore(customFormats) ?? 0;
 
             return new ManualImportResource
             {
@@ -56,17 +64,43 @@ namespace Sonarr.Api.V3.ManualImport
                 ReleaseGroup = model.ReleaseGroup,
                 Quality = model.Quality,
                 Languages = model.Languages,
-                CustomFormats = model.CustomFormats.ToResource(false),
+                CustomFormats = customFormats.ToResource(false),
+                CustomFormatScore = customFormatScore,
 
                 // QualityWeight
                 DownloadId = model.DownloadId,
-                Rejections = model.Rejections
+                IndexerFlags = model.IndexerFlags,
+                ReleaseType = model.ReleaseType,
+                Rejections = model.Rejections.Select(r => r.ToResource())
             };
         }
 
         public static List<ManualImportResource> ToResource(this IEnumerable<ManualImportItem> models)
         {
             return models.Select(ToResource).ToList();
+        }
+    }
+
+    public class ImportRejectionResource
+    {
+        public string Reason { get; set; }
+        public RejectionType Type { get; set; }
+    }
+
+    public static class ImportRejectionResourceMapper
+    {
+        public static ImportRejectionResource ToResource(this ImportRejection rejection)
+        {
+            if (rejection == null)
+            {
+                return null;
+            }
+
+            return new ImportRejectionResource
+            {
+                Reason = rejection.Message,
+                Type = rejection.Type
+            };
         }
     }
 }

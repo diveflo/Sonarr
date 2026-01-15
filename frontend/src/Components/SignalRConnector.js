@@ -61,7 +61,7 @@ function Logger(minimumLogLevel) {
 }
 
 Logger.prototype.cleanse = function(message) {
-  const apikey = new RegExp(`access_token=${window.Sonarr.apiKey}`, 'g');
+  const apikey = new RegExp(`access_token=${encodeURIComponent(window.Sonarr.apiKey)}`, 'g');
   return message.replace(apikey, 'access_token=(removed)');
 };
 
@@ -105,7 +105,7 @@ class SignalRConnector extends Component {
 
     this.connection = new signalR.HubConnectionBuilder()
       .configureLogging(new Logger(signalR.LogLevel.Information))
-      .withUrl(`${url}?access_token=${window.Sonarr.apiKey}`)
+      .withUrl(`${url}?access_token=${encodeURIComponent(window.Sonarr.apiKey)}`)
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: (retryContext) => {
           if (retryContext.elapsedMilliseconds > 180000) {
@@ -168,7 +168,7 @@ class SignalRConnector extends Component {
     const status = resource.status;
 
     // Both successful and failed commands need to be
-    // completed, otherwise they spin until they timeout.
+    // completed, otherwise they spin until they time out.
 
     if (status === 'completed' || status === 'failed') {
       this.props.dispatchFinishCommand(resource);
@@ -197,11 +197,61 @@ class SignalRConnector extends Component {
       repopulatePage('episodeFileUpdated');
     } else if (body.action === 'deleted') {
       this.props.dispatchRemoveItem({ section, id: body.resource.id });
+
+      repopulatePage('episodeFileDeleted');
+    }
+  };
+
+  handleDownloadclient = ({ action, resource }) => {
+    const section = 'settings.downloadClients';
+
+    if (action === 'created' || action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...resource });
+    } else if (action === 'deleted') {
+      this.props.dispatchRemoveItem({ section, id: resource.id });
     }
   };
 
   handleHealth = () => {
     this.props.dispatchFetchHealth();
+  };
+
+  handleImportlist = ({ action, resource }) => {
+    const section = 'settings.importLists';
+
+    if (action === 'created' || action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...resource });
+    } else if (action === 'deleted') {
+      this.props.dispatchRemoveItem({ section, id: resource.id });
+    }
+  };
+
+  handleIndexer = ({ action, resource }) => {
+    const section = 'settings.indexers';
+
+    if (action === 'created' || action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...resource });
+    } else if (action === 'deleted') {
+      this.props.dispatchRemoveItem({ section, id: resource.id });
+    }
+  };
+
+  handleMetadata = ({ action, resource }) => {
+    const section = 'settings.metadata';
+
+    if (action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...resource });
+    }
+  };
+
+  handleNotification = ({ action, resource }) => {
+    const section = 'settings.notifications';
+
+    if (action === 'created' || action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...resource });
+    } else if (action === 'deleted') {
+      this.props.dispatchRemoveItem({ section, id: resource.id });
+    }
   };
 
   handleSeries = (body) => {
@@ -210,6 +260,8 @@ class SignalRConnector extends Component {
 
     if (action === 'updated') {
       this.props.dispatchUpdateItem({ section, ...body.resource });
+
+      repopulatePage('seriesUpdated');
     } else if (action === 'deleted') {
       this.props.dispatchRemoveItem({ section, id: body.resource.id });
     }
@@ -242,7 +294,7 @@ class SignalRConnector extends Component {
   handleWantedCutoff = (body) => {
     if (body.action === 'updated') {
       this.props.dispatchUpdateItem({
-        section: 'cutoffUnmet',
+        section: 'wanted.cutoffUnmet',
         updateOnly: true,
         ...body.resource
       });
@@ -252,7 +304,7 @@ class SignalRConnector extends Component {
   handleWantedMissing = (body) => {
     if (body.action === 'updated') {
       this.props.dispatchUpdateItem({
-        section: 'missing',
+        section: 'wanted.missing',
         updateOnly: true,
         ...body.resource
       });

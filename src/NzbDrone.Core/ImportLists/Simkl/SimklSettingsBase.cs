@@ -24,35 +24,34 @@ namespace NzbDrone.Core.ImportLists.Simkl
         }
     }
 
-    public class SimklSettingsBase<TSettings> : IImportListSettings
+    public class SimklSettingsBase<TSettings> : ImportListSettingsBase<TSettings>
         where TSettings : SimklSettingsBase<TSettings>
     {
-        protected virtual AbstractValidator<TSettings> Validator => new SimklSettingsBaseValidator<TSettings>();
+        private static readonly SimklSettingsBaseValidator<TSettings> Validator = new ();
 
         public SimklSettingsBase()
         {
-            BaseUrl = "https://api.simkl.com";
             SignIn = "startOAuth";
         }
 
-        public string BaseUrl { get; set; }
+        public override string BaseUrl { get; set; } = "https://api.simkl.com";
 
-        [FieldDefinition(0, Label = "Access Token", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(0, Label = "ImportListsSettingsAccessToken", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string AccessToken { get; set; }
 
-        [FieldDefinition(0, Label = "Refresh Token", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(0, Label = "ImportListsSettingsRefreshToken", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string RefreshToken { get; set; }
 
-        [FieldDefinition(0, Label = "Expires", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(0, Label = "ImportListsSettingsExpires", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public DateTime Expires { get; set; }
 
-        [FieldDefinition(0, Label = "Auth User", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(0, Label = "ImportListsSettingsAuthUser", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string AuthUser { get; set; }
 
-        [FieldDefinition(99, Label = "Authenticate with Simkl", Type = FieldType.OAuth)]
+        [FieldDefinition(99, Label = "ImportListsSimklSettingsAuthenticatewithSimkl", Type = FieldType.OAuth)]
         public string SignIn { get; set; }
 
-        public NzbDroneValidationResult Validate()
+        public override NzbDroneValidationResult Validate()
         {
             return new NzbDroneValidationResult(Validator.Validate((TSettings)this));
         }

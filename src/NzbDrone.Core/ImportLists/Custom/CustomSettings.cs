@@ -13,19 +13,14 @@ namespace NzbDrone.Core.ImportLists.Custom
         }
     }
 
-    public class CustomSettings : IImportListSettings
+    public class CustomSettings : ImportListSettingsBase<CustomSettings>
     {
-        private static readonly CustomSettingsValidator Validator = new CustomSettingsValidator();
+        private static readonly CustomSettingsValidator Validator = new ();
 
-        public CustomSettings()
-        {
-            BaseUrl = "";
-        }
+        [FieldDefinition(0, Label = "ImportListsCustomListSettingsUrl", HelpText = "ImportListsCustomListSettingsUrlHelpText")]
+        public override string BaseUrl { get; set; } = string.Empty;
 
-        [FieldDefinition(0, Label = "List URL", HelpText = "The URL for the series list")]
-        public string BaseUrl { get; set; }
-
-        public NzbDroneValidationResult Validate()
+        public override NzbDroneValidationResult Validate()
         {
             return new NzbDroneValidationResult(Validator.Validate(this));
         }

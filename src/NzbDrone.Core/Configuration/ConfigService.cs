@@ -6,6 +6,7 @@ using NLog;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Http.Proxy;
 using NzbDrone.Core.Configuration.Events;
+using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
@@ -57,8 +58,7 @@ namespace NzbDrone.Core.Configuration
 
             foreach (var configValue in configValues)
             {
-                object currentValue;
-                allWithDefaults.TryGetValue(configValue.Key, out currentValue);
+                allWithDefaults.TryGetValue(configValue.Key, out var currentValue);
                 if (currentValue == null || configValue.Value == null)
                 {
                     continue;
@@ -145,6 +145,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("AutoRedownloadFailed", value); }
         }
 
+        public bool AutoRedownloadFailedFromInteractiveSearch
+        {
+            get { return GetValueBoolean("AutoRedownloadFailedFromInteractiveSearch", true); }
+
+            set { SetValue("AutoRedownloadFailedFromInteractiveSearch", value); }
+        }
+
         public bool CreateEmptySeriesFolders
         {
             get { return GetValueBoolean("CreateEmptySeriesFolders", false); }
@@ -179,6 +186,7 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("DownloadClientHistoryLimit", value); }
         }
 
+        // TODO: Rename to 'Skip Free Space Check'
         public bool SkipFreeSpaceCheckWhenImporting
         {
             get { return GetValueBoolean("SkipFreeSpaceCheckWhenImporting", false); }
@@ -205,6 +213,20 @@ namespace NzbDrone.Core.Configuration
             get { return GetValueBoolean("EnableMediaInfo", true); }
 
             set { SetValue("EnableMediaInfo", value); }
+        }
+
+        public bool UseScriptImport
+        {
+            get { return GetValueBoolean("UseScriptImport", false); }
+
+            set { SetValue("UseScriptImport", value); }
+        }
+
+        public string ScriptImportPath
+        {
+            get { return GetValue("ScriptImportPath"); }
+
+            set { SetValue("ScriptImportPath", value); }
         }
 
         public bool ImportExtraFiles
@@ -254,6 +276,18 @@ namespace NzbDrone.Core.Configuration
             get { return GetValue("ChownGroup", ""); }
 
             set { SetValue("ChownGroup", value); }
+        }
+
+        public ListSyncLevelType ListSyncLevel
+        {
+            get { return GetValueEnum("ListSyncLevel", ListSyncLevelType.Disabled); }
+            set { SetValue("ListSyncLevel", value); }
+        }
+
+        public int ListSyncTag
+        {
+            get { return GetValueInt("ListSyncTag"); }
+            set { SetValue("ListSyncTag", value); }
         }
 
         public int FirstDayOfWeek
@@ -356,6 +390,12 @@ namespace NzbDrone.Core.Configuration
 
         public string ApplicationUrl => GetValue("ApplicationUrl", string.Empty);
 
+        public bool TrustCgnatIpAddresses
+        {
+            get { return GetValueBoolean("TrustCgnatIpAddresses", false); }
+            set { SetValue("TrustCgnatIpAddresses", value); }
+        }
+
         private string GetValue(string key)
         {
             return GetValue(key, string.Empty);
@@ -383,9 +423,7 @@ namespace NzbDrone.Core.Configuration
 
             EnsureCache();
 
-            string dbValue;
-
-            if (_cache.TryGetValue(key, out dbValue) && dbValue != null && !string.IsNullOrEmpty(dbValue))
+            if (_cache.TryGetValue(key, out var dbValue) && dbValue != null && !string.IsNullOrEmpty(dbValue))
             {
                 return dbValue;
             }

@@ -15,6 +15,7 @@ import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { inputTypes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import TableOptionsColumn from './TableOptionsColumn';
 import TableOptionsColumnDragPreview from './TableOptionsColumnDragPreview';
 import TableOptionsColumnDragSource from './TableOptionsColumnDragSource';
@@ -48,11 +49,12 @@ class TableOptionsModal extends Component {
 
   onPageSizeChange = ({ value }) => {
     let pageSizeError = null;
+    const maxPageSize = this.props.maxPageSize ?? 250;
 
     if (value < 5) {
-      pageSizeError = 'Page size must be at least 5';
-    } else if (value > 250) {
-      pageSizeError = 'Page size must not exceed 250';
+      pageSizeError = translate('TablePageSizeMinimum', { minimumValue: '5' });
+    } else if (value > maxPageSize) {
+      pageSizeError = translate('TablePageSizeMaximum', { maximumValue: `${maxPageSize}` });
     } else {
       this.props.onTableOptionChange({ pageSize: value });
     }
@@ -136,7 +138,7 @@ class TableOptionsModal extends Component {
             isOpen ?
               <ModalContent onModalClose={onModalClose}>
                 <ModalHeader>
-                  Table Options
+                  {translate('TableOptions')}
                 </ModalHeader>
 
                 <ModalBody>
@@ -144,13 +146,13 @@ class TableOptionsModal extends Component {
                     {
                       hasPageSize ?
                         <FormGroup>
-                          <FormLabel>Page Size</FormLabel>
+                          <FormLabel>{translate('TablePageSize')}</FormLabel>
 
                           <FormInputGroup
                             type={inputTypes.NUMBER}
                             name="pageSize"
                             value={pageSize || 0}
-                            helpText="Number of items to show on each page"
+                            helpText={translate('TablePageSizeHelpText')}
                             errors={pageSizeError ? [{ message: pageSizeError }] : undefined}
                             onChange={this.onPageSizeChange}
                           />
@@ -168,11 +170,11 @@ class TableOptionsModal extends Component {
                     {
                       canModifyColumns ?
                         <FormGroup>
-                          <FormLabel>Columns</FormLabel>
+                          <FormLabel>{translate('TableColumns')}</FormLabel>
 
                           <div>
                             <FormInputHelpText
-                              text="Choose which columns are visible and which order they appear in"
+                              text={translate('TableColumnsHelpText')}
                             />
 
                             <div className={styles.columns}>
@@ -231,7 +233,7 @@ class TableOptionsModal extends Component {
                   <Button
                     onPress={onModalClose}
                   >
-                    Close
+                    {translate('Close')}
                   </Button>
                 </ModalFooter>
               </ModalContent> :
@@ -247,6 +249,7 @@ TableOptionsModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
   pageSize: PropTypes.number,
+  maxPageSize: PropTypes.number,
   canModifyColumns: PropTypes.bool.isRequired,
   optionsComponent: PropTypes.elementType,
   onTableOptionChange: PropTypes.func.isRequired,

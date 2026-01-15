@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import Card from 'Components/Card';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import { kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import TagDetailsModal from './Details/TagDetailsModal';
 import TagInUse from './TagInUse';
 import styles from './Tag.css';
@@ -39,7 +40,7 @@ class Tag extends Component {
     });
   };
 
-  onDeleteTagModalClose= () => {
+  onDeleteTagModalClose = () => {
     this.setState({ isDeleteTagModalOpen: false });
   };
 
@@ -58,6 +59,7 @@ class Tag extends Component {
       notificationIds,
       restrictionIds,
       indexerIds,
+      downloadClientIds,
       autoTagIds,
       seriesIds
     } = this.props;
@@ -73,6 +75,7 @@ class Tag extends Component {
       notificationIds.length ||
       restrictionIds.length ||
       indexerIds.length ||
+      downloadClientIds.length ||
       autoTagIds.length ||
       seriesIds.length
     );
@@ -91,40 +94,49 @@ class Tag extends Component {
           isTagUsed ?
             <div>
               <TagInUse
-                label="series"
+                label={translate('Series')}
                 count={seriesIds.length}
-                shouldPluralize={false}
               />
 
               <TagInUse
-                label="delay profile"
+                label={translate('DelayProfile')}
+                labelPlural={translate('DelayProfiles')}
                 count={delayProfileIds.length}
               />
 
               <TagInUse
-                label="import list"
+                label={translate('ImportList')}
+                labelPlural={translate('ImportLists')}
                 count={importListIds.length}
               />
 
               <TagInUse
-                label="connection"
+                label={translate('Connection')}
+                labelPlural={translate('Connections')}
                 count={notificationIds.length}
               />
 
               <TagInUse
-                label="release profile"
+                label={translate('ReleaseProfile')}
+                labelPlural={translate('ReleaseProfiles')}
                 count={restrictionIds.length}
               />
 
               <TagInUse
-                label="indexer"
+                label={translate('Indexer')}
+                labelPlural={translate('Indexers')}
                 count={indexerIds.length}
               />
 
               <TagInUse
-                label="auto tagging"
+                label={translate('DownloadClient')}
+                labelPlural={translate('DownloadClients')}
+                count={downloadClientIds.length}
+              />
+
+              <TagInUse
+                label={translate('AutoTagging')}
                 count={autoTagIds.length}
-                shouldPluralize={false}
               />
             </div> :
             null
@@ -133,7 +145,7 @@ class Tag extends Component {
         {
           !isTagUsed &&
             <div>
-              No links
+              {translate('NoLinks')}
             </div>
         }
 
@@ -146,6 +158,7 @@ class Tag extends Component {
           notificationIds={notificationIds}
           restrictionIds={restrictionIds}
           indexerIds={indexerIds}
+          downloadClientIds={downloadClientIds}
           autoTagIds={autoTagIds}
           isOpen={isDetailsModalOpen}
           onModalClose={this.onDetailsModalClose}
@@ -155,9 +168,9 @@ class Tag extends Component {
         <ConfirmModal
           isOpen={isDeleteTagModalOpen}
           kind={kinds.DANGER}
-          title="Delete Tag"
-          message={`Are you sure you want to delete the tag '${label}'?`}
-          confirmLabel="Delete"
+          title={translate('DeleteTag')}
+          message={translate('DeleteTagMessageText', { label })}
+          confirmLabel={translate('Delete')}
           onConfirm={this.onConfirmDeleteTag}
           onCancel={this.onDeleteTagModalClose}
         />
@@ -174,6 +187,7 @@ Tag.propTypes = {
   notificationIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   restrictionIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   indexerIds: PropTypes.arrayOf(PropTypes.number).isRequired,
+  downloadClientIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   autoTagIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   seriesIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   onConfirmDeleteTag: PropTypes.func.isRequired
@@ -185,6 +199,7 @@ Tag.defaultProps = {
   notificationIds: [],
   restrictionIds: [],
   indexerIds: [],
+  downloadClientIds: [],
   autoTagIds: [],
   seriesIds: []
 };

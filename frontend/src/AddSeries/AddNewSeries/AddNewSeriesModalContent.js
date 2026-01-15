@@ -17,6 +17,7 @@ import Popover from 'Components/Tooltip/Popover';
 import { icons, inputTypes, kinds, tooltipPositions } from 'Helpers/Props';
 import SeriesPoster from 'Series/SeriesPoster';
 import * as seriesTypes from 'Utilities/Series/seriesTypes';
+import translate from 'Utilities/String/translate';
 import styles from './AddNewSeriesModalContent.css';
 
 class AddNewSeriesModalContent extends Component {
@@ -119,7 +120,7 @@ class AddNewSeriesModalContent extends Component {
 
               <Form {...otherProps}>
                 <FormGroup>
-                  <FormLabel>Root Folder</FormLabel>
+                  <FormLabel>{translate('RootFolder')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.ROOT_FOLDER_SELECT}
@@ -132,7 +133,7 @@ class AddNewSeriesModalContent extends Component {
                       seriesFolder: folder,
                       isWindows
                     }}
-                    helpText={`'${folder}' subfolder will be created automatically`}
+                    helpText={translate('AddNewSeriesRootFolderHelpText', { folder })}
                     onChange={onInputChange}
                     {...rootFolderPath}
                   />
@@ -140,7 +141,7 @@ class AddNewSeriesModalContent extends Component {
 
                 <FormGroup>
                   <FormLabel>
-                    Monitor
+                    {translate('Monitor')}
 
                     <Popover
                       anchor={
@@ -149,7 +150,7 @@ class AddNewSeriesModalContent extends Component {
                           name={icons.INFO}
                         />
                       }
-                      title="Monitoring Options"
+                      title={translate('MonitoringOptions')}
                       body={<SeriesMonitoringOptionsPopoverContent />}
                       position={tooltipPositions.RIGHT}
                     />
@@ -164,7 +165,7 @@ class AddNewSeriesModalContent extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Quality Profile</FormLabel>
+                  <FormLabel>{translate('QualityProfile')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.QUALITY_PROFILE_SELECT}
@@ -176,7 +177,7 @@ class AddNewSeriesModalContent extends Component {
 
                 <FormGroup>
                   <FormLabel>
-                    Series Type
+                    {translate('SeriesType')}
 
                     <Popover
                       anchor={
@@ -185,7 +186,7 @@ class AddNewSeriesModalContent extends Component {
                           name={icons.INFO}
                         />
                       }
-                      title="Series Types"
+                      title={translate('SeriesTypes')}
                       body={<SeriesTypePopoverContent />}
                       position={tooltipPositions.RIGHT}
                     />
@@ -197,11 +198,12 @@ class AddNewSeriesModalContent extends Component {
                     onChange={onInputChange}
                     {...seriesType}
                     value={this.state.seriesType}
+                    helpText={translate('SeriesTypesHelpText')}
                   />
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Season Folder</FormLabel>
+                  <FormLabel>{translate('SeasonFolder')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -212,7 +214,7 @@ class AddNewSeriesModalContent extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Tags</FormLabel>
+                  <FormLabel>{translate('Tags')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TAG}
@@ -230,7 +232,7 @@ class AddNewSeriesModalContent extends Component {
           <div>
             <label className={styles.searchLabelContainer}>
               <span className={styles.searchLabel}>
-                Start search for missing episodes
+                {translate('AddNewSeriesSearchForMissingEpisodes')}
               </span>
 
               <CheckInput
@@ -244,7 +246,7 @@ class AddNewSeriesModalContent extends Component {
 
             <label className={styles.searchLabelContainer}>
               <span className={styles.searchLabel}>
-                Start search for cutoff unmet episodes
+                {translate('AddNewSeriesSearchForCutoffUnmetEpisodes')}
               </span>
 
               <CheckInput
@@ -263,7 +265,7 @@ class AddNewSeriesModalContent extends Component {
             isSpinning={isAdding}
             onPress={this.onAddSeriesPress}
           >
-            Add {title}
+            {translate('AddSeriesWithTitle', { title })}
           </SpinnerButton>
         </ModalFooter>
       </ModalContent>

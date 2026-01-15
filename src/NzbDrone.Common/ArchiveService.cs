@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using ICSharpCode.SharpZipLib.Core;
 using ICSharpCode.SharpZipLib.GZip;
@@ -11,7 +12,7 @@ namespace NzbDrone.Common
     public interface IArchiveService
     {
         void Extract(string compressedFile, string destination);
-        void CreateZip(string path, params string[] files);
+        void CreateZip(string path, IEnumerable<string> files);
     }
 
     public class ArchiveService : IArchiveService
@@ -39,19 +40,20 @@ namespace NzbDrone.Common
             _logger.Debug("Extraction complete.");
         }
 
-        public void CreateZip(string path, params string[] files)
+        public void CreateZip(string path, IEnumerable<string> files)
         {
-            using (var zipFile = ZipFile.Create(path))
+            _logger.Debug("Creating archive {0}", path);
+
+            using var zipFile = ZipFile.Create(path);
+
+            zipFile.BeginUpdate();
+
+            foreach (var file in files)
             {
-                zipFile.BeginUpdate();
-
-                foreach (var file in files)
-                {
-                    zipFile.Add(file, Path.GetFileName(file));
-                }
-
-                zipFile.CommitUpdate();
+                zipFile.Add(file, Path.GetFileName(file));
             }
+
+            zipFile.CommitUpdate();
         }
 
         private void ExtractZip(string compressedFile, string destination)
@@ -74,18 +76,18 @@ namespace NzbDrone.Common
                         continue; // Ignore directories
                     }
 
-                    string entryFileName = zipEntry.Name;
+                    var entryFileName = zipEntry.Name;
 
                     // to remove the folder from the entry:- entryFileName = Path.GetFileName(entryFileName);
                     // Optionally match entrynames against a selection list here to skip as desired.
                     // The unpacked length is available in the zipEntry.Size property.
 
-                    byte[] buffer = new byte[4096]; // 4K is optimum
-                    Stream zipStream = zipFile.GetInputStream(zipEntry);
+                    var buffer = new byte[4096]; // 4K is optimum
+                    var zipStream = zipFile.GetInputStream(zipEntry);
 
                     // Manipulate the output filename here as desired.
-                    string fullZipToPath = Path.Combine(destination, entryFileName);
-                    string directoryName = Path.GetDirectoryName(fullZipToPath);
+                    var fullZipToPath = Path.Combine(destination, entryFileName);
+                    var directoryName = Path.GetDirectoryName(fullZipToPath);
                     if (directoryName.Length > 0)
                     {
                         Directory.CreateDirectory(directoryName);
@@ -94,7 +96,7 @@ namespace NzbDrone.Common
                     // Unzip file in buffered chunks. This is just as fast as unpacking to a buffer the full size
                     // of the file, but does not waste memory.
                     // The "using" will close the stream even if an exception occurs.
-                    using (FileStream streamWriter = File.Create(fullZipToPath))
+                    using (var streamWriter = File.Create(fullZipToPath))
                     {
                         StreamUtils.Copy(zipStream, streamWriter, buffer);
                     }
@@ -107,7 +109,7 @@ namespace NzbDrone.Common
             Stream inStream = File.OpenRead(compressedFile);
             Stream gzipStream = new GZipInputStream(inStream);
 
-            TarArchive tarArchive = TarArchive.CreateInputTarArchive(gzipStream, null);
+            var tarArchive = TarArchive.CreateInputTarArchive(gzipStream, null);
             tarArchive.ExtractContents(destination);
             tarArchive.Close();
 

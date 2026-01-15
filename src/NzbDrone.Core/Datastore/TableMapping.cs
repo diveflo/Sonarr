@@ -37,7 +37,6 @@ using NzbDrone.Core.Profiles.Releases;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.RootFolders;
-using NzbDrone.Core.SeriesStats;
 using NzbDrone.Core.Tags;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Tv;
@@ -82,17 +81,25 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(i => i.MinRefreshInterval)
                   .Ignore(i => i.Enable);
 
+            Mapper.Entity<ImportListItemInfo>("ImportListItems").RegisterModel()
+                   .Ignore(i => i.ImportList)
+                   .Ignore(i => i.Seasons);
+
             Mapper.Entity<NotificationDefinition>("Notifications").RegisterModel()
                   .Ignore(x => x.ImplementationName)
                   .Ignore(i => i.SupportsOnGrab)
                   .Ignore(i => i.SupportsOnDownload)
+                  .Ignore(i => i.SupportsOnImportComplete)
                   .Ignore(i => i.SupportsOnUpgrade)
                   .Ignore(i => i.SupportsOnRename)
+                  .Ignore(i => i.SupportsOnSeriesAdd)
                   .Ignore(i => i.SupportsOnSeriesDelete)
                   .Ignore(i => i.SupportsOnEpisodeFileDelete)
                   .Ignore(i => i.SupportsOnEpisodeFileDeleteForUpgrade)
                   .Ignore(i => i.SupportsOnHealthIssue)
-                  .Ignore(i => i.SupportsOnApplicationUpdate);
+                  .Ignore(i => i.SupportsOnHealthRestored)
+                  .Ignore(i => i.SupportsOnApplicationUpdate)
+                  .Ignore(i => i.SupportsOnManualInteractionRequired);
 
             Mapper.Entity<MetadataDefinition>("Metadata").RegisterModel()
                   .Ignore(x => x.ImplementationName)
@@ -100,8 +107,7 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<DownloadClientDefinition>("DownloadClients").RegisterModel()
                   .Ignore(x => x.ImplementationName)
-                  .Ignore(d => d.Protocol)
-                  .Ignore(d => d.Tags);
+                  .Ignore(d => d.Protocol);
 
             Mapper.Entity<SceneMapping>("SceneMappings").RegisterModel();
 
@@ -114,7 +120,7 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<EpisodeFile>("EpisodeFiles").RegisterModel()
                   .HasOne(f => f.Series, f => f.SeriesId)
                   .LazyLoad(x => x.Episodes,
-                            (db, parent) => db.Query<Episode>(new SqlBuilder()).Where(c => c.EpisodeFileId == parent.Id).ToList(),
+                            (db, parent) => db.Query<Episode>(new SqlBuilder(db.DatabaseType).Where<Episode>(c => c.EpisodeFileId == parent.Id)).ToList(),
                             t => t.Id > 0)
                   .Ignore(f => f.Path);
 
@@ -122,6 +128,7 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(e => e.SeriesTitle)
                   .Ignore(e => e.Series)
                   .Ignore(e => e.HasFile)
+                  .Ignore(e => e.AbsoluteEpisodeNumberAdded)
                   .HasOne(s => s.EpisodeFile, s => s.EpisodeFileId);
 
             Mapper.Entity<QualityDefinition>("QualityDefinitions").RegisterModel()
@@ -153,6 +160,7 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<IndexerStatus>("IndexerStatus").RegisterModel();
             Mapper.Entity<DownloadClientStatus>("DownloadClientStatus").RegisterModel();
             Mapper.Entity<ImportListStatus>("ImportListStatus").RegisterModel();
+            Mapper.Entity<NotificationStatus>("NotificationStatus").RegisterModel();
 
             Mapper.Entity<CustomFilter>("CustomFilters").RegisterModel();
 
@@ -193,6 +201,9 @@ namespace NzbDrone.Core.Datastore
             SqlMapper.RemoveTypeMap(typeof(Guid));
             SqlMapper.RemoveTypeMap(typeof(Guid?));
             SqlMapper.AddTypeHandler(new GuidConverter());
+            SqlMapper.RemoveTypeMap(typeof(TimeSpan));
+            SqlMapper.RemoveTypeMap(typeof(TimeSpan?));
+            SqlMapper.AddTypeHandler(new TimeSpanConverter());
             SqlMapper.AddTypeHandler(new CommandConverter());
             SqlMapper.AddTypeHandler(new SystemVersionConverter());
         }

@@ -18,6 +18,10 @@ function createCleanSeriesSelector() {
           sortTitle,
           images,
           alternateTitles = [],
+          tvdbId,
+          tvMazeId,
+          imdbId,
+          tmdbId,
           tags = []
         } = series;
 
@@ -27,6 +31,10 @@ function createCleanSeriesSelector() {
           sortTitle,
           images,
           alternateTitles,
+          tvdbId,
+          tvMazeId,
+          imdbId,
+          tmdbId,
           firstCharacter: title.charAt(0).toLowerCase(),
           tags: tags.reduce((acc, id) => {
             const matchingTag = allTags.find((tag) => tag.id === id);

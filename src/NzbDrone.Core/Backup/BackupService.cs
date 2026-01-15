@@ -66,11 +66,19 @@ namespace NzbDrone.Core.Backup
         {
             _logger.ProgressInfo("Starting Backup");
 
-            _diskProvider.EnsureFolder(_backupTempFolder);
-            _diskProvider.EnsureFolder(GetBackupFolder(backupType));
+            var backupFolder = GetBackupFolder(backupType);
 
-            var backupFilename = string.Format("sonarr_backup_v{0}_{1:yyyy.MM.dd_HH.mm.ss}.zip", BuildInfo.Version, DateTime.Now);
-            var backupPath = Path.Combine(GetBackupFolder(backupType), backupFilename);
+            _diskProvider.EnsureFolder(_backupTempFolder);
+            _diskProvider.EnsureFolder(backupFolder);
+
+            if (!_diskProvider.FolderWritable(backupFolder))
+            {
+                throw new UnauthorizedAccessException($"Backup folder {backupFolder} is not writable");
+            }
+
+            var dateNow = DateTime.Now;
+            var backupFilename = $"sonarr_backup_v{BuildInfo.Version}_{dateNow:yyyy.MM.dd_HH.mm.ss}.zip";
+            var backupPath = Path.Combine(backupFolder, backupFilename);
 
             Cleanup();
 
@@ -81,14 +89,14 @@ namespace NzbDrone.Core.Backup
 
             BackupConfigFile();
             BackupDatabase();
-            CreateVersionInfo();
+            CreateVersionInfo(dateNow);
 
             _logger.ProgressDebug("Creating backup zip");
 
             // Delete journal file created during database backup
             _diskProvider.DeleteFile(Path.Combine(_backupTempFolder, "sonarr.db-journal"));
 
-            _archiveService.CreateZip(backupPath, _diskProvider.GetFiles(_backupTempFolder, SearchOption.TopDirectoryOnly));
+            _archiveService.CreateZip(backupPath, _diskProvider.GetFiles(_backupTempFolder, false));
 
             _logger.ProgressDebug("Backup zip created");
         }
@@ -125,7 +133,7 @@ namespace NzbDrone.Core.Backup
 
                 _archiveService.Extract(backupFileName, temporaryPath);
 
-                foreach (var file in _diskProvider.GetFiles(temporaryPath, SearchOption.TopDirectoryOnly))
+                foreach (var file in _diskProvider.GetFiles(temporaryPath, false))
                 {
                     var fileName = Path.GetFileName(file);
 
@@ -188,9 +196,12 @@ namespace NzbDrone.Core.Backup
 
         private void BackupDatabase()
         {
-            _logger.ProgressDebug("Backing up database");
+            if (_maindDb.DatabaseType == DatabaseType.SQLite)
+            {
+                _logger.ProgressDebug("Backing up database");
 
-            _makeDatabaseBackup.BackupDatabase(_maindDb, _backupTempFolder);
+                _makeDatabaseBackup.BackupDatabase(_maindDb, _backupTempFolder);
+            }
         }
 
         private void BackupConfigFile()
@@ -203,11 +214,15 @@ namespace NzbDrone.Core.Backup
             _diskTransferService.TransferFile(configFile, tempConfigFile, TransferMode.Copy);
         }
 
-        private void CreateVersionInfo()
+        private void CreateVersionInfo(DateTime dateNow)
         {
-            var builder = new StringBuilder();
+            var tempFile = Path.Combine(_backupTempFolder, "INFO");
 
-            builder.AppendLine(BuildInfo.Version.ToString());
+            var builder = new StringBuilder();
+            builder.AppendLine($"v{BuildInfo.Version}");
+            builder.AppendLine($"{dateNow:yyyy-MM-dd HH:mm:ss}");
+
+            _diskProvider.WriteAllText(tempFile, builder.ToString());
         }
 
         private void CleanupOldBackups(BackupType backupType)
@@ -233,7 +248,7 @@ namespace NzbDrone.Core.Backup
 
         private IEnumerable<string> GetBackupFiles(string path)
         {
-            var files = _diskProvider.GetFiles(path, SearchOption.TopDirectoryOnly);
+            var files = _diskProvider.GetFiles(path, false);
 
             return files.Where(f => BackupFileRegex.IsMatch(f));
         }

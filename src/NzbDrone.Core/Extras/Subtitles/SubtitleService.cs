@@ -53,6 +53,11 @@ namespace NzbDrone.Core.Extras.Subtitles
             return Enumerable.Empty<SubtitleFile>();
         }
 
+        public override IEnumerable<ExtraFile> CreateAfterEpisodesImported(Series series)
+        {
+            return Enumerable.Empty<SubtitleFile>();
+        }
+
         public override IEnumerable<ExtraFile> CreateAfterEpisodeImport(Series series, EpisodeFile episodeFile)
         {
             return Enumerable.Empty<SubtitleFile>();
@@ -76,15 +81,20 @@ namespace NzbDrone.Core.Extras.Subtitles
 
                 foreach (var group in groupedExtraFilesForEpisodeFile)
                 {
-                    var groupCount = group.Count();
-                    var copy = 1;
+                    var multipleCopies = group.Count() > 1;
+                    var orderedGroup = group.OrderBy(s => -s.Copy).ToList();
+                    var copy = group.First().Copy;
 
-                    foreach (var subtitleFile in group)
+                    foreach (var subtitleFile in orderedGroup)
                     {
-                        var suffix = GetSuffix(subtitleFile.Language, copy, subtitleFile.LanguageTags, groupCount > 1);
-                        movedFiles.AddIfNotNull(MoveFile(series, episodeFile, subtitleFile, suffix));
+                        if (multipleCopies && subtitleFile.Copy == 0)
+                        {
+                            subtitleFile.Copy = ++copy;
+                        }
 
-                        copy++;
+                        var suffix = GetSuffix(subtitleFile.Language, subtitleFile.Copy, subtitleFile.LanguageTags, multipleCopies, subtitleFile.Title);
+
+                        movedFiles.AddIfNotNull(MoveFile(series, episodeFile, subtitleFile, suffix));
                     }
                 }
             }
@@ -145,11 +155,11 @@ namespace NzbDrone.Core.Extras.Subtitles
             // Use any sub if only episode in folder
             if (matchingFiles.Count == 0 && filteredFiles.Count > 0)
             {
-                var videoFiles = _diskProvider.GetFiles(sourceFolder, SearchOption.AllDirectories)
+                var videoFiles = _diskProvider.GetFiles(sourceFolder, true)
                                               .Where(file => MediaFileExtensions.Extensions.Contains(Path.GetExtension(file)))
                                               .ToList();
 
-                if (videoFiles.Count() > 2)
+                if (videoFiles.Count > 2)
                 {
                     return importedFiles;
                 }
@@ -177,7 +187,7 @@ namespace NzbDrone.Core.Extras.Subtitles
 
             var subtitleFiles = new List<SubtitleFile>();
 
-            foreach (string file in matchingFiles)
+            foreach (var file in matchingFiles)
             {
                 var language = LanguageParser.ParseSubtitleLanguage(file);
                 var extension = Path.GetExtension(file);
@@ -185,9 +195,9 @@ namespace NzbDrone.Core.Extras.Subtitles
                 var subFile = new SubtitleFile
                 {
                     Language = language,
-                    Extension = extension
+                    Extension = extension,
+                    LanguageTags = languageTags
                 };
-                subFile.LanguageTags = languageTags.ToList();
                 subFile.RelativePath = PathExtensions.GetRelativePath(sourceFolder, file);
                 subtitleFiles.Add(subFile);
             }
@@ -228,25 +238,36 @@ namespace NzbDrone.Core.Extras.Subtitles
             return importedFiles;
         }
 
-        private string GetSuffix(Language language, int copy, List<string> languageTags, bool multipleCopies = false)
+        private string GetSuffix(Language language, int copy, List<string> languageTags, bool multipleCopies = false, string title = null)
         {
             var suffixBuilder = new StringBuilder();
 
-            if (multipleCopies)
+            if (title is not null)
             {
-                suffixBuilder.Append(".");
+                suffixBuilder.Append('.');
+                suffixBuilder.Append(title);
+
+                if (multipleCopies)
+                {
+                    suffixBuilder.Append(" - ");
+                    suffixBuilder.Append(copy);
+                }
+            }
+            else if (multipleCopies)
+            {
+                suffixBuilder.Append('.');
                 suffixBuilder.Append(copy);
             }
 
             if (language != Language.Unknown)
             {
-                suffixBuilder.Append(".");
+                suffixBuilder.Append('.');
                 suffixBuilder.Append(IsoLanguages.Get(language).TwoLetterCode);
             }
 
             if (languageTags.Any())
             {
-                suffixBuilder.Append(".");
+                suffixBuilder.Append('.');
                 suffixBuilder.Append(string.Join(".", languageTags));
             }
 

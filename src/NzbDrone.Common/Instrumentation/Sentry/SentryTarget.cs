@@ -11,7 +11,6 @@ using NLog.Targets;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using Sentry;
-using Sentry.Protocol;
 
 namespace NzbDrone.Common.Instrumentation.Sentry
 {
@@ -42,7 +41,13 @@ namespace NzbDrone.Common.Instrumentation.Sentry
             "UnauthorizedAccessException",
 
             // Filter out people stuck in boot loops
-            "CorruptDatabaseException"
+            "CorruptDatabaseException",
+
+            // Filter SingleInstance Termination Exceptions
+            "TerminateApplicationException",
+
+            // User config issue, root folder missing, etc.
+            "DirectoryNotFoundException"
         };
 
         public static readonly List<string> FilteredExceptionMessages = new List<string>
@@ -92,7 +97,7 @@ namespace NzbDrone.Common.Instrumentation.Sentry
         public bool FilterEvents { get; set; }
         public bool SentryEnabled { get; set; }
 
-        public SentryTarget(string dsn)
+        public SentryTarget(string dsn, IAppFolderInfo appFolderInfo)
         {
             _sdk = SentrySdk.Init(o =>
                                   {
@@ -100,9 +105,33 @@ namespace NzbDrone.Common.Instrumentation.Sentry
                                       o.AttachStacktrace = true;
                                       o.MaxBreadcrumbs = 200;
                                       o.Release = BuildInfo.Release;
-                                      o.BeforeSend = x => SentryCleanser.CleanseEvent(x);
-                                      o.BeforeBreadcrumb = x => SentryCleanser.CleanseBreadcrumb(x);
+                                      o.SetBeforeSend(x => SentryCleanser.CleanseEvent(x));
+                                      o.SetBeforeBreadcrumb(x => SentryCleanser.CleanseBreadcrumb(x));
                                       o.Environment = BuildInfo.Branch;
+
+                                      // Crash free run statistics (sends a ping for healthy and for crashes sessions)
+                                      o.AutoSessionTracking = false;
+
+                                      // Caches files in the event device is offline
+                                      // Sentry creates a 'sentry' sub directory, no need to concat here
+                                      o.CacheDirectoryPath = appFolderInfo.GetAppDataPath();
+
+                                      // default environment is production
+                                      if (!RuntimeInfo.IsProduction)
+                                      {
+                                          if (RuntimeInfo.IsDevelopment)
+                                          {
+                                              o.Environment = "development";
+                                          }
+                                          else if (RuntimeInfo.IsTesting)
+                                          {
+                                              o.Environment = "testing";
+                                          }
+                                          else
+                                          {
+                                              o.Environment = "other";
+                                          }
+                                      }
                                   });
 
             InitializeScope();
@@ -121,7 +150,7 @@ namespace NzbDrone.Common.Instrumentation.Sentry
         {
             SentrySdk.ConfigureScope(scope =>
             {
-                scope.User = new User
+                scope.User = new SentryUser
                 {
                     Id = HashUtil.AnonymousToken()
                 };
@@ -141,6 +170,7 @@ namespace NzbDrone.Common.Instrumentation.Sentry
         {
             SentrySdk.ConfigureScope(scope =>
             {
+                scope.SetTag("is_docker", $"{osInfo.IsDocker}");
             });
         }
 
@@ -280,12 +310,20 @@ namespace NzbDrone.Common.Instrumentation.Sentry
                     }
                 }
 
+                var level = LoggingLevelMap[logEvent.Level];
                 var sentryEvent = new SentryEvent(logEvent.Exception)
                 {
-                    Level = LoggingLevelMap[logEvent.Level],
+                    Level = level,
                     Logger = logEvent.LoggerName,
                     Message = logEvent.FormattedMessage
                 };
+
+                if (level is SentryLevel.Fatal && logEvent.Exception is not null)
+                {
+                    // Usages of 'fatal' here indicates the process will crash. In Sentry this is represented with
+                    // the 'unhandled' exception flag
+                    logEvent.Exception.SetSentryMechanism("Logger.Fatal", "Logger.Fatal was called", false);
+                }
 
                 sentryEvent.SetExtras(extras);
                 sentryEvent.SetFingerprint(fingerPrint);

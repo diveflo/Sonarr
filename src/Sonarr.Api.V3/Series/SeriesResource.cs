@@ -44,13 +44,16 @@ namespace Sonarr.Api.V3.Series
         // Editing Only
         public bool SeasonFolder { get; set; }
         public bool Monitored { get; set; }
+        public NewItemMonitorTypes MonitorNewItems { get; set; }
 
         public bool UseSceneNumbering { get; set; }
         public int Runtime { get; set; }
         public int TvdbId { get; set; }
         public int TvRageId { get; set; }
         public int TvMazeId { get; set; }
+        public int TmdbId { get; set; }
         public DateTime? FirstAired { get; set; }
+        public DateTime? LastAired { get; set; }
         public SeriesTypes SeriesType { get; set; }
         public string CleanTitle { get; set; }
         public string ImdbId { get; set; }
@@ -114,13 +117,16 @@ namespace Sonarr.Api.V3.Series
 
                        SeasonFolder = model.SeasonFolder,
                        Monitored = model.Monitored,
+                       MonitorNewItems = model.MonitorNewItems,
 
                        UseSceneNumbering = model.UseSceneNumbering,
                        Runtime = model.Runtime,
                        TvdbId = model.TvdbId,
                        TvRageId = model.TvRageId,
                        TvMazeId = model.TvMazeId,
+                       TmdbId = model.TmdbId,
                        FirstAired = model.FirstAired,
+                       LastAired = model.LastAired,
                        SeriesType = model.SeriesType,
                        CleanTitle = model.CleanTitle,
                        ImdbId = model.ImdbId,
@@ -176,12 +182,14 @@ namespace Sonarr.Api.V3.Series
 
                        SeasonFolder = resource.SeasonFolder,
                        Monitored = resource.Monitored,
+                       MonitorNewItems = resource.MonitorNewItems,
 
                        UseSceneNumbering = resource.UseSceneNumbering,
                        Runtime = resource.Runtime,
                        TvdbId = resource.TvdbId,
                        TvRageId = resource.TvRageId,
                        TvMazeId = resource.TvMazeId,
+                       TmdbId = resource.TmdbId,
                        FirstAired = resource.FirstAired,
                        SeriesType = resource.SeriesType,
                        CleanTitle = resource.CleanTitle,

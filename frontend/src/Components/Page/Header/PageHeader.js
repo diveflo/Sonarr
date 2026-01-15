@@ -4,8 +4,9 @@ import keyboardShortcuts, { shortcuts } from 'Components/keyboardShortcuts';
 import IconButton from 'Components/Link/IconButton';
 import Link from 'Components/Link/Link';
 import { icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
-import PageHeaderActionsMenuConnector from './PageHeaderActionsMenuConnector';
+import PageHeaderActionsMenu from './PageHeaderActionsMenu';
 import SeriesSearchInputConnector from './SeriesSearchInputConnector';
 import styles from './PageHeader.css';
 
@@ -58,6 +59,7 @@ class PageHeader extends Component {
             <img
               className={styles.logo}
               src={`${window.Sonarr.urlBase}/Content/Images/logo.svg`}
+              alt="Sonarr Logo"
             />
           </Link>
         </div>
@@ -76,10 +78,13 @@ class PageHeader extends Component {
           <IconButton
             className={styles.donate}
             name={icons.HEART}
+            aria-label={translate('Donate')}
             to="https://sonarr.tv/donate.html"
             size={14}
+            title={translate('Donate')}
           />
-          <PageHeaderActionsMenuConnector
+
+          <PageHeaderActionsMenu
             onKeyboardShortcutsPress={this.onOpenKeyboardShortcutsModal}
           />
         </div>

@@ -45,21 +45,33 @@ namespace NzbDrone.Core.Tv
                 dupeFreeRemoteEpisodes = MapAbsoluteEpisodeNumbers(dupeFreeRemoteEpisodes);
             }
 
-            foreach (var episode in OrderEpisodes(series, dupeFreeRemoteEpisodes))
+            var orderedEpisodes = OrderEpisodes(series, dupeFreeRemoteEpisodes).ToList();
+            var episodesPerSeason = orderedEpisodes.GroupBy(s => s.SeasonNumber).ToDictionary(g => g.Key, g => g.Count());
+            var latestSeason = seasons.MaxBy(s => s.SeasonNumber);
+
+            foreach (var episode in orderedEpisodes)
             {
                 try
                 {
-                    var episodeToUpdate = GetEpisodeToUpdate(series, episode, existingEpisodes);
+                    var episodeToUpdate = existingEpisodes.FirstOrDefault(e => e.SeasonNumber == episode.SeasonNumber && e.EpisodeNumber == episode.EpisodeNumber);
 
                     if (episodeToUpdate != null)
                     {
                         existingEpisodes.Remove(episodeToUpdate);
                         updateList.Add(episodeToUpdate);
+
+                        // Anime series with newly added absolute episode number
+                        if (series.SeriesType == SeriesTypes.Anime &&
+                            !episodeToUpdate.AbsoluteEpisodeNumber.HasValue &&
+                            episode.AbsoluteEpisodeNumber.HasValue)
+                        {
+                            episodeToUpdate.AbsoluteEpisodeNumberAdded = true;
+                        }
                     }
                     else
                     {
                         episodeToUpdate = new Episode();
-                        episodeToUpdate.Monitored = GetMonitoredStatus(episode, seasons);
+                        episodeToUpdate.Monitored = GetMonitoredStatus(episode, seasons, series);
                         newList.Add(episodeToUpdate);
                     }
 
@@ -75,8 +87,24 @@ namespace NzbDrone.Core.Tv
                     episodeToUpdate.Overview = episode.Overview;
                     episodeToUpdate.AirDate = episode.AirDate;
                     episodeToUpdate.AirDateUtc = episode.AirDateUtc;
+                    episodeToUpdate.Runtime = episode.Runtime;
+                    episodeToUpdate.FinaleType = episode.FinaleType;
                     episodeToUpdate.Ratings = episode.Ratings;
                     episodeToUpdate.Images = episode.Images;
+
+                    // TheTVDB has a severe lack of season/series finales, this helps smooth out that limitation so they can be displayed in the UI
+                    if (series.Status == SeriesStatusType.Ended &&
+                        episodeToUpdate.FinaleType == null &&
+                        episodeToUpdate.SeasonNumber > 0 &&
+                        episodeToUpdate.SeasonNumber == latestSeason.SeasonNumber &&
+                        episodeToUpdate.EpisodeNumber > 1 &&
+                        episodeToUpdate.EpisodeNumber == episodesPerSeason[episodeToUpdate.SeasonNumber] &&
+                        episodeToUpdate.AirDateUtc.HasValue &&
+                        episodeToUpdate.AirDateUtc.Value.After(DateTime.UtcNow.AddDays(-14)) &&
+                        orderedEpisodes.None(e => e.SeasonNumber == latestSeason.SeasonNumber && e.FinaleType != null))
+                    {
+                        episodeToUpdate.FinaleType = "series";
+                    }
 
                     successCount++;
                 }
@@ -115,7 +143,7 @@ namespace NzbDrone.Core.Tv
             }
         }
 
-        private bool GetMonitoredStatus(Episode episode, IEnumerable<Season> seasons)
+        private bool GetMonitoredStatus(Episode episode, IEnumerable<Season> seasons, Series series)
         {
             if (episode.EpisodeNumber == 0 && episode.SeasonNumber != 1)
             {
@@ -185,7 +213,7 @@ namespace NzbDrone.Core.Tv
             }
         }
 
-        private void AdjustDirectToDvdAirDate(Series series, IEnumerable<Episode> allEpisodes)
+        private void AdjustDirectToDvdAirDate(Series series, IList<Episode> allEpisodes)
         {
             if (series.Status == SeriesStatusType.Ended && allEpisodes.All(v => !v.AirDateUtc.HasValue) && series.FirstAired.HasValue)
             {
@@ -205,24 +233,6 @@ namespace NzbDrone.Core.Tv
                                  .DistinctBy(e => e.AbsoluteEpisodeNumber.Value)
                                  .Concat(remoteEpisodes.Where(e => !e.AbsoluteEpisodeNumber.HasValue))
                                  .ToList();
-        }
-
-        private Episode GetEpisodeToUpdate(Series series, Episode episode, List<Episode> existingEpisodes)
-        {
-            if (series.SeriesType == SeriesTypes.Anime)
-            {
-                if (episode.AbsoluteEpisodeNumber.HasValue)
-                {
-                    var matchingEpisode = existingEpisodes.FirstOrDefault(e => e.AbsoluteEpisodeNumber == episode.AbsoluteEpisodeNumber);
-
-                    if (matchingEpisode != null)
-                    {
-                        return matchingEpisode;
-                    }
-                }
-            }
-
-            return existingEpisodes.FirstOrDefault(e => e.SeasonNumber == episode.SeasonNumber && e.EpisodeNumber == episode.EpisodeNumber);
         }
 
         private IEnumerable<Episode> OrderEpisodes(Series series, List<Episode> episodes)

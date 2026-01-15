@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
@@ -158,6 +157,26 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series T Se.3 afl.3", "Series T", 3, 3)]
         [TestCase("[Anime Chap] Anime Title! S01E09 [WEB 1080p] {OP & ED Lyrics} - Episode 9 (The Eminence in Shadow)", "Anime Title!", 1, 9)]
         [TestCase("[Anime Chap] Anime Title! S01E12 [WEB 1080p] {OP & ED Lyrics} - Episode 12 (The Eminence in Shadow)", "Anime Title!", 1, 12)]
+        [TestCase("SeriesTitle-S16E08-10426008-0.mkv", "SeriesTitle", 16, 8)]
+        [TestCase("Series-S07E12-31st_Century_Fox-[Bluray-1080p].mkv", "Series", 7, 12)]
+        [TestCase("TheTitle-S12E13-3_Acts_of_God.mkv", "TheTitle", 12, 13)]
+        [TestCase("Series Title - Temporada 2 [HDTV 720p][Cap.408]", "Series Title", 4, 8)]
+        [TestCase("Series Title [HDTV][Cap.104](website.com).avi", "Series Title", 1, 4)]
+        [TestCase("Series Title [HDTV][Cap.402](website.com).avi", "Series Title", 4, 2)]
+        [TestCase("Series Title [HDTV 720p][Cap.101](website.com).mkv", "Series Title", 1, 1)]
+        [TestCase("Босх: Спадок (S2E1) / Series: Legacy (S2E1) (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Series: Legacy", 2, 1)]
+        [TestCase("Босх: Спадок / Series: Legacy / S2E1 of 10 (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Series: Legacy", 2, 1)]
+        [TestCase("Titles.s06e01.1999.BDRip.1080p.Ukr.Eng.AC3.Hurtom.TNU.Tenax555", "Titles", 6, 1)]
+        [TestCase("Titles.s06.01.1999.BDRip.1080p.Ukr.Eng.AC3.Hurtom.TNU.Tenax555", "Titles", 6, 1)]
+        [TestCase("[Judas] Series Title (2024) - S01E14", "Series Title (2024)", 1, 14)]
+        [TestCase("[ReleaseGroup] SeriesTitle S01E1 Webdl 1080p", "SeriesTitle", 1, 1)]
+        [TestCase("[SubsPlus+] Series no Chill - S02E01 (NF WEB 1080p AVC AAC)", "Series no Chill", 2, 1)]
+        [TestCase("[SubsPlus+] Series no Chill - S02E01v2 (NF WEB 1080p AVC AAC)", "Series no Chill", 2, 1)]
+        [TestCase("Series - Temporada 1 - [HDTV 1080p][Cap.101](wolfmax4k.com)", "Series", 1, 1)]
+        [TestCase("Series [HDTV 1080p][Cap.101](wolfmax4k.com)", "Series", 1, 1)]
+        [TestCase("Series [HDTV 1080p][Cap. 101](wolfmax4k.com).mkv", "Series", 1, 1)]
+        [TestCase("Amazing Title (2024/S01E07/DSNP/WEB-DL/1080p/ESP/EAC3 5.1/ING/EAC3 5.1 Atmos/SUBS) SPWEB", "Amazing Title (2024)", 1, 7)]
+        [TestCase("Mini Title (Miniserie) (2024/S01E07/DSNP/WEB-DL/1080p/ESP/EAC3 5.1/ING/EAC3 5.1 Atmos/SUBS) SPWEB", "Mini Title (2024)", 1, 7)]
 
         // [TestCase("", "", 0, 0)]
         public void should_parse_single_episode(string postTitle, string title, int seasonNumber, int episodeNumber)
@@ -189,6 +208,34 @@ namespace NzbDrone.Core.Test.ParserTests
             result.SeriesTitle.Should().Be(title);
             result.AbsoluteEpisodeNumbers.Should().BeEmpty();
             result.FullSeason.Should().BeFalse();
+        }
+
+        [TestCase("Series Title S01E11.5 [SP]-The Poppies Bloom Red on the Battlefield", "Series Title", 1, 11)]
+        public void should_parse_decimal_number_as_special(string postTitle, string title, int seasonNumber, int episodeNumber)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Should().NotBeNull();
+            result.EpisodeNumbers.Should().HaveCount(1);
+            result.SeasonNumber.Should().Be(seasonNumber);
+            result.EpisodeNumbers.First().Should().Be(episodeNumber);
+            result.SeriesTitle.Should().Be(title);
+            result.AbsoluteEpisodeNumbers.Should().BeEmpty();
+            result.FullSeason.Should().BeFalse();
+            result.Special.Should().BeTrue();
+        }
+
+        [TestCase("Series.Title.S06E01b.Fade.Out.Fade.in.Part.2.1080p.DSNP.WEB-DL.AAC2.0.H.264-FLUX", "Series Title", 6, 1)]
+        public void should_parse_split_episode(string postTitle, string title, int seasonNumber, int episodeNumber)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+            result.Should().NotBeNull();
+            result.EpisodeNumbers.Should().HaveCount(1);
+            result.SeasonNumber.Should().Be(seasonNumber);
+            result.EpisodeNumbers.First().Should().Be(episodeNumber);
+            result.SeriesTitle.Should().Be(title);
+            result.AbsoluteEpisodeNumbers.Should().BeEmpty();
+            result.FullSeason.Should().BeFalse();
+            result.IsSplitEpisode.Should().BeTrue();
         }
     }
 }

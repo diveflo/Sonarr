@@ -17,12 +17,17 @@ namespace NzbDrone.Core.Tv
             Seasons = new List<Season>();
             Tags = new HashSet<int>();
             OriginalLanguage = Language.English;
+            MalIds = new HashSet<int>();
+            AniListIds = new HashSet<int>();
         }
 
         public int TvdbId { get; set; }
         public int TvRageId { get; set; }
         public int TvMazeId { get; set; }
         public string ImdbId { get; set; }
+        public int TmdbId { get; set; }
+        public HashSet<int> MalIds { get; set; }
+        public HashSet<int> AniListIds { get; set; }
         public string Title { get; set; }
         public string CleanTitle { get; set; }
         public string SortTitle { get; set; }
@@ -30,6 +35,7 @@ namespace NzbDrone.Core.Tv
         public string Overview { get; set; }
         public string AirTime { get; set; }
         public bool Monitored { get; set; }
+        public NewItemMonitorTypes MonitorNewItems { get; set; }
         public int QualityProfileId { get; set; }
         public bool SeasonFolder { get; set; }
         public DateTime? LastInfoSync { get; set; }
@@ -48,6 +54,7 @@ namespace NzbDrone.Core.Tv
         public string RootFolderPath { get; set; }
         public DateTime Added { get; set; }
         public DateTime? FirstAired { get; set; }
+        public DateTime? LastAired { get; set; }
         public LazyLoaded<QualityProfile> QualityProfile { get; set; }
         public Language OriginalLanguage { get; set; }
 
@@ -70,6 +77,7 @@ namespace NzbDrone.Core.Tv
 
             SeasonFolder = otherSeries.SeasonFolder;
             Monitored = otherSeries.Monitored;
+            MonitorNewItems = otherSeries.MonitorNewItems;
 
             SeriesType = otherSeries.SeriesType;
             RootFolderPath = otherSeries.RootFolderPath;

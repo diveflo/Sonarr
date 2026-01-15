@@ -3,9 +3,10 @@ import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
 import { filterBuilderTypes, filterBuilderValueTypes, filterTypePredicates, filterTypes, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
-import sortByName from 'Utilities/Array/sortByName';
+import sortByProp from 'Utilities/Array/sortByProp';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import dateFilterPredicate from 'Utilities/Date/dateFilterPredicate';
+import translate from 'Utilities/String/translate';
 import { set, updateItem } from './baseActions';
 import createFetchHandler from './Creators/createFetchHandler';
 import createHandleActions from './Creators/createHandleActions';
@@ -29,12 +30,12 @@ export const section = 'series';
 export const filters = [
   {
     key: 'all',
-    label: 'All',
+    label: () => translate('All'),
     filters: []
   },
   {
     key: 'monitored',
-    label: 'Monitored Only',
+    label: () => translate('MonitoredOnly'),
     filters: [
       {
         key: 'monitored',
@@ -45,7 +46,7 @@ export const filters = [
   },
   {
     key: 'unmonitored',
-    label: 'Unmonitored Only',
+    label: () => translate('UnmonitoredOnly'),
     filters: [
       {
         key: 'monitored',
@@ -56,7 +57,7 @@ export const filters = [
   },
   {
     key: 'continuing',
-    label: 'Continuing Only',
+    label: () => translate('ContinuingOnly'),
     filters: [
       {
         key: 'status',
@@ -67,7 +68,7 @@ export const filters = [
   },
   {
     key: 'ended',
-    label: 'Ended Only',
+    label: () => translate('EndedOnly'),
     filters: [
       {
         key: 'status',
@@ -78,7 +79,7 @@ export const filters = [
   },
   {
     key: 'missing',
-    label: 'Missing Episodes',
+    label: () => translate('MissingEpisodes'),
     filters: [
       {
         key: 'missing',
@@ -127,8 +128,16 @@ export const filterPredicates = {
 
   ratings: function(item, filterValue, type) {
     const predicate = filterTypePredicates[type];
+    const { value = 0 } = item.ratings;
 
-    return predicate(item.ratings.value * 10, filterValue);
+    return predicate(value * 10, filterValue);
+  },
+
+  ratingVotes: function(item, filterValue, type) {
+    const predicate = filterTypePredicates[type];
+    const { votes = 0 } = item.ratings;
+
+    return predicate(votes, filterValue);
   },
 
   originalLanguage: function(item, filterValue, type) {
@@ -167,9 +176,10 @@ export const filterPredicates = {
   },
 
   hasMissingSeason: function(item, filterValue, type) {
+    const predicate = filterTypePredicates[type];
     const { seasons = [] } = item;
 
-    return seasons.some((season) => {
+    const hasMissingSeason = seasons.some((season) => {
       const {
         seasonNumber,
         statistics = {}
@@ -188,32 +198,68 @@ export const filterPredicates = {
         episodeFileCount === 0
       );
     });
+
+    return predicate(hasMissingSeason, filterValue);
+  },
+
+  seasonsMonitoredStatus: function(item, filterValue, type) {
+    const predicate = filterTypePredicates[type];
+    const { seasons = [] } = item;
+
+    const { monitoredCount, unmonitoredCount } = seasons.reduce((acc, { seasonNumber, monitored }) => {
+      if (seasonNumber <= 0) {
+        return acc;
+      }
+
+      if (monitored) {
+        acc.monitoredCount++;
+      } else {
+        acc.unmonitoredCount++;
+      }
+
+      return acc;
+    }, { monitoredCount: 0, unmonitoredCount: 0 });
+
+    let seasonsMonitoredStatus = 'partial';
+
+    if (monitoredCount === 0) {
+      seasonsMonitoredStatus = 'none';
+    } else if (unmonitoredCount === 0) {
+      seasonsMonitoredStatus = 'all';
+    }
+
+    return predicate(seasonsMonitoredStatus, filterValue);
   }
 };
 
 export const filterBuilderProps = [
   {
     name: 'monitored',
-    label: 'Monitored',
+    label: () => translate('Monitored'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.BOOL
   },
   {
     name: 'status',
-    label: 'Status',
+    label: () => translate('Status'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.SERIES_STATUS
   },
   {
     name: 'seriesType',
-    label: 'Type',
+    label: () => translate('Type'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.SERIES_TYPES
   },
   {
+    name: 'title',
+    label: () => translate('Title'),
+    type: filterBuilderTypes.STRING
+  },
+  {
     name: 'network',
-    label: 'Network',
-    type: filterBuilderTypes.STRING,
+    label: () => translate('Network'),
+    type: filterBuilderTypes.ARRAY,
     optionsSelector: function(items) {
       const tagList = items.reduce((acc, series) => {
         if (series.network) {
@@ -226,62 +272,62 @@ export const filterBuilderProps = [
         return acc;
       }, []);
 
-      return tagList.sort(sortByName);
+      return tagList.sort(sortByProp('name'));
     }
   },
   {
     name: 'qualityProfileId',
-    label: 'Quality Profile',
+    label: () => translate('QualityProfile'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.QUALITY_PROFILE
   },
   {
     name: 'nextAiring',
-    label: 'Next Airing',
+    label: () => translate('NextAiring'),
     type: filterBuilderTypes.DATE,
     valueType: filterBuilderValueTypes.DATE
   },
   {
     name: 'previousAiring',
-    label: 'Previous Airing',
+    label: () => translate('PreviousAiring'),
     type: filterBuilderTypes.DATE,
     valueType: filterBuilderValueTypes.DATE
   },
   {
     name: 'added',
-    label: 'Added',
+    label: () => translate('Added'),
     type: filterBuilderTypes.DATE,
     valueType: filterBuilderValueTypes.DATE
   },
   {
     name: 'seasonCount',
-    label: 'Season Count',
+    label: () => translate('SeasonCount'),
     type: filterBuilderTypes.NUMBER
   },
   {
     name: 'episodeProgress',
-    label: 'Episode Progress',
+    label: () => translate('EpisodeProgress'),
     type: filterBuilderTypes.NUMBER
   },
   {
     name: 'path',
-    label: 'Path',
+    label: () => translate('Path'),
     type: filterBuilderTypes.STRING
   },
   {
     name: 'rootFolderPath',
-    label: 'Root Folder Path',
+    label: () => translate('RootFolderPath'),
     type: filterBuilderTypes.EXACT
   },
   {
     name: 'sizeOnDisk',
-    label: 'Size on Disk',
+    label: () => translate('SizeOnDisk'),
     type: filterBuilderTypes.NUMBER,
     valueType: filterBuilderValueTypes.BYTES
   },
   {
     name: 'genres',
-    label: 'Genres',
+    label: () => translate('Genres'),
     type: filterBuilderTypes.ARRAY,
     optionsSelector: function(items) {
       const tagList = items.reduce((acc, series) => {
@@ -295,12 +341,12 @@ export const filterBuilderProps = [
         return acc;
       }, []);
 
-      return tagList.sort(sortByName);
+      return tagList.sort(sortByProp('name'));
     }
   },
   {
     name: 'originalLanguage',
-    label: 'Original Language',
+    label: () => translate('OriginalLanguage'),
     type: filterBuilderTypes.EXACT,
     optionsSelector: function(items) {
       const languageList = items.reduce((acc, series) => {
@@ -314,39 +360,56 @@ export const filterBuilderProps = [
         return acc;
       }, []);
 
-      return languageList.sort(sortByName);
+      return languageList.sort(sortByProp('name'));
     }
   },
   {
     name: 'releaseGroups',
-    label: 'Release Groups',
+    label: () => translate('ReleaseGroups'),
     type: filterBuilderTypes.ARRAY
   },
   {
     name: 'ratings',
-    label: 'Rating',
+    label: () => translate('Rating'),
+    type: filterBuilderTypes.NUMBER
+  },
+  {
+    name: 'ratingVotes',
+    label: () => translate('RatingVotes'),
     type: filterBuilderTypes.NUMBER
   },
   {
     name: 'certification',
-    label: 'Certification',
+    label: () => translate('Certification'),
     type: filterBuilderTypes.EXACT
   },
   {
     name: 'tags',
-    label: 'Tags',
+    label: () => translate('Tags'),
     type: filterBuilderTypes.ARRAY,
     valueType: filterBuilderValueTypes.TAG
   },
   {
     name: 'useSceneNumbering',
-    label: 'Scene Numbering',
+    label: () => translate('SceneNumbering'),
     type: filterBuilderTypes.EXACT
   },
   {
     name: 'hasMissingSeason',
-    label: 'Has Missing Season',
-    type: filterBuilderTypes.EXACT
+    label: () => translate('HasMissingSeason'),
+    type: filterBuilderTypes.EXACT,
+    valueType: filterBuilderValueTypes.BOOL
+  },
+  {
+    name: 'seasonsMonitoredStatus',
+    label: () => translate('SeasonsMonitoredStatus'),
+    type: filterBuilderTypes.EXACT,
+    valueType: filterBuilderValueTypes.SEASONS_MONITORED_STATUS
+  },
+  {
+    name: 'year',
+    label: () => translate('Year'),
+    type: filterBuilderTypes.NUMBER
   }
 ];
 
@@ -381,6 +444,8 @@ export const defaultState = {
   error: null,
   isSaving: false,
   saveError: null,
+  isDeleting: false,
+  deleteError: null,
   items: [],
   sortKey: 'sortTitle',
   sortDirection: sortDirections.ASCENDING,
@@ -405,6 +470,8 @@ export const DELETE_SERIES = 'series/deleteSeries';
 export const TOGGLE_SERIES_MONITORED = 'series/toggleSeriesMonitored';
 export const TOGGLE_SEASON_MONITORED = 'series/toggleSeasonMonitored';
 export const UPDATE_SERIES_MONITOR = 'series/updateSeriesMonitor';
+export const SAVE_SERIES_EDITOR = 'series/saveSeriesEditor';
+export const BULK_DELETE_SERIES = 'series/bulkDeleteSeries';
 
 export const SET_DELETE_OPTION = 'series/setDeleteOption';
 
@@ -441,6 +508,8 @@ export const deleteSeries = createThunk(DELETE_SERIES, (payload) => {
 export const toggleSeriesMonitored = createThunk(TOGGLE_SERIES_MONITORED);
 export const toggleSeasonMonitored = createThunk(TOGGLE_SEASON_MONITORED);
 export const updateSeriesMonitor = createThunk(UPDATE_SERIES_MONITOR);
+export const saveSeriesEditor = createThunk(SAVE_SERIES_EDITOR);
+export const bulkDeleteSeries = createThunk(BULK_DELETE_SERIES);
 
 export const setSeriesValue = createAction(SET_SERIES_VALUE, (payload) => {
   return {
@@ -615,15 +684,23 @@ export const actionHandlers = handleThunks({
 
   [UPDATE_SERIES_MONITOR]: function(getState, payload, dispatch) {
     const {
-      id,
-      monitor
+      seriesIds,
+      monitor,
+      monitored,
+      shouldFetchEpisodesAfterUpdate = false
     } = payload;
 
-    const seriesToUpdate = { id };
+    const series = [];
 
-    if (monitor !== 'None') {
-      seriesToUpdate.monitored = true;
-    }
+    seriesIds.forEach((id) => {
+      const seriesToUpdate = { id };
+
+      if (monitored != null) {
+        seriesToUpdate.monitored = monitored;
+      }
+
+      series.push(seriesToUpdate);
+    });
 
     dispatch(set({
       section,
@@ -634,16 +711,16 @@ export const actionHandlers = handleThunks({
       url: '/seasonPass',
       method: 'POST',
       data: JSON.stringify({
-        series: [
-          seriesToUpdate
-        ],
+        series,
         monitoringOptions: { monitor }
       }),
       dataType: 'json'
     }).request;
 
     promise.done((data) => {
-      dispatch(fetchEpisodes({ seriesId: id }));
+      if (shouldFetchEpisodesAfterUpdate) {
+        dispatch(fetchEpisodes({ seriesId: seriesIds[0] }));
+      }
 
       dispatch(set({
         section,
@@ -657,6 +734,87 @@ export const actionHandlers = handleThunks({
         section,
         isSaving: false,
         saveError: xhr
+      }));
+    });
+  },
+
+  [SAVE_SERIES_EDITOR]: function(getState, payload, dispatch) {
+    dispatch(set({
+      section,
+      isSaving: true
+    }));
+
+    const promise = createAjaxRequest({
+      url: '/series/editor',
+      method: 'PUT',
+      data: JSON.stringify(payload),
+      dataType: 'json'
+    }).request;
+
+    promise.done((data) => {
+      dispatch(batchActions([
+        ...data.map((series) => {
+
+          const {
+            alternateTitles,
+            images,
+            rootFolderPath,
+            statistics,
+            ...propsToUpdate
+          } = series;
+
+          return updateItem({
+            id: series.id,
+            section: 'series',
+            ...propsToUpdate
+          });
+        }),
+
+        set({
+          section,
+          isSaving: false,
+          saveError: null
+        })
+      ]));
+    });
+
+    promise.fail((xhr) => {
+      dispatch(set({
+        section,
+        isSaving: false,
+        saveError: xhr
+      }));
+    });
+  },
+
+  [BULK_DELETE_SERIES]: function(getState, payload, dispatch) {
+    dispatch(set({
+      section,
+      isDeleting: true
+    }));
+
+    const promise = createAjaxRequest({
+      url: '/series/editor',
+      method: 'DELETE',
+      data: JSON.stringify(payload),
+      dataType: 'json'
+    }).request;
+
+    promise.done(() => {
+      // SignaR will take care of removing the series from the collection
+
+      dispatch(set({
+        section,
+        isDeleting: false,
+        deleteError: null
+      }));
+    });
+
+    promise.fail((xhr) => {
+      dispatch(set({
+        section,
+        isDeleting: false,
+        deleteError: xhr
       }));
     });
   }

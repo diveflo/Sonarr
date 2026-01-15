@@ -9,6 +9,7 @@ using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Profiles.Qualities;
@@ -58,19 +59,25 @@ namespace Sonarr.Api.V3.Queue
             _qualityComparer = new QualityModelComparer(qualityProfileService.GetDefaultProfile(string.Empty));
         }
 
+        [NonAction]
+        public override ActionResult<QueueResource> GetResourceByIdWithErrorHandler(int id)
+        {
+            return base.GetResourceByIdWithErrorHandler(id);
+        }
+
         protected override QueueResource GetResourceById(int id)
         {
             throw new NotImplementedException();
         }
 
         [RestDeleteById]
-        public void RemoveAction(int id, bool removeFromClient = true, bool blocklist = false)
+        public void RemoveAction(int id, bool removeFromClient = true, bool blocklist = false, bool skipRedownload = false, bool changeCategory = false)
         {
             var pendingRelease = _pendingReleaseService.FindPendingQueueItem(id);
 
             if (pendingRelease != null)
             {
-                Remove(pendingRelease);
+                Remove(pendingRelease, blocklist);
 
                 return;
             }
@@ -82,12 +89,12 @@ namespace Sonarr.Api.V3.Queue
                 throw new NotFoundException();
             }
 
-            Remove(trackedDownload, removeFromClient, blocklist);
+            Remove(trackedDownload, removeFromClient, blocklist, skipRedownload, changeCategory);
             _trackedDownloadService.StopTracking(trackedDownload.DownloadItem.DownloadId);
         }
 
         [HttpDelete("bulk")]
-        public object RemoveMany([FromBody] QueueBulkResource resource, [FromQuery] bool removeFromClient = true, [FromQuery] bool blocklist = false)
+        public object RemoveMany([FromBody] QueueBulkResource resource, [FromQuery] bool removeFromClient = true, [FromQuery] bool blocklist = false, [FromQuery] bool skipRedownload = false, [FromQuery] bool changeCategory = false)
         {
             var trackedDownloadIds = new List<string>();
             var pendingToRemove = new List<NzbDrone.Core.Queue.Queue>();
@@ -113,12 +120,12 @@ namespace Sonarr.Api.V3.Queue
 
             foreach (var pendingRelease in pendingToRemove.DistinctBy(p => p.Id))
             {
-                Remove(pendingRelease);
+                Remove(pendingRelease, blocklist);
             }
 
             foreach (var trackedDownload in trackedToRemove.DistinctBy(t => t.DownloadItem.DownloadId))
             {
-                Remove(trackedDownload, removeFromClient, blocklist);
+                Remove(trackedDownload, removeFromClient, blocklist, skipRedownload, changeCategory);
                 trackedDownloadIds.Add(trackedDownload.DownloadItem.DownloadId);
             }
 
@@ -129,15 +136,39 @@ namespace Sonarr.Api.V3.Queue
 
         [HttpGet]
         [Produces("application/json")]
-        public PagingResource<QueueResource> GetQueue(bool includeUnknownSeriesItems = false, bool includeSeries = false, bool includeEpisode = false)
+        public PagingResource<QueueResource> GetQueue([FromQuery] PagingRequestResource paging, bool includeUnknownSeriesItems = false, bool includeSeries = false, bool includeEpisode = false, [FromQuery] int[] seriesIds = null, DownloadProtocol? protocol = null, [FromQuery] int[] languages = null, [FromQuery] int[] quality = null, [FromQuery] QueueStatus[] status = null)
         {
-            var pagingResource = Request.ReadPagingResourceFromRequest<QueueResource>();
-            var pagingSpec = pagingResource.MapToPagingSpec<QueueResource, NzbDrone.Core.Queue.Queue>("timeleft", SortDirection.Ascending);
+            var pagingResource = new PagingResource<QueueResource>(paging);
+            var pagingSpec = pagingResource.MapToPagingSpec<QueueResource, NzbDrone.Core.Queue.Queue>(
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "added",
+                    "downloadClient",
+                    "episode",
+                    "episode.airDateUtc",
+                    "episode.title",
+                    "episodes.airDateUtc",
+                    "episodes.title",
+                    "estimatedCompletionTime",
+                    "indexer",
+                    "language",
+                    "languages",
+                    "progress",
+                    "protocol",
+                    "quality",
+                    "series.sortTitle",
+                    "size",
+                    "status",
+                    "timeleft",
+                    "title"
+                },
+                "timeleft",
+                SortDirection.Ascending);
 
-            return pagingSpec.ApplyToPage((spec) => GetQueue(spec, includeUnknownSeriesItems), (q) => MapToResource(q, includeSeries, includeEpisode));
+            return pagingSpec.ApplyToPage((spec) => GetQueue(spec, seriesIds?.ToHashSet(), protocol, languages?.ToHashSet(), quality?.ToHashSet(), status?.ToHashSet(), includeUnknownSeriesItems), (q) => MapToResource(q, includeSeries, includeEpisode));
         }
 
-        private PagingSpec<NzbDrone.Core.Queue.Queue> GetQueue(PagingSpec<NzbDrone.Core.Queue.Queue> pagingSpec, bool includeUnknownSeriesItems)
+        private PagingSpec<NzbDrone.Core.Queue.Queue> GetQueue(PagingSpec<NzbDrone.Core.Queue.Queue> pagingSpec, HashSet<int> seriesIds, DownloadProtocol? protocol, HashSet<int> languages, HashSet<int> quality, HashSet<QueueStatus> status, bool includeUnknownSeriesItems)
         {
             var ascending = pagingSpec.SortDirection == SortDirection.Ascending;
             var orderByFunc = GetOrderByFunc(pagingSpec);
@@ -145,21 +176,65 @@ namespace Sonarr.Api.V3.Queue
             var queue = _queueService.GetQueue();
             var filteredQueue = includeUnknownSeriesItems ? queue : queue.Where(q => q.Series != null);
             var pending = _pendingReleaseService.GetPendingQueue();
-            var fullQueue = filteredQueue.Concat(pending).ToList();
+
+            var hasSeriesIdFilter = seriesIds.Any();
+            var hasLanguageFilter = languages.Any();
+            var hasQualityFilter = quality.Any();
+            var hasStatusFilter = status.Any();
+
+            var fullQueue = filteredQueue.Concat(pending).Where(q =>
+            {
+                var include = true;
+
+                if (hasSeriesIdFilter)
+                {
+                    include &= q.Series != null && seriesIds.Contains(q.Series.Id);
+                }
+
+                if (include && protocol.HasValue)
+                {
+                    include &= q.Protocol == protocol.Value;
+                }
+
+                if (include && hasLanguageFilter)
+                {
+                    include &= q.Languages.Any(l => languages.Contains(l.Id));
+                }
+
+                if (include && hasQualityFilter)
+                {
+                    include &= quality.Contains(q.Quality.Quality.Id);
+                }
+
+                if (include && hasStatusFilter)
+                {
+                    include &= status.Contains(q.Status);
+                }
+
+                return include;
+            }).ToList();
+
             IOrderedEnumerable<NzbDrone.Core.Queue.Queue> ordered;
 
             if (pagingSpec.SortKey == "timeleft")
             {
                 ordered = ascending
-                    ? fullQueue.OrderBy(q => q.Timeleft, new TimeleftComparer())
-                    : fullQueue.OrderByDescending(q => q.Timeleft, new TimeleftComparer());
+                    ? fullQueue.OrderBy(q => q.TimeLeft, new TimeleftComparer())
+                    : fullQueue.OrderByDescending(q => q.TimeLeft, new TimeleftComparer());
             }
             else if (pagingSpec.SortKey == "estimatedCompletionTime")
             {
                 ordered = ascending
-                    ? fullQueue.OrderBy(q => q.EstimatedCompletionTime, new EstimatedCompletionTimeComparer())
+                    ? fullQueue.OrderBy(q => q.EstimatedCompletionTime, new DatetimeComparer())
                     : fullQueue.OrderByDescending(q => q.EstimatedCompletionTime,
-                        new EstimatedCompletionTimeComparer());
+                        new DatetimeComparer());
+            }
+            else if (pagingSpec.SortKey == "added")
+            {
+                ordered = ascending
+                    ? fullQueue.OrderBy(q => q.Added, new DatetimeComparer())
+                    : fullQueue.OrderByDescending(q => q.Added,
+                        new DatetimeComparer());
             }
             else if (pagingSpec.SortKey == "protocol")
             {
@@ -196,7 +271,7 @@ namespace Sonarr.Api.V3.Queue
                 ordered = ascending ? fullQueue.OrderBy(orderByFunc) : fullQueue.OrderByDescending(orderByFunc);
             }
 
-            ordered = ordered.ThenByDescending(q => q.Size == 0 ? 0 : 100 - (q.Sizeleft / q.Size * 100));
+            ordered = ordered.ThenByDescending(q => q.Size == 0 ? 0 : 100 - (q.SizeLeft / q.Size * 100));
 
             pagingSpec.Records = ordered.Skip((pagingSpec.Page - 1) * pagingSpec.PageSize).Take(pagingSpec.PageSize).ToList();
             pagingSpec.TotalRecords = fullQueue.Count;
@@ -215,7 +290,7 @@ namespace Sonarr.Api.V3.Queue
             switch (pagingSpec.SortKey)
             {
                 case "status":
-                    return q => q.Status;
+                    return q => q.Status.ToString();
                 case "series.sortTitle":
                     return q => q.Series?.SortTitle ?? q.Title;
                 case "title":
@@ -233,21 +308,27 @@ namespace Sonarr.Api.V3.Queue
                     return q => q.Languages;
                 case "quality":
                     return q => q.Quality;
+                case "size":
+                    return q => q.Size;
                 case "progress":
                     // Avoid exploding if a download's size is 0
-                    return q => 100 - (q.Sizeleft / Math.Max(q.Size * 100, 1));
+                    return q => 100 - (q.SizeLeft / Math.Max(q.Size * 100, 1));
                 default:
-                    return q => q.Timeleft;
+                    return q => q.TimeLeft;
             }
         }
 
-        private void Remove(NzbDrone.Core.Queue.Queue pendingRelease)
+        private void Remove(NzbDrone.Core.Queue.Queue pendingRelease, bool blocklist)
         {
-            _blocklistService.Block(pendingRelease.RemoteEpisode, "Pending release manually blocklisted");
+            if (blocklist)
+            {
+                _blocklistService.Block(pendingRelease.RemoteEpisode, "Pending release manually blocklisted");
+            }
+
             _pendingReleaseService.RemovePendingQueueItems(pendingRelease.Id);
         }
 
-        private TrackedDownload Remove(TrackedDownload trackedDownload, bool removeFromClient, bool blocklist)
+        private TrackedDownload Remove(TrackedDownload trackedDownload, bool removeFromClient, bool blocklist, bool skipRedownload, bool changeCategory)
         {
             if (removeFromClient)
             {
@@ -260,13 +341,24 @@ namespace Sonarr.Api.V3.Queue
 
                 downloadClient.RemoveItem(trackedDownload.DownloadItem, true);
             }
+            else if (changeCategory)
+            {
+                var downloadClient = _downloadClientProvider.Get(trackedDownload.DownloadClient);
+
+                if (downloadClient == null)
+                {
+                    throw new BadRequestException();
+                }
+
+                downloadClient.MarkItemAsImported(trackedDownload.DownloadItem);
+            }
 
             if (blocklist)
             {
-                _failedDownloadService.MarkAsFailed(trackedDownload.DownloadItem.DownloadId);
+                _failedDownloadService.MarkAsFailed(trackedDownload, skipRedownload);
             }
 
-            if (!removeFromClient && !blocklist)
+            if (!removeFromClient && !blocklist && !changeCategory)
             {
                 if (!_ignoredDownloadService.IgnoreDownload(trackedDownload))
                 {

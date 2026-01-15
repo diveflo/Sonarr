@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
 import FormInputGroup from 'Components/Form/FormInputGroup';
@@ -14,6 +15,7 @@ import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import dimensions from 'Styles/Variables/dimensions';
+import translate from 'Utilities/String/translate';
 import QualityProfileFormatItems from './QualityProfileFormatItems';
 import QualityProfileItems from './QualityProfileItems';
 import styles from './EditQualityProfileModalContent.css';
@@ -121,6 +123,7 @@ class EditQualityProfileModalContent extends Component {
       upgradeAllowed,
       cutoff,
       minFormatScore,
+      minUpgradeFormatScore,
       cutoffFormatScore,
       items,
       formatItems
@@ -134,7 +137,7 @@ class EditQualityProfileModalContent extends Component {
           onMeasure={this.onHeaderMeasure}
         >
           <ModalHeader>
-            {id ? 'Edit Quality Profile' : 'Add Quality Profile'}
+            {id ? translate('EditQualityProfile') : translate('AddQualityProfile')}
           </ModalHeader>
         </Measure>
 
@@ -151,7 +154,9 @@ class EditQualityProfileModalContent extends Component {
 
               {
                 !isFetching && !!error &&
-                  <div>Unable to add a new quality profile, please try again.</div>
+                  <Alert kind={kinds.DANGER}>
+                    {translate('AddQualityProfileError')}
+                  </Alert>
               }
 
               {
@@ -163,7 +168,7 @@ class EditQualityProfileModalContent extends Component {
                       <div className={styles.formGroupWrapper}>
                         <FormGroup size={sizes.EXTRA_SMALL}>
                           <FormLabel size={sizes.SMALL}>
-                            Name
+                            {translate('Name')}
                           </FormLabel>
 
                           <FormInputGroup
@@ -176,14 +181,14 @@ class EditQualityProfileModalContent extends Component {
 
                         <FormGroup size={sizes.EXTRA_SMALL}>
                           <FormLabel size={sizes.SMALL}>
-                            Upgrades Allowed
+                            {translate('UpgradesAllowed')}
                           </FormLabel>
 
                           <FormInputGroup
                             type={inputTypes.CHECK}
                             name="upgradeAllowed"
                             {...upgradeAllowed}
-                            helpText="If disabled qualities will not be upgraded"
+                            helpText={translate('UpgradesAllowedHelpText')}
                             onChange={onInputChange}
                           />
                         </FormGroup>
@@ -192,7 +197,7 @@ class EditQualityProfileModalContent extends Component {
                           upgradeAllowed.value &&
                             <FormGroup size={sizes.EXTRA_SMALL}>
                               <FormLabel size={sizes.SMALL}>
-                                Upgrade Until
+                                {translate('UpgradeUntil')}
                               </FormLabel>
 
                               <FormInputGroup
@@ -200,7 +205,7 @@ class EditQualityProfileModalContent extends Component {
                                 name="cutoff"
                                 {...cutoff}
                                 values={qualities}
-                                helpText="Once this quality is reached Sonarr will no longer download episodes"
+                                helpText={translate('UpgradeUntilEpisodeHelpText')}
                                 onChange={onCutoffChange}
                               />
                             </FormGroup>
@@ -210,14 +215,14 @@ class EditQualityProfileModalContent extends Component {
                           formatItems.value.length > 0 &&
                             <FormGroup size={sizes.EXTRA_SMALL}>
                               <FormLabel size={sizes.SMALL}>
-                                Minimum Custom Format Score
+                                {translate('MinimumCustomFormatScore')}
                               </FormLabel>
 
                               <FormInputGroup
                                 type={inputTypes.NUMBER}
                                 name="minFormatScore"
                                 {...minFormatScore}
-                                helpText="Minimum custom format score allowed to download"
+                                helpText={translate('MinimumCustomFormatScoreHelpText')}
                                 onChange={onInputChange}
                               />
                             </FormGroup>
@@ -227,21 +232,40 @@ class EditQualityProfileModalContent extends Component {
                           upgradeAllowed.value && formatItems.value.length > 0 &&
                             <FormGroup size={sizes.EXTRA_SMALL}>
                               <FormLabel size={sizes.SMALL}>
-                                Upgrade Until Custom Format Score
+                                {translate('UpgradeUntilCustomFormatScore')}
                               </FormLabel>
 
                               <FormInputGroup
                                 type={inputTypes.NUMBER}
                                 name="cutoffFormatScore"
                                 {...cutoffFormatScore}
-                                helpText="Once this custom format score is reached Sonarr will no longer grab episode releases"
+                                helpText={translate('UpgradeUntilCustomFormatScoreEpisodeHelpText')}
                                 onChange={onInputChange}
                               />
                             </FormGroup>
                         }
 
+                        {
+                          upgradeAllowed.value && formatItems.value.length > 0 ?
+                            <FormGroup size={sizes.EXTRA_SMALL}>
+                              <FormLabel size={sizes.SMALL}>
+                                {translate('MinimumCustomFormatScoreIncrement')}
+                              </FormLabel>
+
+                              <FormInputGroup
+                                type={inputTypes.NUMBER}
+                                name="minUpgradeFormatScore"
+                                min={1}
+                                {...minUpgradeFormatScore}
+                                helpText={translate('MinimumCustomFormatScoreIncrementHelpText')}
+                                onChange={onInputChange}
+                              />
+                            </FormGroup> :
+                            null
+                        }
+
                         <div className={styles.formatItemLarge}>
-                          {getCustomFormatRender(formatItems, ...otherProps)}
+                          {getCustomFormatRender(formatItems, otherProps)}
                         </div>
                       </div>
 
@@ -278,7 +302,7 @@ class EditQualityProfileModalContent extends Component {
                   className={styles.deleteButtonContainer}
                   title={
                     isInUse ?
-                      'Can\'t delete a quality profile that is attached to a series' :
+                      translate('QualityProfileInUseSeriesListCollection') :
                       undefined
                   }
                 >
@@ -287,7 +311,7 @@ class EditQualityProfileModalContent extends Component {
                     isDisabled={isInUse}
                     onPress={onDeleteQualityProfilePress}
                   >
-                    Delete
+                    {translate('Delete')}
                   </Button>
                 </div> :
                 null
@@ -296,7 +320,7 @@ class EditQualityProfileModalContent extends Component {
             <Button
               onPress={onModalClose}
             >
-              Cancel
+              {translate('Cancel')}
             </Button>
 
             <SpinnerErrorButton
@@ -304,7 +328,7 @@ class EditQualityProfileModalContent extends Component {
               error={saveError}
               onPress={onSavePress}
             >
-              Save
+              {translate('Save')}
             </SpinnerErrorButton>
           </ModalFooter>
         </Measure>
