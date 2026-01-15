@@ -127,7 +127,11 @@ namespace NzbDrone.Common.Processes
                     try
                     {
                         _logger.Trace("Setting environment variable '{0}' to '{1}'", environmentVariable.Key, environmentVariable.Value);
-                        startInfo.EnvironmentVariables.Add(environmentVariable.Key.ToString(), environmentVariable.Value.ToString());
+
+                        var key = environmentVariable.Key.ToString();
+                        var value = environmentVariable.Value?.ToString();
+
+                        startInfo.EnvironmentVariables[key] = value;
                     }
                     catch (Exception e)
                     {
@@ -309,7 +313,7 @@ namespace NzbDrone.Common.Processes
                 processInfo = new ProcessInfo();
                 processInfo.Id = process.Id;
                 processInfo.Name = process.ProcessName;
-                processInfo.StartPath = GetExeFileName(process);
+                processInfo.StartPath = process.MainModule?.FileName;
 
                 if (process.Id != GetCurrentProcessId() && process.HasExited)
                 {
@@ -322,16 +326,6 @@ namespace NzbDrone.Common.Processes
             }
 
             return processInfo;
-        }
-
-        private static string GetExeFileName(Process process)
-        {
-            if (process.MainModule.FileName != "mono.exe")
-            {
-                return process.MainModule.FileName;
-            }
-
-            return process.Modules.Cast<ProcessModule>().FirstOrDefault(module => module.ModuleName.ToLower().EndsWith(".exe")).FileName;
         }
 
         private List<Process> GetProcessesByName(string name)

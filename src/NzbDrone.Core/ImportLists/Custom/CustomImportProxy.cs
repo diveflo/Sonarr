@@ -10,6 +10,7 @@ using NLog;
 
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Localization;
 
 namespace NzbDrone.Core.ImportLists.Custom
 {
@@ -22,11 +23,13 @@ namespace NzbDrone.Core.ImportLists.Custom
     public class CustomImportProxy : ICustomImportProxy
     {
         private readonly IHttpClient _httpClient;
+        private readonly ILocalizationService _localizationService;
         private readonly Logger _logger;
 
-        public CustomImportProxy(IHttpClient httpClient, Logger logger)
+        public CustomImportProxy(IHttpClient httpClient, ILocalizationService localizationService, Logger logger)
         {
             _httpClient = httpClient;
+            _localizationService = localizationService;
             _logger = logger;
         }
 
@@ -46,16 +49,16 @@ namespace NzbDrone.Core.ImportLists.Custom
                 if (ex.Response.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     _logger.Error(ex, "There was an authorization issue. We cannot get the list from the provider.");
-                    return new ValidationFailure("BaseUrl", "It seems we are unauthorized to make this request.");
+                    return new ValidationFailure("BaseUrl", _localizationService.GetLocalizedString("ImportListsCustomListValidationAuthenticationFailure"));
                 }
 
-                _logger.Error(ex, "Unable to send test message");
-                return new ValidationFailure("BaseUrl", $"We are unable to make the request to that URL. StatusCode: {ex.Response.StatusCode}");
+                _logger.Error(ex, "Unable to connect to import list.");
+                return new ValidationFailure("BaseUrl",  _localizationService.GetLocalizedString("ImportListsCustomListValidationConnectionError", new Dictionary<string, object> { { "exceptionStatusCode", ex.Response.StatusCode } }));
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Unable to send test message");
-                return new ValidationFailure("", "Unable to send test message");
+                _logger.Error(ex, "Unable to connect to import list.");
+                return new ValidationFailure(string.Empty, _localizationService.GetLocalizedString("ImportListsValidationUnableToConnectException", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;
@@ -69,7 +72,7 @@ namespace NzbDrone.Core.ImportLists.Custom
             }
 
             var baseUrl = settings.BaseUrl.TrimEnd('/');
-            var request = new HttpRequestBuilder(baseUrl).Accept(HttpAccept.Json).Build();
+            var request = new HttpRequestBuilder(baseUrl).Accept(HttpAccept.Json).AllowRedirect().Build();
             var response = _httpClient.Get(request);
             var results = JsonConvert.DeserializeObject<List<TResource>>(response.Content);
 

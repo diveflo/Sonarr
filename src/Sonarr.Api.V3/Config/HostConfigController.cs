@@ -1,7 +1,6 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
@@ -34,7 +33,6 @@ namespace Sonarr.Api.V3.Config
 
             SharedValidator.RuleFor(c => c.BindAddress)
                            .ValidIpAddress()
-                           .NotListenAllIp4Address()
                            .When(c => c.BindAddress != "*" && c.BindAddress != "localhost");
 
             SharedValidator.RuleFor(c => c.Port).ValidPort();
@@ -42,21 +40,28 @@ namespace Sonarr.Api.V3.Config
             SharedValidator.RuleFor(c => c.UrlBase).ValidUrlBase();
             SharedValidator.RuleFor(c => c.InstanceName).StartsOrEndsWithSonarr();
 
-            SharedValidator.RuleFor(c => c.Username).NotEmpty().When(c => c.AuthenticationMethod != AuthenticationType.None);
-            SharedValidator.RuleFor(c => c.Password).NotEmpty().When(c => c.AuthenticationMethod != AuthenticationType.None);
+            SharedValidator.RuleFor(c => c.Username).NotEmpty().When(c => c.AuthenticationMethod == AuthenticationType.Basic ||
+                                                                          c.AuthenticationMethod == AuthenticationType.Forms);
+            SharedValidator.RuleFor(c => c.Password).NotEmpty().When(c => c.AuthenticationMethod == AuthenticationType.Basic ||
+                                                                          c.AuthenticationMethod == AuthenticationType.Forms);
+
+            SharedValidator.RuleFor(c => c.PasswordConfirmation)
+                .Must((resource, p) => IsMatchingPassword(resource)).WithMessage("Must match Password");
 
             SharedValidator.RuleFor(c => c.SslPort).ValidPort().When(c => c.EnableSsl);
             SharedValidator.RuleFor(c => c.SslPort).NotEqual(c => c.Port).When(c => c.EnableSsl);
 
             SharedValidator.RuleFor(c => c.SslCertPath)
-                .Cascade(CascadeMode.StopOnFirstFailure)
+                .Cascade(CascadeMode.Stop)
                 .NotEmpty()
                 .IsValidPath()
                 .SetValidator(fileExistsValidator)
-                .Must((resource, path) => IsValidSslCertificate(resource)).WithMessage("Invalid SSL certificate file or password")
+                .IsValidCertificate()
                 .When(c => c.EnableSsl);
 
-            SharedValidator.RuleFor(c => c.Branch).NotEmpty().WithMessage("Branch name is required, 'master' is the default");
+            SharedValidator.RuleFor(c => c.LogSizeLimit).InclusiveBetween(1, 10);
+
+            SharedValidator.RuleFor(c => c.Branch).NotEmpty().WithMessage("Branch name is required, 'main' is the default");
             SharedValidator.RuleFor(c => c.UpdateScriptPath).IsValidPath().When(c => c.UpdateMechanism == UpdateMechanism.Script);
 
             SharedValidator.RuleFor(c => c.BackupFolder).IsValidPath().When(c => Path.IsPathRooted(c.BackupFolder));
@@ -64,19 +69,21 @@ namespace Sonarr.Api.V3.Config
             SharedValidator.RuleFor(c => c.BackupRetention).InclusiveBetween(1, 90);
         }
 
-        private bool IsValidSslCertificate(HostConfigResource resource)
+        private bool IsMatchingPassword(HostConfigResource resource)
         {
-            X509Certificate2 cert;
-            try
+            var user = _userService.FindUser();
+
+            if (user != null && user.Password == resource.Password)
             {
-                cert = new X509Certificate2(resource.SslCertPath, resource.SslCertPassword, X509KeyStorageFlags.DefaultKeySet);
-            }
-            catch
-            {
-                return false;
+                return true;
             }
 
-            return cert != null;
+            if (resource.Password == resource.PasswordConfirmation)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         protected override HostConfigResource GetResourceById(int id)
@@ -91,17 +98,16 @@ namespace Sonarr.Api.V3.Config
             resource.Id = 1;
 
             var user = _userService.FindUser();
-            if (user != null)
-            {
-                resource.Username = user.Username;
-                resource.Password = user.Password;
-            }
+
+            resource.Username = user?.Username ?? string.Empty;
+            resource.Password = user?.Password ?? string.Empty;
+            resource.PasswordConfirmation = string.Empty;
 
             return resource;
         }
 
         [RestPutById]
-        public ActionResult<HostConfigResource> SaveHostConfig(HostConfigResource resource)
+        public ActionResult<HostConfigResource> SaveHostConfig([FromBody] HostConfigResource resource)
         {
             var dictionary = resource.GetType()
                                      .GetProperties(BindingFlags.Instance | BindingFlags.Public)

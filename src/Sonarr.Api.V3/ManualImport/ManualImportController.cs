@@ -5,6 +5,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Manual;
 using NzbDrone.Core.Qualities;
+using Sonarr.Api.V3.CustomFormats;
 using Sonarr.Api.V3.Episodes;
 using Sonarr.Http;
 
@@ -38,15 +39,19 @@ namespace Sonarr.Api.V3.ManualImport
         {
             foreach (var item in items)
             {
-                var processedItem = _manualImportService.ReprocessItem(item.Path, item.DownloadId, item.SeriesId, item.SeasonNumber, item.EpisodeIds ?? new List<int>(), item.ReleaseGroup, item.Quality, item.Languages);
+                var processedItem = _manualImportService.ReprocessItem(item.Path, item.DownloadId, item.SeriesId, item.SeasonNumber, item.EpisodeIds ?? new List<int>(), item.ReleaseGroup, item.Quality, item.Languages, item.IndexerFlags, item.ReleaseType);
 
                 item.SeasonNumber = processedItem.SeasonNumber;
                 item.Episodes = processedItem.Episodes.ToResource();
-                item.Rejections = processedItem.Rejections;
+                item.ReleaseType = processedItem.ReleaseType;
+                item.IndexerFlags = processedItem.IndexerFlags;
+                item.Rejections = processedItem.Rejections.Select(r => r.ToResource());
+                item.CustomFormats = processedItem.CustomFormats.ToResource(false);
+                item.CustomFormatScore = processedItem.CustomFormatScore;
 
                 // Only set the language/quality if they're unknown and languages were returned.
                 // Languages won't be returned when reprocessing if the season/episode isn't filled in yet and we don't want to return no languages to the client.
-                if ((item.Languages.SingleOrDefault() ?? Language.Unknown) == Language.Unknown && processedItem.Languages.Any())
+                if (item.Languages.Count <= 1 && (item.Languages.SingleOrDefault() ?? Language.Unknown) == Language.Unknown && processedItem.Languages.Any())
                 {
                     item.Languages = processedItem.Languages;
                 }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +6,6 @@ using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Tv;
 using NzbDrone.SignalR;
 using Sonarr.Http;
-using Sonarr.Http.Extensions;
 using Sonarr.Http.REST;
 using Sonarr.Http.REST.Attributes;
 
@@ -27,24 +25,24 @@ namespace Sonarr.Api.V3.Episodes
 
         [HttpGet]
         [Produces("application/json")]
-        public List<EpisodeResource> GetEpisodes(int? seriesId, int? seasonNumber, [FromQuery]List<int> episodeIds, int? episodeFileId, bool includeImages = false)
+        public List<EpisodeResource> GetEpisodes(int? seriesId, int? seasonNumber, [FromQuery]List<int> episodeIds, int? episodeFileId, bool includeSeries = false, bool includeEpisodeFile = false, bool includeImages = false)
         {
             if (seriesId.HasValue)
             {
                 if (seasonNumber.HasValue)
                 {
-                    return MapToResource(_episodeService.GetEpisodesBySeason(seriesId.Value, seasonNumber.Value), false, false, includeImages);
+                    return MapToResource(_episodeService.GetEpisodesBySeason(seriesId.Value, seasonNumber.Value), includeSeries, includeEpisodeFile, includeImages);
                 }
 
-                return MapToResource(_episodeService.GetEpisodeBySeries(seriesId.Value), false, false, includeImages);
+                return MapToResource(_episodeService.GetEpisodeBySeries(seriesId.Value), includeSeries, includeEpisodeFile, includeImages);
             }
             else if (episodeIds.Any())
             {
-                return MapToResource(_episodeService.GetEpisodes(episodeIds), false, false, includeImages);
+                return MapToResource(_episodeService.GetEpisodes(episodeIds), includeSeries, includeEpisodeFile, includeImages);
             }
             else if (episodeFileId.HasValue)
             {
-                return MapToResource(_episodeService.GetEpisodesByFileId(episodeFileId.Value), false, false, includeImages);
+                return MapToResource(_episodeService.GetEpisodesByFileId(episodeFileId.Value), includeSeries, includeEpisodeFile, includeImages);
             }
 
             throw new BadRequestException("seriesId or episodeIds must be provided");
@@ -63,10 +61,8 @@ namespace Sonarr.Api.V3.Episodes
 
         [HttpPut("monitor")]
         [Consumes("application/json")]
-        public IActionResult SetEpisodesMonitored([FromBody] EpisodesMonitoredResource resource)
+        public IActionResult SetEpisodesMonitored([FromBody] EpisodesMonitoredResource resource, [FromQuery] bool includeImages = false)
         {
-            var includeImages = Request.GetBooleanQueryParameter("includeImages", false);
-
             if (resource.EpisodeIds.Count == 1)
             {
                 _episodeService.SetEpisodeMonitored(resource.EpisodeIds.First(), resource.Monitored);

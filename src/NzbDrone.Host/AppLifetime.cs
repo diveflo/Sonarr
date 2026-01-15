@@ -7,7 +7,6 @@ using NzbDrone.Common.Processes;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Host;
 
 namespace NzbDrone.Host
 {
@@ -56,6 +55,7 @@ namespace NzbDrone.Host
 
         private void OnAppStarted()
         {
+            _runtimeInfo.IsStarting = false;
             _runtimeInfo.IsExiting = false;
 
             if (!_startupContext.Flags.Contains(StartupContext.NO_BROWSER)

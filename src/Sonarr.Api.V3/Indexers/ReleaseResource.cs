@@ -7,6 +7,7 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Tv;
 using Sonarr.Api.V3.CustomFormats;
 using Sonarr.Api.V3.Series;
 using Sonarr.Http.REST;
@@ -40,11 +41,14 @@ namespace Sonarr.Api.V3.Indexers
         public int? MappedSeasonNumber { get; set; }
         public int[] MappedEpisodeNumbers { get; set; }
         public int[] MappedAbsoluteEpisodeNumbers { get; set; }
+        public int? MappedSeriesId { get; set; }
+        public IEnumerable<ReleaseEpisodeResource> MappedEpisodeInfo { get; set; }
         public bool Approved { get; set; }
         public bool TemporarilyRejected { get; set; }
         public bool Rejected { get; set; }
         public int TvdbId { get; set; }
         public int TvRageId { get; set; }
+        public string ImdbId { get; set; }
         public IEnumerable<string> Rejections { get; set; }
         public DateTime PublishDate { get; set; }
         public string CommentUrl { get; set; }
@@ -62,6 +66,7 @@ namespace Sonarr.Api.V3.Indexers
         public int? Seeders { get; set; }
         public int? Leechers { get; set; }
         public DownloadProtocol Protocol { get; set; }
+        public int IndexerFlags { get; set; }
 
         public bool IsDaily { get; set; }
         public bool IsAbsoluteNumbering { get; set; }
@@ -75,6 +80,18 @@ namespace Sonarr.Api.V3.Indexers
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int? EpisodeId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public List<int> EpisodeIds { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int? DownloadClientId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public string DownloadClient { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool? ShouldOverride { get; set; }
     }
 
     public static class ReleaseResourceMapper
@@ -85,6 +102,7 @@ namespace Sonarr.Api.V3.Indexers
             var parsedEpisodeInfo = model.RemoteEpisode.ParsedEpisodeInfo;
             var remoteEpisode = model.RemoteEpisode;
             var torrentInfo = (model.RemoteEpisode.Release as TorrentInfo) ?? new TorrentInfo();
+            var indexerFlags = torrentInfo.IndexerFlags;
 
             // TODO: Clean this mess up. don't mix data from multiple classes, use sub-resources instead? (Got a huge Deja Vu, didn't we talk about this already once?)
             return new ReleaseResource
@@ -109,15 +127,18 @@ namespace Sonarr.Api.V3.Indexers
                 SeriesTitle = parsedEpisodeInfo.SeriesTitle,
                 EpisodeNumbers = parsedEpisodeInfo.EpisodeNumbers,
                 AbsoluteEpisodeNumbers = parsedEpisodeInfo.AbsoluteEpisodeNumbers,
+                MappedSeriesId = remoteEpisode.Series?.Id,
                 MappedSeasonNumber = remoteEpisode.Episodes.FirstOrDefault()?.SeasonNumber,
                 MappedEpisodeNumbers = remoteEpisode.Episodes.Select(v => v.EpisodeNumber).ToArray(),
                 MappedAbsoluteEpisodeNumbers = remoteEpisode.Episodes.Where(v => v.AbsoluteEpisodeNumber.HasValue).Select(v => v.AbsoluteEpisodeNumber.Value).ToArray(),
+                MappedEpisodeInfo = remoteEpisode.Episodes.Select(v => new ReleaseEpisodeResource(v)),
                 Approved = model.Approved,
                 TemporarilyRejected = model.TemporarilyRejected,
                 Rejected = model.Rejected,
                 TvdbId = releaseInfo.TvdbId,
                 TvRageId = releaseInfo.TvRageId,
-                Rejections = model.Rejections.Select(r => r.Reason).ToList(),
+                ImdbId = releaseInfo.ImdbId,
+                Rejections = model.Rejections.Select(r => r.Message).ToList(),
                 PublishDate = releaseInfo.PublishDate,
                 CommentUrl = releaseInfo.CommentUrl,
                 DownloadUrl = releaseInfo.DownloadUrl,
@@ -135,6 +156,7 @@ namespace Sonarr.Api.V3.Indexers
                 Seeders = torrentInfo.Seeders,
                 Leechers = (torrentInfo.Peers.HasValue && torrentInfo.Seeders.HasValue) ? (torrentInfo.Peers.Value - torrentInfo.Seeders.Value) : (int?)null,
                 Protocol = releaseInfo.DownloadProtocol,
+                IndexerFlags = (int)indexerFlags,
 
                 IsDaily = parsedEpisodeInfo.IsDaily,
                 IsAbsoluteNumbering = parsedEpisodeInfo.IsAbsoluteNumbering,
@@ -154,7 +176,8 @@ namespace Sonarr.Api.V3.Indexers
                     MagnetUrl = resource.MagnetUrl,
                     InfoHash = resource.InfoHash,
                     Seeders = resource.Seeders,
-                    Peers = (resource.Seeders.HasValue && resource.Leechers.HasValue) ? (resource.Seeders + resource.Leechers) : null
+                    Peers = (resource.Seeders.HasValue && resource.Leechers.HasValue) ? (resource.Seeders + resource.Leechers) : null,
+                    IndexerFlags = (IndexerFlags)resource.IndexerFlags
                 };
             }
             else
@@ -173,9 +196,32 @@ namespace Sonarr.Api.V3.Indexers
             model.DownloadProtocol = resource.Protocol;
             model.TvdbId = resource.TvdbId;
             model.TvRageId = resource.TvRageId;
+            model.ImdbId = resource.ImdbId;
             model.PublishDate = resource.PublishDate.ToUniversalTime();
 
             return model;
+        }
+    }
+
+    public class ReleaseEpisodeResource
+    {
+        public int Id { get; set; }
+        public int SeasonNumber { get; set; }
+        public int EpisodeNumber { get; set; }
+        public int? AbsoluteEpisodeNumber { get; set; }
+        public string Title { get; set; }
+
+        public ReleaseEpisodeResource()
+        {
+        }
+
+        public ReleaseEpisodeResource(Episode episode)
+        {
+            Id = episode.Id;
+            SeasonNumber = episode.SeasonNumber;
+            EpisodeNumber = episode.EpisodeNumber;
+            AbsoluteEpisodeNumber = episode.AbsoluteEpisodeNumber;
+            Title = episode.Title;
         }
     }
 }

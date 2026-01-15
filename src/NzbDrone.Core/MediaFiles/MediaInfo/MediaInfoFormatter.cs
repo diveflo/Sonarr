@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using NLog;
-using NLog.Fluent;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Common.Instrumentation.Extensions;
@@ -153,10 +152,10 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
                 return "WMA";
             }
 
-            Logger.Debug()
-                  .Message("Unknown audio format: '{0}' in '{1}'.", mediaInfo.RawStreamData, sceneName)
+            Logger.ForDebugEvent()
+                  .Message("Unknown audio format: '{0}' in '{1}'. Streams: {2}", audioFormat, sceneName, mediaInfo.RawStreamData)
                   .WriteSentryWarn("UnknownAudioFormatFFProbe", mediaInfo.ContainerFormat, mediaInfo.AudioFormat, audioCodecID)
-                  .Write();
+                  .Log();
 
             return mediaInfo.AudioFormat;
         }
@@ -236,8 +235,12 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
                 return "AV1";
             }
 
-            if (videoFormat == "vp6" ||
-                videoFormat == "vp7" ||
+            if (videoFormat.Contains("vp6"))
+            {
+                return "VP6";
+            }
+
+            if (videoFormat == "vp7" ||
                 videoFormat == "vp8" ||
                 videoFormat == "vp9")
             {
@@ -257,15 +260,17 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
                 videoFormat == "rv20" ||
                 videoFormat == "rv30" ||
                 videoFormat == "rv40" ||
-                videoFormat == "cinepak")
+                videoFormat == "cinepak" ||
+                videoFormat == "rawvideo" ||
+                videoFormat == "msvideo1")
             {
                 return "";
             }
 
-            Logger.Debug()
-                  .Message("Unknown video format: '{0}' in '{1}'.", mediaInfo.RawStreamData, sceneName)
+            Logger.ForDebugEvent()
+                  .Message("Unknown video format: '{0}' in '{1}'. Streams: {2}", videoFormat, sceneName, mediaInfo.RawStreamData)
                   .WriteSentryWarn("UnknownVideoFormatFFProbe", mediaInfo.ContainerFormat, videoFormat, videoCodecID)
-                  .Write();
+                  .Log();
 
             return result;
         }
@@ -315,6 +320,8 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
                     return "DV";
                 case HdrFormat.DolbyVisionHdr10:
                     return "DV HDR10";
+                case HdrFormat.DolbyVisionHdr10Plus:
+                    return "DV HDR10Plus";
                 case HdrFormat.DolbyVisionHlg:
                     return "DV HLG";
                 case HdrFormat.DolbyVisionSdr:

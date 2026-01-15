@@ -3,10 +3,16 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router-dom';
 import { createSelector } from 'reselect';
-import { saveDimensions, setIsSidebarVisible } from 'Store/Actions/appActions';
+import { fetchTranslations, saveDimensions, setIsSidebarVisible } from 'Store/Actions/appActions';
 import { fetchCustomFilters } from 'Store/Actions/customFilterActions';
 import { fetchSeries } from 'Store/Actions/seriesActions';
-import { fetchImportLists, fetchLanguages, fetchQualityProfiles, fetchUISettings } from 'Store/Actions/settingsActions';
+import {
+  fetchImportLists,
+  fetchIndexerFlags,
+  fetchLanguages,
+  fetchQualityProfiles,
+  fetchUISettings
+} from 'Store/Actions/settingsActions';
 import { fetchStatus } from 'Store/Actions/systemActions';
 import { fetchTags } from 'Store/Actions/tagActions';
 import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
@@ -51,7 +57,9 @@ const selectIsPopulated = createSelector(
   (state) => state.settings.qualityProfiles.isPopulated,
   (state) => state.settings.languages.isPopulated,
   (state) => state.settings.importLists.isPopulated,
+  (state) => state.settings.indexerFlags.isPopulated,
   (state) => state.system.status.isPopulated,
+  (state) => state.app.translations.isPopulated,
   (
     seriesIsPopulated,
     customFiltersIsPopulated,
@@ -60,7 +68,9 @@ const selectIsPopulated = createSelector(
     qualityProfilesIsPopulated,
     languagesIsPopulated,
     importListsIsPopulated,
-    systemStatusIsPopulated
+    indexerFlagsIsPopulated,
+    systemStatusIsPopulated,
+    translationsIsPopulated
   ) => {
     return (
       seriesIsPopulated &&
@@ -70,7 +80,9 @@ const selectIsPopulated = createSelector(
       qualityProfilesIsPopulated &&
       languagesIsPopulated &&
       importListsIsPopulated &&
-      systemStatusIsPopulated
+      indexerFlagsIsPopulated &&
+      systemStatusIsPopulated &&
+      translationsIsPopulated
     );
   }
 );
@@ -83,7 +95,9 @@ const selectErrors = createSelector(
   (state) => state.settings.qualityProfiles.error,
   (state) => state.settings.languages.error,
   (state) => state.settings.importLists.error,
+  (state) => state.settings.indexerFlags.error,
   (state) => state.system.status.error,
+  (state) => state.app.translations.error,
   (
     seriesError,
     customFiltersError,
@@ -92,7 +106,9 @@ const selectErrors = createSelector(
     qualityProfilesError,
     languagesError,
     importListsError,
-    systemStatusError
+    indexerFlagsError,
+    systemStatusError,
+    translationsError
   ) => {
     const hasError = !!(
       seriesError ||
@@ -102,7 +118,9 @@ const selectErrors = createSelector(
       qualityProfilesError ||
       languagesError ||
       importListsError ||
-      systemStatusError
+      indexerFlagsError ||
+      systemStatusError ||
+      translationsError
     );
 
     return {
@@ -114,7 +132,9 @@ const selectErrors = createSelector(
       qualityProfilesError,
       languagesError,
       importListsError,
-      systemStatusError
+      indexerFlagsError,
+      systemStatusError,
+      translationsError
     };
   }
 );
@@ -167,11 +187,17 @@ function createMapDispatchToProps(dispatch, props) {
     dispatchFetchImportLists() {
       dispatch(fetchImportLists());
     },
+    dispatchFetchIndexerFlags() {
+      dispatch(fetchIndexerFlags());
+    },
     dispatchFetchUISettings() {
       dispatch(fetchUISettings());
     },
     dispatchFetchStatus() {
       dispatch(fetchStatus());
+    },
+    dispatchFetchTranslations() {
+      dispatch(fetchTranslations());
     },
     onResize(dimensions) {
       dispatch(saveDimensions(dimensions));
@@ -203,8 +229,10 @@ class PageConnector extends Component {
       this.props.dispatchFetchQualityProfiles();
       this.props.dispatchFetchLanguages();
       this.props.dispatchFetchImportLists();
+      this.props.dispatchFetchIndexerFlags();
       this.props.dispatchFetchUISettings();
       this.props.dispatchFetchStatus();
+      this.props.dispatchFetchTranslations();
     }
   }
 
@@ -227,8 +255,10 @@ class PageConnector extends Component {
       dispatchFetchQualityProfiles,
       dispatchFetchLanguages,
       dispatchFetchImportLists,
+      dispatchFetchIndexerFlags,
       dispatchFetchUISettings,
       dispatchFetchStatus,
+      dispatchFetchTranslations,
       ...otherProps
     } = this.props;
 
@@ -266,8 +296,10 @@ PageConnector.propTypes = {
   dispatchFetchQualityProfiles: PropTypes.func.isRequired,
   dispatchFetchLanguages: PropTypes.func.isRequired,
   dispatchFetchImportLists: PropTypes.func.isRequired,
+  dispatchFetchIndexerFlags: PropTypes.func.isRequired,
   dispatchFetchUISettings: PropTypes.func.isRequired,
   dispatchFetchStatus: PropTypes.func.isRequired,
+  dispatchFetchTranslations: PropTypes.func.isRequired,
   onSidebarVisibleChange: PropTypes.func.isRequired
 };
 

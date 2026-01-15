@@ -4,8 +4,9 @@ import React, { Component } from 'react';
 import FormGroup from 'Components/Form/FormGroup';
 import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
-import Link from 'Components/Link/Link';
+import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
 import { sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import QualityProfileFormatItem from './QualityProfileFormatItem';
 import styles from './QualityProfileFormatItems.css';
 
@@ -19,7 +20,8 @@ function calcOrder(profileFormatItems) {
     if (b.score !== a.score) {
       return b.score - a.score;
     }
-    return a.name > b.name ? 1 : -1;
+
+    return a.name.localeCompare(b.name, undefined, { numeric: true });
   }).map((x) => items[x.format]);
 }
 
@@ -66,22 +68,19 @@ class QualityProfileFormatItems extends Component {
 
     if (profileFormatItems.length < 1) {
       return (
-        <div className={styles.addCustomFormatMessage}>
-          {'Want more control over which downloads are preferred? Add a'}
-          <Link to='/settings/customformats'> Custom Format </Link>
-        </div>
+        <InlineMarkdown className={styles.addCustomFormatMessage} data={translate('WantMoreControlAddACustomFormat')} />
       );
     }
 
     return (
       <FormGroup size={sizes.EXTRA_SMALL}>
         <FormLabel size={sizes.SMALL}>
-          Custom Formats
+          {translate('CustomFormats')}
         </FormLabel>
 
         <div>
           <FormInputHelpText
-            text="Sonarr scores each release using the sum of scores for matching custom formats. If a new release would improve the score, at the same or better quality, then Sonarr will grab it."
+            text={translate('CustomFormatHelpText')}
           />
 
           {
@@ -113,10 +112,10 @@ class QualityProfileFormatItems extends Component {
           <div className={styles.formats}>
             <div className={styles.headerContainer}>
               <div className={styles.headerTitle}>
-                Custom Format
+                {translate('CustomFormat')}
               </div>
               <div className={styles.headerScore}>
-                Score
+                {translate('Score')}
               </div>
             </div>
             {

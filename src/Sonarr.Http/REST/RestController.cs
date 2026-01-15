@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +48,7 @@ namespace Sonarr.Http.REST
 
         [RestGetById]
         [Produces("application/json")]
-        public ActionResult<TResource> GetResourceByIdWithErrorHandler(int id)
+        public virtual ActionResult<TResource> GetResourceByIdWithErrorHandler(int id)
         {
             try
             {
@@ -69,11 +70,15 @@ namespace Sonarr.Http.REST
             var skipValidate = skipAttribute?.Skip ?? false;
             var skipShared = skipAttribute?.SkipShared ?? false;
 
-            if (Request.Method == "POST" || Request.Method == "PUT")
+            if (Request.Method is "POST" or "PUT")
             {
-                var resourceArgs = context.ActionArguments.Values.Where(x => x.GetType() == typeof(TResource))
-                    .Select(x => x as TResource)
-                    .ToList();
+                var resourceArgs = context.ActionArguments.Values
+                    .SelectMany(x => x switch
+                    {
+                        TResource single => new[] { single },
+                        IEnumerable<TResource> multiple => multiple,
+                        _ => Enumerable.Empty<TResource>()
+                    });
 
                 foreach (var resource in resourceArgs)
                 {
@@ -87,7 +92,8 @@ namespace Sonarr.Http.REST
                 }
             }
 
-            var attributes = descriptor.MethodInfo.CustomAttributes;
+            var attributes = descriptor.MethodInfo.CustomAttributes as IReadOnlyCollection<CustomAttributeData> ??
+                             descriptor.MethodInfo.CustomAttributes.ToArray();
             if (attributes.Any(x => VALIDATE_ID_ATTRIBUTES.Contains(x.AttributeType)) && !skipValidate)
             {
                 if (context.ActionArguments.TryGetValue("id", out var idObj))

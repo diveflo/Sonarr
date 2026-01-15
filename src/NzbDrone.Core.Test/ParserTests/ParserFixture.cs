@@ -1,6 +1,6 @@
-using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
@@ -92,6 +92,25 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             var result = Parser.Parser.ParseTitle(path);
             result.ReleaseTitle.Should().Be(releaseTitle);
+        }
+
+        [TestCase("Босх: Спадок (S2E1) / Series: Legacy (S2E1) (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Босх: Спадок", "Series: Legacy")]
+        [TestCase("Босх: Спадок / Series: Legacy / S2E1-4 of 10 (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Босх: Спадок", "Series: Legacy")]
+        [TestCase("Босх: Спадок AKA Series: Legacy S02 1080p NF WEB-DL Dual- Audio DD+ 5.1 Atmos H.264-APEX", "Босх: Спадок", "Series: Legacy")]
+        [TestCase("Босх.Спадок.AKA.Series.Legacy.S02.1080p.NF.WEB-DL.DUAL.DDP5.1.Atmos.H.264-APEX", "Босх Спадок", "Series Legacy")]
+        public void should_parse_multiple_series_titles(string postTitle, params string[] titles)
+        {
+            var seriesTitleInfo = Parser.Parser.ParseTitle(postTitle).SeriesTitleInfo;
+            seriesTitleInfo.AllTitles.Should().BeEquivalentTo(titles);
+        }
+
+        [TestCase("[Reza] Series in Russian - S01E08 [WEBRip 1080p HEVC AAC] (Dual Audio) (Tokidoki Bosotto Russiago de Dereru Tonari no Alya-san)", "Unknown")]
+        public void should_parse_language_after_parsing_title(string postTitle, string expectedLanguage)
+        {
+            var result = Parser.Parser.ParseTitle(postTitle);
+
+            result.Languages.Count.Should().Be(1);
+            result.Languages.Should().Contain((Language)expectedLanguage);
         }
     }
 }

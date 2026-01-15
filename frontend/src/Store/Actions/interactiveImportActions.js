@@ -3,11 +3,10 @@ import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
 import { sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
+import sortByProp from 'Utilities/Array/sortByProp';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
-import updateSectionState from 'Utilities/State/updateSectionState';
 import naturalExpansion from 'Utilities/String/naturalExpansion';
 import { set, update, updateItem } from './baseActions';
-import createFetchHandler from './Creators/createFetchHandler';
 import createHandleActions from './Creators/createHandleActions';
 import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
 
@@ -16,7 +15,6 @@ import createSetClientSideCollectionSortReducer from './Creators/Reducers/create
 
 export const section = 'interactiveImport';
 
-const episodesSection = `${section}.episodes`;
 let abortCurrentRequest = null;
 let currentIds = [];
 
@@ -31,8 +29,9 @@ export const defaultState = {
   error: null,
   items: [],
   originalItems: [],
-  sortKey: 'quality',
-  sortDirection: sortDirections.DESCENDING,
+  sortKey: 'relativePath',
+  sortDirection: sortDirections.ASCENDING,
+  favoriteFolders: [],
   recentFolders: [],
   importMode: 'chooseImportMode',
   sortPredicates: {
@@ -50,23 +49,18 @@ export const defaultState = {
 
     quality: function(item, direction) {
       return item.qualityWeight || 0;
-    }
-  },
+    },
 
-  episodes: {
-    isFetching: false,
-    isReprocessing: false,
-    isPopulated: false,
-    error: null,
-    sortKey: 'episodeNumber',
-    sortDirection: sortDirections.ASCENDING,
-    items: []
+    customFormats: function(item, direction) {
+      return item.customFormatScore;
+    }
   }
 };
 
 export const persistState = [
   'interactiveImport.sortKey',
   'interactiveImport.sortDirection',
+  'interactiveImport.favoriteFolders',
   'interactiveImport.recentFolders',
   'interactiveImport.importMode'
 ];
@@ -82,11 +76,9 @@ export const UPDATE_INTERACTIVE_IMPORT_ITEMS = 'interactiveImport/updateInteract
 export const CLEAR_INTERACTIVE_IMPORT = 'interactiveImport/clearInteractiveImport';
 export const ADD_RECENT_FOLDER = 'interactiveImport/addRecentFolder';
 export const REMOVE_RECENT_FOLDER = 'interactiveImport/removeRecentFolder';
+export const ADD_FAVORITE_FOLDER = 'interactiveImport/addFavoriteFolder';
+export const REMOVE_FAVORITE_FOLDER = 'interactiveImport/removeFavoriteFolder';
 export const SET_INTERACTIVE_IMPORT_MODE = 'interactiveImport/setInteractiveImportMode';
-
-export const FETCH_INTERACTIVE_IMPORT_EPISODES = 'interactiveImport/fetchInteractiveImportEpisodes';
-export const SET_INTERACTIVE_IMPORT_EPISODES_SORT = 'interactiveImport/setInteractiveImportEpisodesSort';
-export const CLEAR_INTERACTIVE_IMPORT_EPISODES = 'interactiveImport/clearInteractiveImportEpisodes';
 
 //
 // Action Creators
@@ -99,11 +91,9 @@ export const updateInteractiveImportItems = createAction(UPDATE_INTERACTIVE_IMPO
 export const clearInteractiveImport = createAction(CLEAR_INTERACTIVE_IMPORT);
 export const addRecentFolder = createAction(ADD_RECENT_FOLDER);
 export const removeRecentFolder = createAction(REMOVE_RECENT_FOLDER);
+export const addFavoriteFolder = createAction(ADD_FAVORITE_FOLDER);
+export const removeFavoriteFolder = createAction(REMOVE_FAVORITE_FOLDER);
 export const setInteractiveImportMode = createAction(SET_INTERACTIVE_IMPORT_MODE);
-
-export const fetchInteractiveImportEpisodes = createThunk(FETCH_INTERACTIVE_IMPORT_EPISODES);
-export const setInteractiveImportEpisodesSort = createAction(SET_INTERACTIVE_IMPORT_EPISODES_SORT);
-export const clearInteractiveImportEpisodes = createAction(CLEAR_INTERACTIVE_IMPORT_EPISODES);
 
 //
 // Action Handlers
@@ -179,6 +169,8 @@ export const actionHandlers = handleThunks({
         quality: item.quality,
         languages: item.languages,
         releaseGroup: item.releaseGroup,
+        indexerFlags: item.indexerFlags,
+        releaseType: item.releaseType,
         downloadId: item.downloadId
       };
     });
@@ -218,9 +210,7 @@ export const actionHandlers = handleThunks({
         }))
       ));
     });
-  },
-
-  [FETCH_INTERACTIVE_IMPORT_EPISODES]: createFetchHandler('interactiveImport.episodes', '/episode')
+  }
 });
 
 //
@@ -242,13 +232,13 @@ export const reducers = createHandleActions({
   },
 
   [UPDATE_INTERACTIVE_IMPORT_ITEMS]: (state, { payload }) => {
-    const ids = payload.ids;
+    const { ids, ...otherPayload } = payload;
     const newState = Object.assign({}, state);
     const items = [...newState.items];
 
     ids.forEach((id) => {
       const index = items.findIndex((item) => item.id === id);
-      const item = Object.assign({}, items[index], payload);
+      const item = Object.assign({}, items[index], otherPayload);
 
       items.splice(index, 1, item);
     });
@@ -285,9 +275,31 @@ export const reducers = createHandleActions({
     return Object.assign({}, state, { recentFolders });
   },
 
+  [ADD_FAVORITE_FOLDER]: function(state, { payload }) {
+    const folder = payload.folder;
+    const favoriteFolder = { folder };
+    const favoriteFolders = [...state.favoriteFolders, favoriteFolder].sort(sortByProp('folder'));
+
+    return Object.assign({}, state, { favoriteFolders });
+  },
+
+  [REMOVE_FAVORITE_FOLDER]: function(state, { payload }) {
+    const folder = payload.folder;
+    const favoriteFolders = state.favoriteFolders.reduce((acc, item) => {
+      if (item.folder !== folder) {
+        acc.push(item);
+      }
+
+      return acc;
+    }, []);
+
+    return Object.assign({}, state, { favoriteFolders });
+  },
+
   [CLEAR_INTERACTIVE_IMPORT]: function(state) {
     const newState = {
       ...defaultState,
+      favoriteFolders: state.favoriteFolders,
       recentFolders: state.recentFolders,
       importMode: state.importMode
     };
@@ -299,14 +311,6 @@ export const reducers = createHandleActions({
 
   [SET_INTERACTIVE_IMPORT_MODE]: function(state, { payload }) {
     return Object.assign({}, state, { importMode: payload.importMode });
-  },
-
-  [SET_INTERACTIVE_IMPORT_EPISODES_SORT]: createSetClientSideCollectionSortReducer(episodesSection),
-
-  [CLEAR_INTERACTIVE_IMPORT_EPISODES]: (state) => {
-    return updateSectionState(state, episodesSection, {
-      ...defaultState.episodes
-    });
   }
 
 }, defaultState, section);

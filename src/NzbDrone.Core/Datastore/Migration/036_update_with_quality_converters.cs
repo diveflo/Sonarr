@@ -29,11 +29,11 @@ namespace NzbDrone.Core.Datastore.Migration
             var qualityProfileItemConverter = new EmbeddedDocumentConverter<List<QualityProfileQualityItem>>(new QualityIntConverter());
 
             // Convert 'Allowed' column in QualityProfiles from Json List<object> to Json List<int> (int = Quality)
-            using (IDbCommand qualityProfileCmd = conn.CreateCommand())
+            using (var qualityProfileCmd = conn.CreateCommand())
             {
                 qualityProfileCmd.Transaction = tran;
-                qualityProfileCmd.CommandText = @"SELECT Id, Allowed FROM QualityProfiles";
-                using (IDataReader qualityProfileReader = qualityProfileCmd.ExecuteReader())
+                qualityProfileCmd.CommandText = "SELECT \"Id\", \"Allowed\" FROM \"QualityProfiles\"";
+                using (var qualityProfileReader = qualityProfileCmd.ExecuteReader())
                 {
                     while (qualityProfileReader.Read())
                     {
@@ -44,10 +44,10 @@ namespace NzbDrone.Core.Datastore.Migration
 
                         var items = Quality.DefaultQualityDefinitions.OrderBy(v => v.Weight).Select(v => new QualityProfileQualityItem { Quality = v.Quality, Allowed = allowed.Contains(v.Quality) }).ToList();
 
-                        using (IDbCommand updateCmd = conn.CreateCommand())
+                        using (var updateCmd = conn.CreateCommand())
                         {
                             updateCmd.Transaction = tran;
-                            updateCmd.CommandText = "UPDATE QualityProfiles SET Items = ? WHERE Id = ?";
+                            updateCmd.CommandText = "UPDATE \"QualityProfiles\" SET \"Items\" = ? WHERE \"Id\" = ?";
                             var param = updateCmd.CreateParameter();
                             qualityProfileItemConverter.SetValue(param, items);
                             updateCmd.Parameters.Add(param);
@@ -72,19 +72,17 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             var qualityModelConverter = new EmbeddedDocumentConverter<DestinationQualityModel036>(new QualityIntConverter());
 
-            using (IDbCommand qualityModelCmd = conn.CreateCommand())
+            using (var qualityModelCmd = conn.CreateCommand())
             {
                 qualityModelCmd.Transaction = tran;
-                qualityModelCmd.CommandText = @"SELECT Distinct Quality FROM " + tableName;
-                using (IDataReader qualityModelReader = qualityModelCmd.ExecuteReader())
+                qualityModelCmd.CommandText = $"SELECT Distinct \"Quality\" FROM \"{tableName}\"";
+                using (var qualityModelReader = qualityModelCmd.ExecuteReader())
                 {
                     while (qualityModelReader.Read())
                     {
                         var qualityJson = qualityModelReader.GetString(0);
 
-                        SourceQualityModel036 sourceQuality;
-
-                        if (!Json.TryDeserialize<SourceQualityModel036>(qualityJson, out sourceQuality))
+                        if (!Json.TryDeserialize<SourceQualityModel036>(qualityJson, out var sourceQuality))
                         {
                             continue;
                         }
@@ -95,10 +93,10 @@ namespace NzbDrone.Core.Datastore.Migration
                             Proper = sourceQuality.Proper
                         };
 
-                        using (IDbCommand updateCmd = conn.CreateCommand())
+                        using (var updateCmd = conn.CreateCommand())
                         {
                             updateCmd.Transaction = tran;
-                            updateCmd.CommandText = "UPDATE " + tableName + " SET Quality = ? WHERE Quality = ?";
+                            updateCmd.CommandText = "UPDATE \"" + tableName + "\" SET \"Quality\" = ? WHERE \"Quality\" = ?";
                             var param = updateCmd.CreateParameter();
                             qualityModelConverter.SetValue(param, qualityNew);
                             updateCmd.Parameters.Add(param);

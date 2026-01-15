@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Torznab;
 using NzbDrone.Core.Parser.Model;
@@ -16,16 +16,39 @@ namespace NzbDrone.Core.Test.IndexerTests
         [Test]
         public void should_not_return_config_for_non_existent_indexer()
         {
-            Mocker.GetMock<IIndexerFactory>()
-                  .Setup(v => v.Get(It.IsAny<int>()))
-                  .Throws(new ModelNotFoundException(typeof(IndexerDefinition), 0));
+            Mocker.GetMock<ICachedIndexerSettingsProvider>()
+                  .Setup(v => v.GetSettings(It.IsAny<int>()))
+                  .Returns<CachedIndexerSettings>(null);
 
             var result = Subject.GetSeedConfiguration(new RemoteEpisode
             {
-                Release = new ReleaseInfo()
+                Release = new ReleaseInfo
                 {
                     DownloadProtocol = DownloadProtocol.Torrent,
                     IndexerId = 0
+                }
+            });
+
+            result.Should().BeNull();
+        }
+
+        [Test]
+        public void should_not_return_config_for_invalid_indexer()
+        {
+            Mocker.GetMock<ICachedIndexerSettingsProvider>()
+                  .Setup(v => v.GetSettings(It.IsAny<int>()))
+                  .Returns<CachedIndexerSettings>(null);
+
+            var result = Subject.GetSeedConfiguration(new RemoteEpisode
+            {
+                Release = new ReleaseInfo
+                {
+                    DownloadProtocol = DownloadProtocol.Torrent,
+                    IndexerId = 1
+                },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo
+                {
+                    FullSeason = true
                 }
             });
 
@@ -38,16 +61,17 @@ namespace NzbDrone.Core.Test.IndexerTests
             var settings = new TorznabSettings();
             settings.SeedCriteria.SeasonPackSeedTime = 10;
 
-            Mocker.GetMock<IIndexerFactory>()
-                     .Setup(v => v.Get(It.IsAny<int>()))
-                     .Returns(new IndexerDefinition
+            Mocker.GetMock<ICachedIndexerSettingsProvider>()
+                     .Setup(v => v.GetSettings(It.IsAny<int>()))
+                     .Returns(new CachedIndexerSettings
                      {
-                         Settings = settings
+                         FailDownloads = new HashSet<FailDownloads> { FailDownloads.Executables },
+                         SeedCriteriaSettings = settings.SeedCriteria
                      });
 
             var result = Subject.GetSeedConfiguration(new RemoteEpisode
             {
-                Release = new ReleaseInfo()
+                Release = new ReleaseInfo
                 {
                     DownloadProtocol = DownloadProtocol.Torrent,
                     IndexerId = 1

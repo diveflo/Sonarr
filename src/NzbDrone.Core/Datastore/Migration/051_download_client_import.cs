@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
 using FluentMigrator;
 using Newtonsoft.Json;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Datastore.Migration.Framework;
 
@@ -25,16 +24,16 @@ namespace NzbDrone.Core.Datastore.Migration
 
         private void EnableCompletedDownloadHandlingForNewUsers(IDbConnection conn, IDbTransaction tran)
         {
-            using (IDbCommand cmd = conn.CreateCommand())
+            using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tran;
-                cmd.CommandText = @"SELECT Value FROM Config WHERE Key = 'downloadedepisodesfolder'";
+                cmd.CommandText = "SELECT \"Value\" FROM \"Config\" WHERE \"Key\" = 'downloadedepisodesfolder'";
 
                 var result = cmd.ExecuteScalar();
 
                 if (result == null)
                 {
-                    cmd.CommandText = @"INSERT INTO Config (Key, Value) VALUES ('enablecompleteddownloadhandling', 'True')";
+                    cmd.CommandText = "INSERT INTO \"Config\" (\"Key\", \"Value\") VALUES ('enablecompleteddownloadhandling', 'True')";
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -42,15 +41,15 @@ namespace NzbDrone.Core.Datastore.Migration
 
         private void ConvertFolderSettings(IDbConnection conn, IDbTransaction tran)
         {
-            using (IDbCommand downloadClientsCmd = conn.CreateCommand())
+            using (var downloadClientsCmd = conn.CreateCommand())
             {
                 downloadClientsCmd.Transaction = tran;
-                downloadClientsCmd.CommandText = @"SELECT Value FROM Config WHERE Key = 'downloadedepisodesfolder'";
+                downloadClientsCmd.CommandText = "SELECT \"Value\" FROM \"Config\" WHERE \"Key\" = 'downloadedepisodesfolder'";
                 var downloadedEpisodesFolder = downloadClientsCmd.ExecuteScalar() as string;
 
                 downloadClientsCmd.Transaction = tran;
-                downloadClientsCmd.CommandText = @"SELECT Id, Implementation, Settings, ConfigContract FROM DownloadClients WHERE ConfigContract = 'FolderSettings'";
-                using (IDataReader downloadClientReader = downloadClientsCmd.ExecuteReader())
+                downloadClientsCmd.CommandText = "SELECT \"Id\", \"Implementation\", \"Settings\", \"ConfigContract\" FROM \"DownloadClients\" WHERE \"ConfigContract\" = 'FolderSettings'";
+                using (var downloadClientReader = downloadClientsCmd.ExecuteReader())
                 {
                     while (downloadClientReader.Read())
                     {
@@ -69,10 +68,10 @@ namespace NzbDrone.Core.Datastore.Migration
                                 WatchFolder = downloadedEpisodesFolder
                             }.ToJson();
 
-                            using (IDbCommand updateCmd = conn.CreateCommand())
+                            using (var updateCmd = conn.CreateCommand())
                             {
                                 updateCmd.Transaction = tran;
-                                updateCmd.CommandText = "UPDATE DownloadClients SET Implementation = ?, Settings = ?, ConfigContract = ? WHERE Id = ?";
+                                updateCmd.CommandText = "UPDATE \"DownloadClients\" SET \"Implementation\" = ?, \"Settings\" = ?, \"ConfigContract\" = ? WHERE \"Id\" = ?";
                                 updateCmd.AddParameter("UsenetBlackhole");
                                 updateCmd.AddParameter(newSettings);
                                 updateCmd.AddParameter("UsenetBlackholeSettings");
@@ -88,10 +87,10 @@ namespace NzbDrone.Core.Datastore.Migration
                                 NzbFolder = settingsJson.Value<string>("folder")
                             }.ToJson();
 
-                            using (IDbCommand updateCmd = conn.CreateCommand())
+                            using (var updateCmd = conn.CreateCommand())
                             {
                                 updateCmd.Transaction = tran;
-                                updateCmd.CommandText = "UPDATE DownloadClients SET Settings = ?, ConfigContract = ? WHERE Id = ?";
+                                updateCmd.CommandText = "UPDATE \"DownloadClients\" SET \"Settings\" = ?, \"ConfigContract\" = ? WHERE \"Id\" = ?";
                                 updateCmd.AddParameter(newSettings);
                                 updateCmd.AddParameter("PneumaticSettings");
                                 updateCmd.AddParameter(id);
@@ -101,10 +100,10 @@ namespace NzbDrone.Core.Datastore.Migration
                         }
                         else
                         {
-                            using (IDbCommand updateCmd = conn.CreateCommand())
+                            using (var updateCmd = conn.CreateCommand())
                             {
                                 updateCmd.Transaction = tran;
-                                updateCmd.CommandText = "DELETE FROM DownloadClients WHERE Id = ?";
+                                updateCmd.CommandText = "DELETE FROM \"DownloadClients\" WHERE \"Id\" = ?";
                                 updateCmd.AddParameter(id);
 
                                 updateCmd.ExecuteNonQuery();
@@ -139,11 +138,11 @@ namespace NzbDrone.Core.Datastore.Migration
         {
             var historyItems = new List<MigrationHistoryItem>();
 
-            using (IDbCommand historyCmd = conn.CreateCommand())
+            using (var historyCmd = conn.CreateCommand())
             {
                 historyCmd.Transaction = tran;
-                historyCmd.CommandText = @"SELECT Id, EpisodeId, SeriesId, SourceTitle, Date, Data, EventType FROM History WHERE EventType NOT NULL";
-                using (IDataReader historyRead = historyCmd.ExecuteReader())
+                historyCmd.CommandText = "SELECT \"Id\", \"EpisodeId\", \"SeriesId\", \"SourceTitle\", \"Date\", \"Data\", \"EventType\" FROM \"History\" WHERE \"EventType\" IS NOT NULL";
+                using (var historyRead = historyCmd.ExecuteReader())
                 {
                     while (historyRead.Read())
                     {
@@ -177,7 +176,7 @@ namespace NzbDrone.Core.Datastore.Migration
             {
                 var list = historyItemGroup.ToList();
 
-                for (int i = 0; i < list.Count - 1; i++)
+                for (var i = 0; i < list.Count - 1; i++)
                 {
                     var grabbedEvent = list[i];
                     if (grabbedEvent.EventType != MigrationHistoryEventType.Grabbed)
@@ -233,13 +232,13 @@ namespace NzbDrone.Core.Datastore.Migration
 
             foreach (var pair in historyItemsToAssociate)
             {
-                using (IDbCommand updateHistoryCmd = conn.CreateCommand())
+                using (var updateHistoryCmd = conn.CreateCommand())
                 {
                     pair.Key.Data["downloadClient"] = pair.Value.Data["downloadClient"];
                     pair.Key.Data["downloadClientId"] = pair.Value.Data["downloadClientId"];
 
                     updateHistoryCmd.Transaction = tran;
-                    updateHistoryCmd.CommandText = "UPDATE History SET Data = ? WHERE Id = ?";
+                    updateHistoryCmd.CommandText = "UPDATE \"History\" SET \"Data\" = ? WHERE \"Id\" = ?";
                     updateHistoryCmd.AddParameter(pair.Key.Data.ToJson());
                     updateHistoryCmd.AddParameter(pair.Key.Id);
 

@@ -1,5 +1,15 @@
 import { createSelector } from 'reselect';
 
+export function createSeriesSelectorForHook(seriesId) {
+  return createSelector(
+    (state) => state.series.itemMap,
+    (state) => state.series.items,
+    (itemMap, allSeries) => {
+      return seriesId ? allSeries[itemMap[seriesId]] : undefined;
+    }
+  );
+}
+
 function createSeriesSelector() {
   return createSelector(
     (state, { seriesId }) => seriesId,

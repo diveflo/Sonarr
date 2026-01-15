@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Dapper;
 using NzbDrone.Core.Datastore;
-using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Tv
@@ -15,9 +14,11 @@ namespace NzbDrone.Core.Tv
         List<Series> FindByTitleInexact(string cleanTitle);
         Series FindByTvdbId(int tvdbId);
         Series FindByTvRageId(int tvRageId);
+        Series FindByImdbId(string imdbId);
         Series FindByPath(string path);
         List<int> AllSeriesTvdbIds();
         Dictionary<int, string> AllSeriesPaths();
+        Dictionary<int, List<int>> AllSeriesTags();
     }
 
     public class SeriesRepository : BasicRepository<Series>, ISeriesRepository
@@ -53,7 +54,12 @@ namespace NzbDrone.Core.Tv
 
         public List<Series> FindByTitleInexact(string cleanTitle)
         {
-            var builder = Builder().Where($"instr(@cleanTitle, Series.[CleanTitle])", new { cleanTitle = cleanTitle });
+            var builder = Builder().Where($"instr(@cleanTitle, \"Series\".\"CleanTitle\")", new { cleanTitle = cleanTitle });
+
+            if (_database.DatabaseType == DatabaseType.PostgreSQL)
+            {
+                builder = Builder().Where($"(strpos(@cleanTitle, \"Series\".\"CleanTitle\") > 0)", new { cleanTitle = cleanTitle });
+            }
 
             return Query(builder).ToList();
         }
@@ -68,6 +74,11 @@ namespace NzbDrone.Core.Tv
             return Query(s => s.TvRageId == tvRageId).SingleOrDefault();
         }
 
+        public Series FindByImdbId(string imdbId)
+        {
+            return Query(s => s.ImdbId == imdbId).SingleOrDefault();
+        }
+
         public Series FindByPath(string path)
         {
             return Query(s => s.Path == path)
@@ -78,7 +89,7 @@ namespace NzbDrone.Core.Tv
         {
             using (var conn = _database.OpenConnection())
             {
-                return conn.Query<int>("SELECT TvdbId FROM Series").ToList();
+                return conn.Query<int>("SELECT \"TvdbId\" FROM \"Series\"").ToList();
             }
         }
 
@@ -86,8 +97,17 @@ namespace NzbDrone.Core.Tv
         {
             using (var conn = _database.OpenConnection())
             {
-                var strSql = "SELECT Id AS [Key], Path AS [Value] FROM Series";
+                var strSql = "SELECT \"Id\" AS Key, \"Path\" AS Value FROM \"Series\"";
                 return conn.Query<KeyValuePair<int, string>>(strSql).ToDictionary(x => x.Key, x => x.Value);
+            }
+        }
+
+        public Dictionary<int, List<int>> AllSeriesTags()
+        {
+            using (var conn = _database.OpenConnection())
+            {
+                var strSql = "SELECT \"Id\" AS Key, \"Tags\" AS Value FROM \"Series\" WHERE \"Tags\" IS NOT NULL";
+                return conn.Query<KeyValuePair<int, List<int>>>(strSql).ToDictionary(x => x.Key, x => x.Value);
             }
         }
 

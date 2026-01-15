@@ -3,6 +3,7 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import TextTruncate from 'react-text-truncate';
+import Alert from 'Components/Alert';
 import HeartRating from 'Components/HeartRating';
 import Icon from 'Components/Icon';
 import Label from 'Components/Label';
@@ -23,20 +24,21 @@ import { align, icons, kinds, sizes, sortDirections, tooltipPositions } from 'He
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import OrganizePreviewModalConnector from 'Organize/OrganizePreviewModalConnector';
 import DeleteSeriesModal from 'Series/Delete/DeleteSeriesModal';
-import EditSeriesModalConnector from 'Series/Edit/EditSeriesModalConnector';
+import EditSeriesModal from 'Series/Edit/EditSeriesModal';
 import SeriesHistoryModal from 'Series/History/SeriesHistoryModal';
 import MonitoringOptionsModal from 'Series/MonitoringOptions/MonitoringOptionsModal';
+import SeriesGenres from 'Series/SeriesGenres';
 import SeriesPoster from 'Series/SeriesPoster';
 import { getSeriesStatusDetails } from 'Series/SeriesStatus';
 import QualityProfileNameConnector from 'Settings/Profiles/Quality/QualityProfileNameConnector';
 import fonts from 'Styles/Variables/fonts';
 import formatBytes from 'Utilities/Number/formatBytes';
+import translate from 'Utilities/String/translate';
 import selectAll from 'Utilities/Table/selectAll';
 import toggleSelected from 'Utilities/Table/toggleSelected';
 import SeriesAlternateTitles from './SeriesAlternateTitles';
 import SeriesDetailsLinks from './SeriesDetailsLinks';
 import SeriesDetailsSeasonConnector from './SeriesDetailsSeasonConnector';
-import SeriesGenres from './SeriesGenres';
 import SeriesTagsConnector from './SeriesTagsConnector';
 import styles from './SeriesDetails.css';
 
@@ -44,11 +46,7 @@ const defaultFontSize = parseInt(fonts.defaultFontSize);
 const lineHeight = parseFloat(fonts.lineHeight);
 
 function getFanartUrl(images) {
-  const fanartImage = _.find(images, { coverType: 'fanart' });
-  if (fanartImage) {
-    // Remove protocol
-    return fanartImage.url.replace(/^https?:/, '');
-  }
+  return _.find(images, { coverType: 'fanart' })?.url;
 }
 
 function getExpandedState(newState) {
@@ -60,7 +58,7 @@ function getExpandedState(newState) {
 }
 
 function getDateYear(date) {
-  const dateDate = moment(date);
+  const dateDate = moment.utc(date);
 
   return dateDate.format('YYYY');
 }
@@ -177,6 +175,7 @@ class SeriesDetails extends Component {
       tvdbId,
       tvMazeId,
       imdbId,
+      tmdbId,
       title,
       runtime,
       ratings,
@@ -186,6 +185,7 @@ class SeriesDetails extends Component {
       monitored,
       status,
       network,
+      originalLanguage,
       overview,
       images,
       seasons,
@@ -193,7 +193,7 @@ class SeriesDetails extends Component {
       genres,
       tags,
       year,
-      previousAiring,
+      lastAired,
       isSaving,
       isRefreshing,
       isSearching,
@@ -212,8 +212,8 @@ class SeriesDetails extends Component {
     } = this.props;
 
     const {
-      episodeFileCount,
-      sizeOnDisk
+      episodeFileCount = 0,
+      sizeOnDisk = 0
     } = statistics;
 
     const {
@@ -230,14 +230,14 @@ class SeriesDetails extends Component {
     } = this.state;
 
     const statusDetails = getSeriesStatusDetails(status);
-    const runningYears = statusDetails.title === 'Ended' ? `${year}-${getDateYear(previousAiring)}` : `${year}-`;
+    const runningYears = status === 'ended' ? `${year}-${getDateYear(lastAired)}` : `${year}-`;
 
-    let episodeFilesCountMessage = 'No episode files';
+    let episodeFilesCountMessage = translate('SeriesDetailsNoEpisodeFiles');
 
     if (episodeFileCount === 1) {
-      episodeFilesCountMessage = '1 episode file';
+      episodeFilesCountMessage = translate('SeriesDetailsOneEpisodeFile');
     } else if (episodeFileCount > 1) {
-      episodeFilesCountMessage = `${episodeFileCount} episode files`;
+      episodeFilesCountMessage = translate('SeriesDetailsCountEpisodeFiles', { episodeFileCount });
     }
 
     let expandIcon = icons.EXPAND_INDETERMINATE;
@@ -248,45 +248,47 @@ class SeriesDetails extends Component {
       expandIcon = icons.EXPAND;
     }
 
+    const fanartUrl = getFanartUrl(images);
+
     return (
       <PageContent title={title}>
         <PageToolbar>
           <PageToolbarSection>
             <PageToolbarButton
-              label="Refresh & Scan"
+              label={translate('RefreshAndScan')}
               iconName={icons.REFRESH}
               spinningName={icons.REFRESH}
-              title="Refresh information and scan disk"
+              title={translate('RefreshAndScanTooltip')}
               isSpinning={isRefreshing}
               onPress={onRefreshPress}
             />
 
             <PageToolbarButton
-              label="Search Monitored"
+              label={translate('SearchMonitored')}
               iconName={icons.SEARCH}
               isDisabled={!monitored || !hasMonitoredEpisodes || !hasEpisodes}
               isSpinning={isSearching}
-              title={hasMonitoredEpisodes ? undefined : 'No monitored episodes in this series'}
+              title={hasMonitoredEpisodes ? undefined : translate('NoMonitoredEpisodes')}
               onPress={onSearchPress}
             />
 
             <PageToolbarSeparator />
 
             <PageToolbarButton
-              label="Preview Rename"
+              label={translate('PreviewRename')}
               iconName={icons.ORGANIZE}
               isDisabled={!hasEpisodeFiles}
               onPress={this.onOrganizePress}
             />
 
             <PageToolbarButton
-              label="Manage Episodes"
+              label={translate('ManageEpisodes')}
               iconName={icons.EPISODE_FILE}
               onPress={this.onManageEpisodesPress}
             />
 
             <PageToolbarButton
-              label="History"
+              label={translate('History')}
               iconName={icons.HISTORY}
               isDisabled={!hasEpisodes}
               onPress={this.onSeriesHistoryPress}
@@ -295,19 +297,19 @@ class SeriesDetails extends Component {
             <PageToolbarSeparator />
 
             <PageToolbarButton
-              label="Series Monitoring"
+              label={translate('SeriesMonitoring')}
               iconName={icons.MONITORED}
               onPress={this.onMonitorOptionsPress}
             />
 
             <PageToolbarButton
-              label="Edit"
+              label={translate('Edit')}
               iconName={icons.EDIT}
               onPress={this.onEditSeriesPress}
             />
 
             <PageToolbarButton
-              label="Delete"
+              label={translate('Delete')}
               iconName={icons.DELETE}
               onPress={this.onDeleteSeriesPress}
             />
@@ -316,7 +318,7 @@ class SeriesDetails extends Component {
 
           <PageToolbarSection alignContent={align.RIGHT}>
             <PageToolbarButton
-              label={allExpanded ? 'Collapse All' : 'Expand All'}
+              label={allExpanded ? translate('CollapseAll') : translate('ExpandAll')}
               iconName={expandIcon}
               onPress={this.onExpandAllPress}
             />
@@ -327,9 +329,11 @@ class SeriesDetails extends Component {
           <div className={styles.header}>
             <div
               className={styles.backdrop}
-              style={{
-                backgroundImage: `url(${getFanartUrl(images)})`
-              }}
+              style={
+                fanartUrl ?
+                  { backgroundImage: `url(${fanartUrl})` } :
+                  null
+              }
             >
               <div className={styles.backdropOverlay} />
             </div>
@@ -369,7 +373,7 @@ class SeriesDetails extends Component {
                                 size={20}
                               />
                             }
-                            title="Alternate Titles"
+                            title={translate('AlternateTitles')}
                             body={<SeriesAlternateTitles alternateTitles={alternateTitles} />}
                             position={tooltipPositions.BOTTOM}
                           />
@@ -382,7 +386,7 @@ class SeriesDetails extends Component {
                       className={styles.seriesNavigationButton}
                       name={icons.ARROW_LEFT}
                       size={30}
-                      title={`Go to ${previousSeries.title}`}
+                      title={translate('SeriesDetailsGoTo', { title: previousSeries.title })}
                       to={`/series/${previousSeries.titleSlug}`}
                     />
 
@@ -390,7 +394,7 @@ class SeriesDetails extends Component {
                       className={styles.seriesNavigationButton}
                       name={icons.ARROW_RIGHT}
                       size={30}
-                      title={`Go to ${nextSeries.title}`}
+                      title={translate('SeriesDetailsGoTo', { title: nextSeries.title })}
                       to={`/series/${nextSeries.titleSlug}`}
                     />
                   </div>
@@ -401,16 +405,21 @@ class SeriesDetails extends Component {
                     {
                       !!runtime &&
                         <span className={styles.runtime}>
-                          {runtime} Minutes
+                          {translate('SeriesDetailsRuntime', { runtime })}
                         </span>
                     }
 
-                    <HeartRating
-                      rating={ratings.value}
-                      iconSize={20}
-                    />
+                    {
+                      ratings.value ?
+                        <HeartRating
+                          rating={ratings.value}
+                          votes={ratings.votes}
+                          iconSize={20}
+                        /> :
+                        null
+                    }
 
-                    <SeriesGenres genres={genres} />
+                    <SeriesGenres className={styles.genres} genres={genres} />
 
                     <span>
                       {runningYears}
@@ -423,14 +432,15 @@ class SeriesDetails extends Component {
                     className={styles.detailsLabel}
                     size={sizes.LARGE}
                   >
-                    <Icon
-                      name={icons.FOLDER}
-                      size={17}
-                    />
-
-                    <span className={styles.path}>
-                      {path}
-                    </span>
+                    <div>
+                      <Icon
+                        name={icons.FOLDER}
+                        size={17}
+                      />
+                      <span className={styles.path}>
+                        {path}
+                      </span>
+                    </div>
                   </Label>
 
                   <Tooltip
@@ -439,16 +449,16 @@ class SeriesDetails extends Component {
                         className={styles.detailsLabel}
                         size={sizes.LARGE}
                       >
-                        <Icon
-                          name={icons.DRIVE}
-                          size={17}
-                        />
+                        <div>
+                          <Icon
+                            name={icons.DRIVE}
+                            size={17}
+                          />
 
-                        <span className={styles.sizeOnDisk}>
-                          {
-                            formatBytes(sizeOnDisk || 0)
-                          }
-                        </span>
+                          <span className={styles.sizeOnDisk}>
+                            {formatBytes(sizeOnDisk)}
+                          </span>
+                        </div>
                       </Label>
                     }
                     tooltip={
@@ -462,68 +472,94 @@ class SeriesDetails extends Component {
 
                   <Label
                     className={styles.detailsLabel}
-                    title="Quality Profile"
+                    title={translate('QualityProfile')}
                     size={sizes.LARGE}
                   >
-                    <Icon
-                      name={icons.PROFILE}
-                      size={17}
-                    />
-
-                    <span className={styles.qualityProfileName}>
-                      {
-                        <QualityProfileNameConnector
-                          qualityProfileId={qualityProfileId}
-                        />
-                      }
-                    </span>
+                    <div>
+                      <Icon
+                        name={icons.PROFILE}
+                        size={17}
+                      />
+                      <span className={styles.qualityProfileName}>
+                        {
+                          <QualityProfileNameConnector
+                            qualityProfileId={qualityProfileId}
+                          />
+                        }
+                      </span>
+                    </div>
                   </Label>
 
                   <Label
                     className={styles.detailsLabel}
                     size={sizes.LARGE}
                   >
-                    <Icon
-                      name={monitored ? icons.MONITORED : icons.UNMONITORED}
-                      size={17}
-                    />
-
-                    <span className={styles.qualityProfileName}>
-                      {monitored ? 'Monitored' : 'Unmonitored'}
-                    </span>
+                    <div>
+                      <Icon
+                        name={monitored ? icons.MONITORED : icons.UNMONITORED}
+                        size={17}
+                      />
+                      <span className={styles.qualityProfileName}>
+                        {monitored ? translate('Monitored') : translate('Unmonitored')}
+                      </span>
+                    </div>
                   </Label>
 
                   <Label
                     className={styles.detailsLabel}
                     title={statusDetails.message}
                     size={sizes.LARGE}
+                    kind={status === 'deleted' ? kinds.INVERSE : undefined}
                   >
-                    <Icon
-                      name={statusDetails.icon}
-                      size={17}
-                    />
-
-                    <span className={styles.qualityProfileName}>
-                      {statusDetails.title}
-                    </span>
+                    <div>
+                      <Icon
+                        name={statusDetails.icon}
+                        size={17}
+                      />
+                      <span className={styles.statusName}>
+                        {statusDetails.title}
+                      </span>
+                    </div>
                   </Label>
 
                   {
-                    !!network &&
+                    originalLanguage?.name ?
                       <Label
                         className={styles.detailsLabel}
-                        title="Network"
+                        title={translate('OriginalLanguage')}
                         size={sizes.LARGE}
                       >
-                        <Icon
-                          name={icons.NETWORK}
-                          size={17}
-                        />
+                        <div>
+                          <Icon
+                            name={icons.LANGUAGE}
+                            size={17}
+                          />
+                          <span className={styles.originalLanguageName}>
+                            {originalLanguage.name}
+                          </span>
+                        </div>
+                      </Label> :
+                      null
+                  }
 
-                        <span className={styles.qualityProfileName}>
-                          {network}
-                        </span>
-                      </Label>
+                  {
+                    network ?
+                      <Label
+                        className={styles.detailsLabel}
+                        title={translate('Network')}
+                        size={sizes.LARGE}
+                      >
+                        <div>
+                          <Icon
+                            name={icons.NETWORK}
+                            size={17}
+                          />
+                          <span className={styles.network}>
+                            {network}
+                          </span>
+                        </div>
+                      </Label> :
+                      null
                   }
 
                   <Tooltip
@@ -532,14 +568,15 @@ class SeriesDetails extends Component {
                         className={styles.detailsLabel}
                         size={sizes.LARGE}
                       >
-                        <Icon
-                          name={icons.EXTERNAL_LINK}
-                          size={17}
-                        />
-
-                        <span className={styles.links}>
-                          Links
-                        </span>
+                        <div>
+                          <Icon
+                            name={icons.EXTERNAL_LINK}
+                            size={17}
+                          />
+                          <span className={styles.links}>
+                            {translate('Links')}
+                          </span>
+                        </div>
                       </Label>
                     }
                     tooltip={
@@ -547,6 +584,7 @@ class SeriesDetails extends Component {
                         tvdbId={tvdbId}
                         tvMazeId={tvMazeId}
                         imdbId={imdbId}
+                        tmdbId={tmdbId}
                       />
                     }
                     kind={kinds.INVERSE}
@@ -567,7 +605,7 @@ class SeriesDetails extends Component {
                             />
 
                             <span className={styles.tags}>
-                              Tags
+                              {translate('Tags')}
                             </span>
                           </Label>
                         }
@@ -600,13 +638,19 @@ class SeriesDetails extends Component {
             }
 
             {
-              !isFetching && episodesError &&
-                <div>Loading episodes failed</div>
+              !isFetching && episodesError ?
+                <Alert kind={kinds.DANGER}>
+                  {translate('EpisodesLoadError')}
+                </Alert> :
+                null
             }
 
             {
-              !isFetching && episodeFilesError &&
-                <div>Loading episode files failed</div>
+              !isFetching && episodeFilesError ?
+                <Alert kind={kinds.DANGER}>
+                  {translate('EpisodeFilesLoadError')}
+                </Alert> :
+                null
             }
 
             {
@@ -629,10 +673,11 @@ class SeriesDetails extends Component {
             }
 
             {
-              isPopulated && !seasons.length &&
-                <div>
-                  No episode information is available.
-                </div>
+              isPopulated && !seasons.length ?
+                <Alert kind={kinds.WARNING}>
+                  {translate('NoEpisodeInformation')}
+                </Alert> :
+                null
             }
 
           </div>
@@ -652,10 +697,9 @@ class SeriesDetails extends Component {
             initialSortDirection={sortDirections.DESCENDING}
             showSeries={false}
             allowSeriesChange={false}
-            autoSelectRow={false}
             showDelete={true}
             showImportMode={false}
-            modalTitle={'Manage Episodes'}
+            modalTitle={translate('ManageEpisodes')}
             onModalClose={this.onManageEpisodesModalClose}
           />
 
@@ -665,7 +709,7 @@ class SeriesDetails extends Component {
             onModalClose={this.onSeriesHistoryModalClose}
           />
 
-          <EditSeriesModalConnector
+          <EditSeriesModal
             isOpen={isEditSeriesModalOpen}
             seriesId={id}
             onModalClose={this.onEditSeriesModalClose}
@@ -694,6 +738,7 @@ SeriesDetails.propTypes = {
   tvdbId: PropTypes.number.isRequired,
   tvMazeId: PropTypes.number,
   imdbId: PropTypes.string,
+  tmdbId: PropTypes.number,
   title: PropTypes.string.isRequired,
   runtime: PropTypes.number.isRequired,
   ratings: PropTypes.object.isRequired,
@@ -704,6 +749,7 @@ SeriesDetails.propTypes = {
   monitor: PropTypes.string,
   status: PropTypes.string.isRequired,
   network: PropTypes.string,
+  originalLanguage: PropTypes.object,
   overview: PropTypes.string.isRequired,
   images: PropTypes.arrayOf(PropTypes.object).isRequired,
   seasons: PropTypes.arrayOf(PropTypes.object).isRequired,
@@ -711,6 +757,7 @@ SeriesDetails.propTypes = {
   genres: PropTypes.arrayOf(PropTypes.string).isRequired,
   tags: PropTypes.arrayOf(PropTypes.number).isRequired,
   year: PropTypes.number.isRequired,
+  lastAired: PropTypes.string,
   previousAiring: PropTypes.string,
   isSaving: PropTypes.bool.isRequired,
   saveError: PropTypes.object,

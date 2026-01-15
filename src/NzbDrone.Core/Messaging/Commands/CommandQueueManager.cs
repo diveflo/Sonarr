@@ -26,6 +26,7 @@ namespace NzbDrone.Core.Messaging.Commands
         CommandModel Get(int id);
         List<CommandModel> GetStarted();
         void SetMessage(CommandModel command, string message);
+        void SetResult(CommandModel command, CommandResult result);
         void Start(CommandModel command);
         void Complete(CommandModel command, string message);
         void Fail(CommandModel command, string message, Exception e);
@@ -105,6 +106,8 @@ namespace NzbDrone.Core.Messaging.Commands
             _logger.Trace("Publishing {0}", command.Name);
             _logger.Trace("Checking if command is queued or started: {0}", command.Name);
 
+            command.Trigger = trigger;
+
             lock (_commandQueue)
             {
                 var existingCommands = QueuedOrStarted(command.Name);
@@ -138,10 +141,9 @@ namespace NzbDrone.Core.Messaging.Commands
 
         public CommandModel Push(string commandName, DateTime? lastExecutionTime, DateTime? lastStartTime, CommandPriority priority = CommandPriority.Normal, CommandTrigger trigger = CommandTrigger.Unspecified)
         {
-            dynamic command = GetCommand(commandName);
+            var command = GetCommand(commandName);
             command.LastExecutionTime = lastExecutionTime;
             command.LastStartTime = lastStartTime;
-            command.Trigger = trigger;
 
             return Push(command, priority, trigger);
         }
@@ -180,6 +182,11 @@ namespace NzbDrone.Core.Messaging.Commands
             command.Message = message;
         }
 
+        public void SetResult(CommandModel command, CommandResult result)
+        {
+            command.Result = result;
+        }
+
         public void Start(CommandModel command)
         {
             // Marks the command as started in the DB, the queue takes care of marking it as started on it's own
@@ -189,6 +196,12 @@ namespace NzbDrone.Core.Messaging.Commands
 
         public void Complete(CommandModel command, string message)
         {
+            // If the result hasn't been set yet then set it to successful
+            if (command.Result == CommandResult.Unknown)
+            {
+                command.Result = CommandResult.Successful;
+            }
+
             Update(command, CommandStatus.Completed, message);
 
             _commandQueue.PulseAllConsumers();
@@ -232,13 +245,13 @@ namespace NzbDrone.Core.Messaging.Commands
             _repo.Trim();
         }
 
-        private dynamic GetCommand(string commandName)
+        private Command GetCommand(string commandName)
         {
             commandName = commandName.Split('.').Last();
             var commands = _knownTypes.GetImplementations(typeof(Command));
             var commandType = commands.Single(c => c.Name.Equals(commandName, StringComparison.InvariantCultureIgnoreCase));
 
-            return Json.Deserialize("{}", commandType);
+            return Json.Deserialize("{}", commandType) as Command;
         }
 
         private void Update(CommandModel command, CommandStatus status, string message)

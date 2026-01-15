@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentValidation.Results;
 using NLog;
-using NzbDrone.Common.Composition;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.ThingiProvider;
 
@@ -62,8 +61,7 @@ namespace NzbDrone.Core.ImportLists
 
             foreach (var importList in importLists)
             {
-                ImportListStatus blockedImportListStatus;
-                if (blockedImportLists.TryGetValue(importList.Definition.Id, out blockedImportListStatus))
+                if (blockedImportLists.TryGetValue(importList.Definition.Id, out var blockedImportListStatus))
                 {
                     _logger.Debug("Temporarily ignoring import list {0} till {1} due to recent failures.", importList.Definition.Name, blockedImportListStatus.DisabledTill.Value.ToLocalTime());
                     continue;
@@ -77,9 +75,18 @@ namespace NzbDrone.Core.ImportLists
         {
             var result = base.Test(definition);
 
-            if ((result == null || result.IsValid) && definition.Id != 0)
+            if (definition.Id == 0)
+            {
+                return result;
+            }
+
+            if (result == null || result.IsValid)
             {
                 _importListStatusService.RecordSuccess(definition.Id);
+            }
+            else
+            {
+                _importListStatusService.RecordFailure(definition.Id);
             }
 
             return result;

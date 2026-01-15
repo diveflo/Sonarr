@@ -9,7 +9,8 @@ import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
 import { cloneAutoTagging, deleteAutoTagging, fetchAutoTaggings } from 'Store/Actions/settingsActions';
 import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
 import createTagsSelector from 'Store/Selectors/createTagsSelector';
-import sortByName from 'Utilities/Array/sortByName';
+import sortByProp from 'Utilities/Array/sortByProp';
+import translate from 'Utilities/String/translate';
 import AutoTagging from './AutoTagging';
 import EditAutoTaggingModal from './EditAutoTaggingModal';
 import styles from './AutoTaggings.css';
@@ -22,7 +23,7 @@ export default function AutoTaggings() {
     isFetching,
     isPopulated
   } = useSelector(
-    createSortedSectionSelector('settings.autoTaggings', sortByName)
+    createSortedSectionSelector('settings.autoTaggings', sortByProp('name'))
   );
 
   const tagList = useSelector(createTagsSelector());
@@ -55,9 +56,9 @@ export default function AutoTaggings() {
   }, [dispatch]);
 
   return (
-    <FieldSet legend="Auto Tagging">
+    <FieldSet legend={translate('AutoTagging')}>
       <PageSectionContent
-        errorMessage="Unable to load auto taggimg"
+        errorMessage={translate('AutoTaggingLoadError')}
         error={error}
         isFetching={isFetching}
         isPopulated={isPopulated}

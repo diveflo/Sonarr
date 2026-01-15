@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Tv
         {
             var added = DateTime.UtcNow;
             var seriesToAdd = new List<Series>();
-            var existingSeries = _seriesService.GetAllSeries();
+            var existingSeriesTvdbIds = _seriesService.AllSeriesTvdbIds();
 
             foreach (var s in newSeries)
             {
@@ -76,15 +76,15 @@ namespace NzbDrone.Core.Tv
                     var series = AddSkyhookData(s);
                     series = SetPropertiesAndValidate(series);
                     series.Added = added;
-                    if (existingSeries.Any(f => f.TvdbId == series.TvdbId))
+                    if (existingSeriesTvdbIds.Any(f => f == series.TvdbId))
                     {
-                        _logger.Debug("TVDB ID {0} was not added due to validation failure: Series already exists in database", s.TvdbId);
+                        _logger.Debug("TVDB ID {0} was not added due to validation failure: Series {1} already exists in database", s.TvdbId, s);
                         continue;
                     }
 
                     if (seriesToAdd.Any(f => f.TvdbId == series.TvdbId))
                     {
-                        _logger.Debug("TVDB ID {0} was not added due to validation failure: Series already exists on list", s.TvdbId);
+                        _logger.Trace("TVDB ID {0} was already added from another import list, not adding series {1} again", s.TvdbId, s);
                         continue;
                     }
 
@@ -104,7 +104,7 @@ namespace NzbDrone.Core.Tv
                         throw;
                     }
 
-                    _logger.Debug("TVDB ID {0} was not added due to validation failures. {1}", s.TvdbId, ex.Message);
+                    _logger.Debug("Series {0} with TVDB ID {1} was not added due to validation failures. {2}", s, s.TvdbId, ex.Message);
                 }
             }
 
@@ -121,7 +121,7 @@ namespace NzbDrone.Core.Tv
             }
             catch (SeriesNotFoundException)
             {
-                _logger.Error("TVDB ID {0} was not found, it may have been removed from TheTVDB.  Path: {1}", newSeries.TvdbId, newSeries.Path);
+                _logger.Error("Series {0} with TVDB ID {1} was not found, it may have been removed from TheTVDB. Path: {2}", newSeries, newSeries.TvdbId, newSeries.Path);
 
                 throw new ValidationException(new List<ValidationFailure>
                                               {
