@@ -27,17 +27,17 @@ jobs:
           cp -R _output/UI _output/net6.0/linux-arm64/publish
           cp -R _output/UI _output/net6.0/linux-x64/publish
       - name: upload build artifacts (linux/arm)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sonarr-hevc-linux-arm
           path: _output/net6.0/linux-arm/publish
       - name: upload build artifacts (linux/arm64)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sonarr-hevc-linux-arm64
           path: _output/net6.0/linux-arm64/publish
       - name: upload build artifacts (linux/x64)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sonarr-hevc-linux-x64
           path: _output/net6.0/linux-x64/publish
