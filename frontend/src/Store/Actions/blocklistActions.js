@@ -1,9 +1,10 @@
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import { sortDirections } from 'Helpers/Props';
+import { filterBuilderTypes, filterBuilderValueTypes, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
-import serverSideCollectionHandlers from 'Utilities/serverSideCollectionHandlers';
+import serverSideCollectionHandlers from 'Utilities/State/serverSideCollectionHandlers';
+import translate from 'Utilities/String/translate';
 import { set, updateItem } from './baseActions';
 import createHandleActions from './Creators/createHandleActions';
 import createRemoveItemHandler from './Creators/createRemoveItemHandler';
@@ -32,49 +33,74 @@ export const defaultState = {
   columns: [
     {
       name: 'series.sortTitle',
-      label: 'Series Title',
+      label: () => translate('SeriesTitle'),
       isSortable: true,
       isVisible: true
     },
     {
       name: 'sourceTitle',
-      label: 'Source Title',
+      label: () => translate('SourceTitle'),
       isSortable: true,
       isVisible: true
     },
     {
       name: 'languages',
-      label: 'Languages',
+      label: () => translate('Languages'),
       isVisible: false
     },
     {
       name: 'quality',
-      label: 'Quality',
+      label: () => translate('Quality'),
       isVisible: true
     },
     {
       name: 'customFormats',
-      label: 'Formats',
+      label: () => translate('Formats'),
       isSortable: false,
       isVisible: true
     },
     {
       name: 'date',
-      label: 'Date',
+      label: () => translate('Date'),
       isSortable: true,
       isVisible: true
     },
     {
       name: 'indexer',
-      label: 'Indexer',
+      label: () => translate('Indexer'),
       isSortable: true,
       isVisible: false
     },
     {
       name: 'actions',
-      columnLabel: 'Actions',
+      columnLabel: () => translate('Actions'),
       isVisible: true,
       isModifiable: false
+    }
+  ],
+
+  selectedFilterKey: 'all',
+
+  filters: [
+    {
+      key: 'all',
+      label: () => translate('All'),
+      filters: []
+    }
+  ],
+
+  filterBuilderProps: [
+    {
+      name: 'seriesIds',
+      label: () => translate('Series'),
+      type: filterBuilderTypes.EQUAL,
+      valueType: filterBuilderValueTypes.SERIES
+    },
+    {
+      name: 'protocols',
+      label: () => translate('Protocol'),
+      type: filterBuilderTypes.EQUAL,
+      valueType: filterBuilderValueTypes.PROTOCOL
     }
   ]
 };
@@ -83,6 +109,7 @@ export const persistState = [
   'blocklist.pageSize',
   'blocklist.sortKey',
   'blocklist.sortDirection',
+  'blocklist.selectedFilterKey',
   'blocklist.columns'
 ];
 
@@ -90,12 +117,9 @@ export const persistState = [
 // Action Types
 
 export const FETCH_BLOCKLIST = 'blocklist/fetchBlocklist';
-export const GOTO_FIRST_BLOCKLIST_PAGE = 'blocklist/gotoBlocklistFirstPage';
-export const GOTO_PREVIOUS_BLOCKLIST_PAGE = 'blocklist/gotoBlocklistPreviousPage';
-export const GOTO_NEXT_BLOCKLIST_PAGE = 'blocklist/gotoBlocklistNextPage';
-export const GOTO_LAST_BLOCKLIST_PAGE = 'blocklist/gotoBlocklistLastPage';
 export const GOTO_BLOCKLIST_PAGE = 'blocklist/gotoBlocklistPage';
 export const SET_BLOCKLIST_SORT = 'blocklist/setBlocklistSort';
+export const SET_BLOCKLIST_FILTER = 'blocklist/setBlocklistFilter';
 export const SET_BLOCKLIST_TABLE_OPTION = 'blocklist/setBlocklistTableOption';
 export const REMOVE_BLOCKLIST_ITEM = 'blocklist/removeBlocklistItem';
 export const REMOVE_BLOCKLIST_ITEMS = 'blocklist/removeBlocklistItems';
@@ -105,12 +129,9 @@ export const CLEAR_BLOCKLIST = 'blocklist/clearBlocklist';
 // Action Creators
 
 export const fetchBlocklist = createThunk(FETCH_BLOCKLIST);
-export const gotoBlocklistFirstPage = createThunk(GOTO_FIRST_BLOCKLIST_PAGE);
-export const gotoBlocklistPreviousPage = createThunk(GOTO_PREVIOUS_BLOCKLIST_PAGE);
-export const gotoBlocklistNextPage = createThunk(GOTO_NEXT_BLOCKLIST_PAGE);
-export const gotoBlocklistLastPage = createThunk(GOTO_LAST_BLOCKLIST_PAGE);
 export const gotoBlocklistPage = createThunk(GOTO_BLOCKLIST_PAGE);
 export const setBlocklistSort = createThunk(SET_BLOCKLIST_SORT);
+export const setBlocklistFilter = createThunk(SET_BLOCKLIST_FILTER);
 export const setBlocklistTableOption = createAction(SET_BLOCKLIST_TABLE_OPTION);
 export const removeBlocklistItem = createThunk(REMOVE_BLOCKLIST_ITEM);
 export const removeBlocklistItems = createThunk(REMOVE_BLOCKLIST_ITEMS);
@@ -126,12 +147,9 @@ export const actionHandlers = handleThunks({
     fetchBlocklist,
     {
       [serverSideCollectionHandlers.FETCH]: FETCH_BLOCKLIST,
-      [serverSideCollectionHandlers.FIRST_PAGE]: GOTO_FIRST_BLOCKLIST_PAGE,
-      [serverSideCollectionHandlers.PREVIOUS_PAGE]: GOTO_PREVIOUS_BLOCKLIST_PAGE,
-      [serverSideCollectionHandlers.NEXT_PAGE]: GOTO_NEXT_BLOCKLIST_PAGE,
-      [serverSideCollectionHandlers.LAST_PAGE]: GOTO_LAST_BLOCKLIST_PAGE,
       [serverSideCollectionHandlers.EXACT_PAGE]: GOTO_BLOCKLIST_PAGE,
-      [serverSideCollectionHandlers.SORT]: SET_BLOCKLIST_SORT
+      [serverSideCollectionHandlers.SORT]: SET_BLOCKLIST_SORT,
+      [serverSideCollectionHandlers.FILTER]: SET_BLOCKLIST_FILTER
     }),
 
   [REMOVE_BLOCKLIST_ITEM]: createRemoveItemHandler(section, '/blocklist'),

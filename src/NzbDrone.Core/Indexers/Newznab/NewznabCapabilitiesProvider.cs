@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Xml;
 using System.Xml.Linq;
 using NLog;
@@ -8,7 +7,7 @@ using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
-using NzbDrone.Core.Annotations;
+using NzbDrone.Core.Indexers.Exceptions;
 
 namespace NzbDrone.Core.Indexers.Newznab
 {
@@ -73,6 +72,13 @@ namespace NzbDrone.Core.Indexers.Newznab
                 ex.WithData(response, 128 * 1024);
                 _logger.Trace("Unexpected Response content ({0} bytes): {1}", response.ResponseData.Length, response.Content);
                 _logger.Debug(ex, "Failed to parse newznab api capabilities for {0}", indexerSettings.BaseUrl);
+                throw;
+            }
+            catch (ApiKeyException ex)
+            {
+                ex.WithData(response, 128 * 1024);
+                _logger.Trace("Unexpected Response content ({0} bytes): {1}", response.ResponseData.Length, response.Content);
+                _logger.Debug(ex, "Failed to parse newznab api capabilities for {0}, invalid API key", indexerSettings.BaseUrl);
                 throw;
             }
             catch (Exception ex)

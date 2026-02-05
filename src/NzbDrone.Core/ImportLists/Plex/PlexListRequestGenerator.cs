@@ -5,12 +5,17 @@ namespace NzbDrone.Core.ImportLists.Plex
 {
     public class PlexListRequestGenerator : IImportListRequestGenerator
     {
-        private readonly IPlexTvService _plexTvService;
-        public PlexListSettings Settings { get; set; }
+        private const int MaxPages = 10;
 
-        public PlexListRequestGenerator(IPlexTvService plexTvService)
+        private readonly IPlexTvService _plexTvService;
+        private readonly PlexListSettings _settings;
+        private readonly int _pageSize;
+
+        public PlexListRequestGenerator(IPlexTvService plexTvService, PlexListSettings settings, int pageSize)
         {
             _plexTvService = plexTvService;
+            _settings = settings;
+            _pageSize = pageSize;
         }
 
         public virtual ImportListPageableRequestChain GetListItems()
@@ -24,9 +29,10 @@ namespace NzbDrone.Core.ImportLists.Plex
 
         private IEnumerable<ImportListRequest> GetSeriesRequest()
         {
-            var request = new ImportListRequest(_plexTvService.GetWatchlist(Settings.AccessToken));
-
-            yield return request;
+            for (var page = 0; page < MaxPages; page++)
+            {
+                yield return new ImportListRequest(_plexTvService.GetWatchlist(_settings.AccessToken, _pageSize, page * _pageSize));
+            }
         }
     }
 }

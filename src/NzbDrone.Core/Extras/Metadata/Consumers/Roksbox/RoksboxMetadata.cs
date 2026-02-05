@@ -112,7 +112,8 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Roksbox
 
                 if (extension == ".jpg")
                 {
-                    if (!Path.GetFileNameWithoutExtension(filename).EndsWith("-thumb"))
+                    if (!Path.GetFileNameWithoutExtension(filename).EndsWith("-thumb") &&
+                        !path.GetParentName().Equals("metadata", StringComparison.InvariantCultureIgnoreCase))
                     {
                         metadata.Type = MetadataType.EpisodeImage;
                         return metadata;
@@ -123,7 +124,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Roksbox
             return null;
         }
 
-        public override MetadataFileResult SeriesMetadata(Series series)
+        public override MetadataFileResult SeriesMetadata(Series series, SeriesMetadataReason reason)
         {
             // Series metadata is not supported
             return null;
@@ -209,8 +210,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Roksbox
 
             var seasonFolders = GetSeasonFolders(series);
 
-            string seasonFolder;
-            if (!seasonFolders.TryGetValue(season.SeasonNumber, out seasonFolder))
+            if (!seasonFolders.TryGetValue(season.SeasonNumber, out var seasonFolder))
             {
                 _logger.Trace("Failed to find season folder for series {0}, season {1}.", series.Title, season.SeasonNumber);
                 return new List<ImageFileResult>();
@@ -277,8 +277,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Roksbox
                     }
                     else
                     {
-                        int matchedSeason;
-                        if (int.TryParse(seasonNumber, out matchedSeason))
+                        if (int.TryParse(seasonNumber, out var matchedSeason))
                         {
                             seasonFolderMap[matchedSeason] = folder;
                         }

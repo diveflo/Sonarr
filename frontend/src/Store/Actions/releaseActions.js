@@ -1,8 +1,9 @@
 import { createAction } from 'redux-actions';
 import { filterBuilderTypes, filterBuilderValueTypes, filterTypePredicates, filterTypes, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
-import sortByName from 'Utilities/Array/sortByName';
+import sortByProp from 'Utilities/Array/sortByProp';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
+import translate from 'Utilities/String/translate';
 import createFetchHandler from './Creators/createFetchHandler';
 import createHandleActions from './Creators/createHandleActions';
 import createSetClientSideCollectionFilterReducer from './Creators/Reducers/createSetClientSideCollectionFilterReducer';
@@ -44,7 +45,7 @@ export const defaultState = {
         return 10000;
       }
 
-      return item.languages[0].id;
+      return item.languages[0]?.id ?? 0;
     },
 
     rejections: function(item, direction) {
@@ -62,12 +63,12 @@ export const defaultState = {
   filters: [
     {
       key: 'all',
-      label: 'All',
+      label: () => translate('All'),
       filters: []
     },
     {
       key: 'season-pack',
-      label: 'Season Pack',
+      label: () => translate('SeasonPack'),
       filters: [
         {
           key: 'fullSeason',
@@ -78,7 +79,7 @@ export const defaultState = {
     },
     {
       key: 'not-season-pack',
-      label: 'Not Season Pack',
+      label: () => translate('NotSeasonPack'),
       filters: [
         {
           key: 'fullSeason',
@@ -173,51 +174,51 @@ export const defaultState = {
   filterBuilderProps: [
     {
       name: 'title',
-      label: 'Title',
+      label: () => translate('Title'),
       type: filterBuilderTypes.STRING
     },
     {
       name: 'age',
-      label: 'Age',
+      label: () => translate('Age'),
       type: filterBuilderTypes.NUMBER
     },
     {
       name: 'protocol',
-      label: 'Protocol',
+      label: () => translate('Protocol'),
       type: filterBuilderTypes.EXACT,
       valueType: filterBuilderValueTypes.PROTOCOL
     },
     {
       name: 'indexerId',
-      label: 'Indexer',
+      label: () => translate('Indexer'),
       type: filterBuilderTypes.EXACT,
       valueType: filterBuilderValueTypes.INDEXER
     },
     {
       name: 'size',
-      label: 'Size',
+      label: () => translate('Size'),
       type: filterBuilderTypes.NUMBER,
       valueType: filterBuilderValueTypes.BYTES
     },
     {
       name: 'seeders',
-      label: 'Seeders',
+      label: () => translate('Seeders'),
       type: filterBuilderTypes.NUMBER
     },
     {
       name: 'peers',
-      label: 'Peers',
+      label: () => translate('Peers'),
       type: filterBuilderTypes.NUMBER
     },
     {
       name: 'quality',
-      label: 'Quality',
+      label: () => translate('Quality'),
       type: filterBuilderTypes.EXACT,
       valueType: filterBuilderValueTypes.QUALITY
     },
     {
       name: 'languages',
-      label: 'Languages',
+      label: () => translate('Languages'),
       type: filterBuilderTypes.ARRAY,
       optionsSelector: function(items) {
         const genreList = items.reduce((acc, release) => {
@@ -231,22 +232,28 @@ export const defaultState = {
           return acc;
         }, []);
 
-        return genreList.sort(sortByName);
+        return genreList.sort(sortByProp('name'));
       }
     },
     {
       name: 'customFormatScore',
-      label: 'Custom Format Score',
+      label: () => translate('CustomFormatScore'),
       type: filterBuilderTypes.NUMBER
     },
     {
       name: 'rejectionCount',
-      label: 'Rejection Count',
+      label: () => translate('RejectionCount'),
       type: filterBuilderTypes.NUMBER
     },
     {
       name: 'fullSeason',
-      label: 'Season Pack',
+      label: () => translate('SeasonPack'),
+      type: filterBuilderTypes.EXACT,
+      valueType: filterBuilderValueTypes.BOOL
+    },
+    {
+      name: 'episodeRequested',
+      label: () => translate('EpisodeRequested'),
       type: filterBuilderTypes.EXACT,
       valueType: filterBuilderValueTypes.BOOL
     }
@@ -262,8 +269,9 @@ export const defaultState = {
 };
 
 export const persistState = [
-  'releases.selectedFilterKey',
+  'releases.episode.selectedFilterKey',
   'releases.episode.customFilters',
+  'releases.season.selectedFilterKey',
   'releases.season.customFilters'
 ];
 

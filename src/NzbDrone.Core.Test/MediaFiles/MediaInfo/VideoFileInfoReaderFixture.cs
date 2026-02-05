@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -108,7 +107,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
         [TestCase(10, "", "", "", null, HdrFormat.None)]
         [TestCase(10, "bt709", "bt709", "", null, HdrFormat.None)]
         [TestCase(8, "bt2020", "smpte2084", "", null, HdrFormat.None)]
-        [TestCase(10, "bt2020", "bt2020-10", "", null, HdrFormat.Hlg10)]
+        [TestCase(10, "bt2020", "bt2020-10", "", null, HdrFormat.None)]
         [TestCase(10, "bt2020", "arib-std-b67", "", null, HdrFormat.Hlg10)]
         [TestCase(10, "bt2020", "smpte2084", "", null, HdrFormat.Pq10)]
         [TestCase(10, "bt2020", "smpte2084", "FFMpegCore.SideData", null, HdrFormat.Pq10)]
@@ -117,6 +116,8 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
         [TestCase(10, "bt2020", "smpte2084", "FFMpegCore.HdrDynamicMetadataSpmte2094", null, HdrFormat.Hdr10Plus)]
         [TestCase(10, "bt2020", "smpte2084", "FFMpegCore.DoviConfigurationRecordSideData", null, HdrFormat.DolbyVision)]
         [TestCase(10, "bt2020", "smpte2084", "FFMpegCore.DoviConfigurationRecordSideData", 1, HdrFormat.DolbyVisionHdr10)]
+        [TestCase(10, "bt2020", "smpte2084", "FFMpegCore.DoviConfigurationRecordSideData,FFMpegCore.HdrDynamicMetadataSpmte2094", 1, HdrFormat.DolbyVisionHdr10Plus)]
+        [TestCase(10, "bt2020", "smpte2084", "FFMpegCore.DoviConfigurationRecordSideData,FFMpegCore.HdrDynamicMetadataSpmte2094", 6, HdrFormat.DolbyVisionHdr10Plus)]
         [TestCase(10, "bt2020", "smpte2084", "FFMpegCore.DoviConfigurationRecordSideData", 2, HdrFormat.DolbyVisionSdr)]
         [TestCase(10, "bt2020", "smpte2084", "FFMpegCore.DoviConfigurationRecordSideData", 4, HdrFormat.DolbyVisionHlg)]
         public void should_detect_hdr_correctly(int bitDepth, string colourPrimaries, string transferFunction, string sideDataTypes, int? doviConfigId, HdrFormat expected)

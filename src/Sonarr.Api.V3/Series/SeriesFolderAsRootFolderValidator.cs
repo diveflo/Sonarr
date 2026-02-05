@@ -11,10 +11,11 @@ namespace Sonarr.Api.V3.Series
         private readonly IBuildFileNames _fileNameBuilder;
 
         public SeriesFolderAsRootFolderValidator(IBuildFileNames fileNameBuilder)
-            : base("Root folder path contains series folder")
         {
             _fileNameBuilder = fileNameBuilder;
         }
+
+        protected override string GetDefaultMessageTemplate() => "Root folder path '{rootFolderPath}' contains series folder '{seriesFolder}'";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {
@@ -23,9 +24,7 @@ namespace Sonarr.Api.V3.Series
                 return true;
             }
 
-            var seriesResource = context.Instance as SeriesResource;
-
-            if (seriesResource == null)
+            if (context.InstanceToValidate is not SeriesResource seriesResource)
             {
                 return true;
             }
@@ -37,9 +36,12 @@ namespace Sonarr.Api.V3.Series
                 return true;
             }
 
-            var rootFolder = new DirectoryInfo(rootFolderPath).Name;
+            var rootFolder = new DirectoryInfo(rootFolderPath!).Name;
             var series = seriesResource.ToModel();
             var seriesFolder = _fileNameBuilder.GetSeriesFolder(series);
+
+            context.MessageFormatter.AppendArgument("rootFolderPath", rootFolderPath);
+            context.MessageFormatter.AppendArgument("seriesFolder", seriesFolder);
 
             if (seriesFolder == rootFolder)
             {

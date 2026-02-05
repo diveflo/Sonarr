@@ -39,7 +39,7 @@ namespace Sonarr.Http.Frontend.Mappers
             return stream;
         }
 
-        protected string GetHtmlText()
+        protected virtual string GetHtmlText()
         {
             if (RuntimeInfo.IsProduction && _generatedContent != null)
             {
@@ -62,8 +62,10 @@ namespace Sonarr.Http.Frontend.Mappers
                     url = cacheBreakProvider.AddCacheBreakerToPath(match.Groups["path"].Value);
                 }
 
-                return string.Format("{0}=\"{1}{2}\"", match.Groups["attribute"].Value, UrlBase, url);
+                return $"{match.Groups["attribute"].Value}=\"{UrlBase}{url}\"";
             });
+
+            text = text.Replace("__URL_BASE__", UrlBase);
 
             _generatedContent = text;
 

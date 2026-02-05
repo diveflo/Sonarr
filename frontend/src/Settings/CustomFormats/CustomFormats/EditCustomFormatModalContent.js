@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
@@ -15,6 +16,7 @@ import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { icons, inputTypes, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import ImportCustomFormatModal from './ImportCustomFormatModal';
 import AddSpecificationModal from './Specifications/AddSpecificationModal';
 import EditSpecificationModalConnector from './Specifications/EditSpecificationModalConnector';
@@ -99,7 +101,7 @@ class EditCustomFormatModalContent extends Component {
       <ModalContent onModalClose={onModalClose}>
 
         <ModalHeader>
-          {id ? 'Edit Custom Format' : 'Add Custom Format'}
+          {id ? translate('EditCustomFormat') : translate('AddCustomFormat')}
         </ModalHeader>
 
         <ModalBody>
@@ -111,9 +113,9 @@ class EditCustomFormatModalContent extends Component {
 
             {
               !isFetching && !!error &&
-                <div>
-                  {'Unable to add a new custom format, please try again.'}
-                </div>
+                <Alert kind={kinds.DANGER}>
+                  {translate('AddCustomFormatError')}
+                </Alert>
             }
 
             {
@@ -124,7 +126,7 @@ class EditCustomFormatModalContent extends Component {
                   >
                     <FormGroup>
                       <FormLabel>
-                        Name
+                        {translate('Name')}
                       </FormLabel>
 
                       <FormInputGroup
@@ -136,19 +138,24 @@ class EditCustomFormatModalContent extends Component {
                     </FormGroup>
 
                     <FormGroup>
-                      <FormLabel>{'Include Custom Format when Renaming'}</FormLabel>
+                      <FormLabel>{translate('IncludeCustomFormatWhenRenaming')}</FormLabel>
 
                       <FormInputGroup
                         type={inputTypes.CHECK}
                         name="includeCustomFormatWhenRenaming"
-                        helpText={'Include in {Custom Formats} renaming format'}
+                        helpText={translate('IncludeCustomFormatWhenRenamingHelpText')}
                         {...includeCustomFormatWhenRenaming}
                         onChange={onInputChange}
                       />
                     </FormGroup>
                   </Form>
 
-                  <FieldSet legend={'Conditions'}>
+                  <FieldSet legend={translate('Conditions')}>
+                    <Alert kind={kinds.INFO}>
+                      <div>
+                        {translate('CustomFormatsSettingsTriggerInfo')}
+                      </div>
+                    </Alert>
                     <div className={styles.customFormats}>
                       {
                         specifications.map((tag) => {
@@ -205,7 +212,7 @@ class EditCustomFormatModalContent extends Component {
                   kind={kinds.DANGER}
                   onPress={onDeleteCustomFormatPress}
                 >
-                  Delete
+                  {translate('Delete')}
                 </Button>
             }
 
@@ -213,14 +220,14 @@ class EditCustomFormatModalContent extends Component {
               className={styles.deleteButton}
               onPress={this.onImportPress}
             >
-              Import
+              {translate('Import')}
             </Button>
           </div>
 
           <Button
             onPress={onModalClose}
           >
-            Cancel
+            {translate('Cancel')}
           </Button>
 
           <SpinnerErrorButton
@@ -228,7 +235,7 @@ class EditCustomFormatModalContent extends Component {
             error={saveError}
             onPress={onSavePress}
           >
-            Save
+            {translate('Save')}
           </SpinnerErrorButton>
         </ModalFooter>
       </ModalContent>

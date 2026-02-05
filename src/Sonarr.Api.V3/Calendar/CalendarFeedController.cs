@@ -28,15 +28,15 @@ namespace Sonarr.Api.V3.Calendar
         }
 
         [HttpGet("Sonarr.ics")]
-        public IActionResult GetCalendarFeed(int pastDays = 7, int futureDays = 28, string tagList = "", bool unmonitored = false, bool premieresOnly = false, bool asAllDay = false)
+        public IActionResult GetCalendarFeed(int pastDays = 7, int futureDays = 28, string tags = "", bool unmonitored = false, bool premieresOnly = false, bool asAllDay = false)
         {
             var start = DateTime.Today.AddDays(-pastDays);
             var end = DateTime.Today.AddDays(futureDays);
-            var tags = new List<int>();
+            var parsedTags = new List<int>();
 
-            if (tagList.IsNotNullOrWhiteSpace())
+            if (tags.IsNotNullOrWhiteSpace())
             {
-                tags.AddRange(tagList.Split(',').Select(_tagService.GetTag).Select(t => t.Id));
+                parsedTags.AddRange(tags.Split(',').Select(_tagService.GetTag).Select(t => t.Id));
             }
 
             var episodes = _episodeService.EpisodesBetweenDates(start, end, unmonitored);
@@ -54,12 +54,17 @@ namespace Sonarr.Api.V3.Calendar
             {
                 var series = allSeries.SingleOrDefault(s => s.Id == episode.SeriesId);
 
+                if (series == null)
+                {
+                    continue;
+                }
+
                 if (premieresOnly && (episode.SeasonNumber == 0 || episode.EpisodeNumber != 1))
                 {
                     continue;
                 }
 
-                if (tags.Any() && tags.None(series.Tags.Contains))
+                if (parsedTags.Any() && parsedTags.None(series.Tags.Contains))
                 {
                     continue;
                 }

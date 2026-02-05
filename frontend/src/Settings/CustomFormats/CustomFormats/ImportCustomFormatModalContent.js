@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
 import FormInputGroup from 'Components/Form/FormInputGroup';
@@ -11,7 +12,8 @@ import ModalBody from 'Components/Modal/ModalBody';
 import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
-import { inputTypes, sizes } from 'Helpers/Props';
+import { inputTypes, kinds, sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './ImportCustomFormatModalContent.css';
 
 class ImportCustomFormatModalContent extends Component {
@@ -82,7 +84,7 @@ class ImportCustomFormatModalContent extends Component {
       <ModalContent onModalClose={onModalClose}>
 
         <ModalHeader>
-          Import Custom Format
+          {translate('ImportCustomFormat')}
         </ModalHeader>
 
         <ModalBody>
@@ -94,9 +96,9 @@ class ImportCustomFormatModalContent extends Component {
 
             {
               !isFetching && !!error &&
-                <div>
-                  Unable to load custom formats
-                </div>
+                <Alert kind={kinds.DANGER}>
+                  {translate('CustomFormatsLoadError')}
+                </Alert>
             }
 
             {
@@ -104,7 +106,7 @@ class ImportCustomFormatModalContent extends Component {
                 <Form>
                   <FormGroup size={sizes.MEDIUM}>
                     <FormLabel>
-                      Custom Format JSON
+                      {translate('CustomFormatJson')}
                     </FormLabel>
                     <FormInputGroup
                       key={0}
@@ -125,14 +127,14 @@ class ImportCustomFormatModalContent extends Component {
           <Button
             onPress={onModalClose}
           >
-            Cancel
+            {translate('Cancel')}
           </Button>
           <SpinnerErrorButton
             onPress={this.onImportPress}
             isSpinning={isSpinning}
             error={parseError}
           >
-            Import
+            {translate('Import')}
           </SpinnerErrorButton>
         </ModalFooter>
       </ModalContent>

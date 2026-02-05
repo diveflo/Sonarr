@@ -34,42 +34,41 @@ namespace NzbDrone.Core.ImportLists.Trakt
         }
     }
 
-    public class TraktSettingsBase<TSettings> : IImportListSettings
+    public class TraktSettingsBase<TSettings> : ImportListSettingsBase<TSettings>
         where TSettings : TraktSettingsBase<TSettings>
     {
-        protected virtual AbstractValidator<TSettings> Validator => new TraktSettingsBaseValidator<TSettings>();
+        private static readonly TraktSettingsBaseValidator<TSettings> Validator = new ();
 
         public TraktSettingsBase()
         {
-            BaseUrl = "https://api.trakt.tv";
             SignIn = "startOAuth";
             Limit = 100;
         }
 
-        public string BaseUrl { get; set; }
+        public override string BaseUrl { get; set; } = "https://api.trakt.tv";
 
-        [FieldDefinition(0, Label = "Access Token", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(0, Label = "ImportListsSettingsAccessToken", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string AccessToken { get; set; }
 
-        [FieldDefinition(0, Label = "Refresh Token", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(0, Label = "ImportListsSettingsRefreshToken", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string RefreshToken { get; set; }
 
-        [FieldDefinition(0, Label = "Expires", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(0, Label = "ImportListsSettingsExpires", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public DateTime Expires { get; set; }
 
-        [FieldDefinition(0, Label = "Auth User", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
+        [FieldDefinition(0, Label = "ImportListsSettingsAuthUser", Type = FieldType.Textbox, Hidden = HiddenType.Hidden)]
         public string AuthUser { get; set; }
 
-        [FieldDefinition(5, Label = "Limit", HelpText = "Limit the number of series to get")]
+        [FieldDefinition(5, Label = "ImportListsTraktSettingsLimit", HelpText = "ImportListsTraktSettingsLimitHelpText")]
         public int Limit { get; set; }
 
-        [FieldDefinition(6, Label = "Additional Parameters", HelpText = "Additional Trakt API parameters", Advanced = true)]
+        [FieldDefinition(6, Label = "ImportListsTraktSettingsAdditionalParameters", HelpText = "ImportListsTraktSettingsAdditionalParametersHelpText", Advanced = true)]
         public string TraktAdditionalParameters { get; set; }
 
-        [FieldDefinition(99, Label = "Authenticate with Trakt", Type = FieldType.OAuth)]
+        [FieldDefinition(99, Label = "ImportListsTraktSettingsAuthenticateWithTrakt", Type = FieldType.OAuth)]
         public string SignIn { get; set; }
 
-        public NzbDroneValidationResult Validate()
+        public override NzbDroneValidationResult Validate()
         {
             return new NzbDroneValidationResult(Validator.Validate((TSettings)this));
         }

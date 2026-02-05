@@ -1,12 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
@@ -16,6 +19,8 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 {
     public abstract class TransmissionBase : TorrentClientBase<TransmissionSettings>
     {
+        public abstract bool SupportsLabels { get; }
+
         protected readonly ITransmissionProxy _proxy;
 
         public TransmissionBase(ITransmissionProxy proxy,
@@ -24,8 +29,10 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             IConfigService configService,
             IDiskProvider diskProvider,
             IRemotePathMappingService remotePathMappingService,
+            ILocalizationService localizationService,
+            IBlocklistService blocklistService,
             Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
         {
             _proxy = proxy;
         }
@@ -33,60 +40,74 @@ namespace NzbDrone.Core.Download.Clients.Transmission
         public override IEnumerable<DownloadClientItem> GetItems()
         {
             var configFunc = new Lazy<TransmissionConfig>(() => _proxy.GetConfig(Settings));
-            var torrents = _proxy.GetTorrents(Settings);
+            var torrents = _proxy.GetTorrents(null, Settings);
 
             var items = new List<DownloadClientItem>();
 
             foreach (var torrent in torrents)
             {
-                // If totalsize == 0 the torrent is a magnet downloading metadata
-                if (torrent.TotalSize == 0)
-                {
-                    continue;
-                }
-
                 var outputPath = new OsPath(torrent.DownloadDir);
 
-                if (Settings.TvDirectory.IsNotNullOrWhiteSpace())
+                if (Settings.TvCategory.IsNotNullOrWhiteSpace() && SupportsLabels && torrent.Labels is { Count: > 0 })
                 {
-                    if (!new OsPath(Settings.TvDirectory).Contains(outputPath))
+                    if (!torrent.Labels.Contains(Settings.TvCategory, StringComparer.InvariantCultureIgnoreCase))
                     {
                         continue;
                     }
                 }
-                else if (Settings.TvCategory.IsNotNullOrWhiteSpace())
+                else
                 {
-                    var directories = outputPath.FullPath.Split('\\', '/');
-                    if (!directories.Contains(Settings.TvCategory))
+                    if (Settings.TvDirectory.IsNotNullOrWhiteSpace())
                     {
-                        continue;
+                        if (!new OsPath(Settings.TvDirectory).Contains(outputPath))
+                        {
+                            continue;
+                        }
+                    }
+                    else if (Settings.TvCategory.IsNotNullOrWhiteSpace())
+                    {
+                        var directories = outputPath.FullPath.Split('\\', '/');
+                        if (!directories.Contains(Settings.TvCategory))
+                        {
+                            continue;
+                        }
                     }
                 }
 
                 outputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, outputPath);
 
-                var item = new DownloadClientItem();
-                item.DownloadId = torrent.HashString.ToUpper();
-                item.Category = Settings.TvCategory;
-                item.Title = torrent.Name;
-
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this);
-
-                item.OutputPath = GetOutputPath(outputPath, torrent);
-                item.TotalSize = torrent.TotalSize;
-                item.RemainingSize = torrent.LeftUntilDone;
-                item.SeedRatio = torrent.DownloadedEver <= 0 ? 0 :
-                    (double)torrent.UploadedEver / torrent.DownloadedEver;
+                var item = new DownloadClientItem
+                {
+                    DownloadId = torrent.HashString.ToUpper(),
+                    Category = Settings.TvCategory,
+                    Title = torrent.Name,
+                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.TvImportedCategory.IsNotNullOrWhiteSpace() && SupportsLabels),
+                    OutputPath = GetOutputPath(outputPath, torrent),
+                    TotalSize = torrent.TotalSize,
+                    RemainingSize = torrent.LeftUntilDone,
+                    SeedRatio = torrent.DownloadedEver <= 0 ? 0 : (double)torrent.UploadedEver / torrent.DownloadedEver
+                };
 
                 if (torrent.Eta >= 0)
                 {
-                    item.RemainingTime = TimeSpan.FromSeconds(torrent.Eta);
+                    try
+                    {
+                        item.RemainingTime = TimeSpan.FromSeconds(torrent.Eta);
+                    }
+                    catch (OverflowException)
+                    {
+                        item.RemainingTime = TimeSpan.FromMilliseconds(torrent.Eta);
+                    }
                 }
 
                 if (!torrent.ErrorString.IsNullOrWhiteSpace())
                 {
                     item.Status = DownloadItemStatus.Warning;
                     item.Message = torrent.ErrorString;
+                }
+                else if (torrent.TotalSize == 0)
+                {
+                    item.Status = DownloadItemStatus.Queued;
                 }
                 else if (torrent.LeftUntilDone == 0 && (torrent.Status == TransmissionTorrentStatus.Stopped ||
                                                         torrent.Status == TransmissionTorrentStatus.Seeding ||
@@ -108,7 +129,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                     item.Status = DownloadItemStatus.Downloading;
                 }
 
-                item.CanBeRemoved = HasReachedSeedLimit(torrent, item.SeedRatio, configFunc);
+                item.CanBeRemoved = item.DownloadClientInfo.RemoveCompletedDownloads && HasReachedSeedLimit(torrent, item.SeedRatio, configFunc);
                 item.CanMoveFiles = item.CanBeRemoved && torrent.Status == TransmissionTorrentStatus.Stopped;
 
                 items.Add(item);
@@ -164,12 +185,21 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
         public override DownloadClientInfo GetStatus()
         {
-            var config = _proxy.GetConfig(Settings);
-            var destDir = config.DownloadDir;
+            string destDir;
 
-            if (Settings.TvCategory.IsNotNullOrWhiteSpace())
+            if (Settings.TvDirectory.IsNotNullOrWhiteSpace())
             {
-                destDir = string.Format("{0}/.{1}", destDir, Settings.TvCategory);
+                destDir = Settings.TvDirectory;
+            }
+            else
+            {
+                var config = _proxy.GetConfig(Settings);
+                destDir = config.DownloadDir;
+
+                if (Settings.TvCategory.IsNotNullOrWhiteSpace())
+                {
+                    destDir = $"{destDir}/{Settings.TvCategory}";
+                }
             }
 
             return new DownloadClientInfo
@@ -254,16 +284,16 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             catch (DownloadClientAuthenticationException ex)
             {
                 _logger.Error(ex, ex.Message);
-                return new NzbDroneValidationFailure("Username", "Authentication failure")
+                return new NzbDroneValidationFailure("Username", _localizationService.GetLocalizedString("DownloadClientValidationAuthenticationFailure"))
                 {
-                    DetailedDescription = string.Format("Please verify your username and password. Also verify if the host running Sonarr isn't blocked from accessing {0} by WhiteList limitations in the {0} configuration.", Name)
+                    DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationAuthenticationFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
                 };
             }
             catch (DownloadClientUnavailableException ex)
             {
                 _logger.Error(ex, ex.Message);
 
-                return new NzbDroneValidationFailure("Host", "Unable to connect to Transmission")
+                return new NzbDroneValidationFailure("Host", _localizationService.GetLocalizedString("DownloadClientValidationUnableToConnect", new Dictionary<string, object> { { "clientName", Name } }))
                        {
                            DetailedDescription = ex.Message
                        };
@@ -272,7 +302,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             {
                 _logger.Error(ex, "Failed to test");
 
-                return new NzbDroneValidationFailure(string.Empty, "Unknown exception: " + ex.Message);
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationUnknownException", new Dictionary<string, object> { { "exception", ex.Message } }));
             }
         }
 
@@ -282,15 +312,25 @@ namespace NzbDrone.Core.Download.Clients.Transmission
         {
             try
             {
-                _proxy.GetTorrents(Settings);
+                _proxy.GetTorrents(null, Settings);
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "Failed to get torrents");
-                return new NzbDroneValidationFailure(string.Empty, "Failed to get the list of torrents: " + ex.Message);
+                return new NzbDroneValidationFailure(string.Empty, _localizationService.GetLocalizedString("DownloadClientValidationTestTorrents", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;
+        }
+
+        protected bool HasClientVersion(int major, int minor)
+        {
+            var rawVersion = _proxy.GetClientVersion(Settings);
+
+            var versionResult = Regex.Match(rawVersion, @"(?<!\(|(\d|\.)+)(\d|\.)+(?!\)|(\d|\.)+)").Value;
+            var clientVersion = Version.Parse(versionResult);
+
+            return clientVersion >= new Version(major, minor);
         }
     }
 }

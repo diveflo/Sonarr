@@ -36,6 +36,8 @@ namespace NzbDrone.Core.Tv
         public Ratings Ratings { get; set; }
         public List<MediaCover.MediaCover> Images { get; set; }
         public DateTime? LastSearchTime { get; set; }
+        public int Runtime { get; set; }
+        public string FinaleType { get; set; }
 
         public string SeriesTitle { get; private set; }
 
@@ -44,6 +46,7 @@ namespace NzbDrone.Core.Tv
         public Series Series { get; set; }
 
         public bool HasFile => EpisodeFileId > 0;
+        public bool AbsoluteEpisodeNumberAdded { get; set; }
 
         public override string ToString()
         {

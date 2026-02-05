@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.DataAugmentation.Scene;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles;
@@ -33,6 +34,7 @@ namespace Sonarr.Api.V3.Series
                                 IHandle<SeriesEditedEvent>,
                                 IHandle<SeriesDeletedEvent>,
                                 IHandle<SeriesRenamedEvent>,
+                                IHandle<SeriesBulkEditedEvent>,
                                 IHandle<MediaCoversUpdatedEvent>
     {
         private readonly ISeriesService _seriesService;
@@ -57,7 +59,8 @@ namespace Sonarr.Api.V3.Series
                             SeriesExistsValidator seriesExistsValidator,
                             SeriesAncestorValidator seriesAncestorValidator,
                             SystemFolderValidator systemFolderValidator,
-                            ProfileExistsValidator profileExistsValidator,
+                            QualityProfileExistsValidator qualityProfileExistsValidator,
+                            RootFolderExistsValidator rootFolderExistsValidator,
                             SeriesFolderAsRootFolderValidator seriesFolderAsRootFolderValidator)
             : base(signalRBroadcaster)
         {
@@ -70,29 +73,36 @@ namespace Sonarr.Api.V3.Series
             _commandQueueManager = commandQueueManager;
             _rootFolderService = rootFolderService;
 
-            Http.Validation.RuleBuilderExtensions.ValidId(SharedValidator.RuleFor(s => s.QualityProfileId));
+            SharedValidator.RuleFor(s => s.Path).Cascade(CascadeMode.Stop)
+                .IsValidPath()
+                .SetValidator(rootFolderValidator)
+                .SetValidator(mappedNetworkDriveValidator)
+                .SetValidator(seriesPathValidator)
+                .SetValidator(seriesAncestorValidator)
+                .SetValidator(systemFolderValidator)
+                .When(s => s.Path.IsNotNullOrWhiteSpace());
 
-            SharedValidator.RuleFor(s => s.Path)
-                           .Cascade(CascadeMode.StopOnFirstFailure)
-                           .IsValidPath()
-                           .SetValidator(rootFolderValidator)
-                           .SetValidator(mappedNetworkDriveValidator)
-                           .SetValidator(seriesPathValidator)
-                           .SetValidator(seriesAncestorValidator)
-                           .SetValidator(systemFolderValidator)
-                           .When(s => !s.Path.IsNullOrWhiteSpace());
+            PostValidator.RuleFor(s => s.Path).Cascade(CascadeMode.Stop)
+                .NotEmpty()
+                .IsValidPath()
+                .When(s => s.RootFolderPath.IsNullOrWhiteSpace());
+            PostValidator.RuleFor(s => s.RootFolderPath).Cascade(CascadeMode.Stop)
+                .NotEmpty()
+                .IsValidPath()
+                .SetValidator(rootFolderExistsValidator)
+                .SetValidator(seriesFolderAsRootFolderValidator)
+                .When(s => s.Path.IsNullOrWhiteSpace());
 
-            SharedValidator.RuleFor(s => s.QualityProfileId).SetValidator(profileExistsValidator);
+            PutValidator.RuleFor(s => s.Path).Cascade(CascadeMode.Stop)
+                .NotEmpty()
+                .IsValidPath();
 
-            PostValidator.RuleFor(s => s.Path).IsValidPath().When(s => s.RootFolderPath.IsNullOrWhiteSpace());
-            PostValidator.RuleFor(s => s.RootFolderPath)
-                         .IsValidPath()
-                         .SetValidator(seriesFolderAsRootFolderValidator)
-                         .When(s => s.Path.IsNullOrWhiteSpace());
+            SharedValidator.RuleFor(s => s.QualityProfileId).Cascade(CascadeMode.Stop)
+                .ValidId()
+                .SetValidator(qualityProfileExistsValidator);
+
             PostValidator.RuleFor(s => s.Title).NotEmpty();
             PostValidator.RuleFor(s => s.TvdbId).GreaterThan(0).SetValidator(seriesExistsValidator);
-
-            PutValidator.RuleFor(s => s.Path).IsValidPath();
         }
 
         [HttpGet]
@@ -112,24 +122,53 @@ namespace Sonarr.Api.V3.Series
             }
 
             MapCoversToLocal(seriesResources.ToArray());
-            LinkSeriesStatistics(seriesResources, seriesStats);
+            LinkSeriesStatistics(seriesResources, seriesStats.ToDictionary(x => x.SeriesId));
             PopulateAlternateTitles(seriesResources);
             seriesResources.ForEach(LinkRootFolderPath);
 
             return seriesResources;
         }
 
+        [NonAction]
+        public override ActionResult<SeriesResource> GetResourceByIdWithErrorHandler(int id)
+        {
+            return base.GetResourceByIdWithErrorHandler(id);
+        }
+
+        [RestGetById]
+        [Produces("application/json")]
+        public ActionResult<SeriesResource> GetResourceByIdWithErrorHandler(int id, [FromQuery] bool includeSeasonImages = false)
+        {
+            try
+            {
+                return GetSeriesResourceById(id, includeSeasonImages);
+            }
+            catch (ModelNotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
         protected override SeriesResource GetResourceById(int id)
+        {
+            var includeSeasonImages = Request?.GetBooleanQueryParameter("includeSeasonImages", false) ?? false;
+
+            // Parse IncludeImages and use it
+            return GetSeriesResourceById(id, includeSeasonImages);
+        }
+
+        private SeriesResource GetSeriesResourceById(int id, bool includeSeasonImages = false)
         {
             var series = _seriesService.GetSeries(id);
 
             // Parse IncludeImages and use it
-            return GetSeriesResource(series, false);
+            return GetSeriesResource(series, includeSeasonImages);
         }
 
         [RestPostById]
         [Consumes("application/json")]
-        public ActionResult<SeriesResource> AddSeries(SeriesResource seriesResource)
+        [Produces("application/json")]
+        public ActionResult<SeriesResource> AddSeries([FromBody] SeriesResource seriesResource)
         {
             var series = _addSeriesService.AddSeries(seriesResource.ToModel());
 
@@ -138,9 +177,9 @@ namespace Sonarr.Api.V3.Series
 
         [RestPutById]
         [Consumes("application/json")]
-        public ActionResult<SeriesResource> UpdateSeries(SeriesResource seriesResource)
+        [Produces("application/json")]
+        public ActionResult<SeriesResource> UpdateSeries([FromBody] SeriesResource seriesResource, [FromQuery] bool moveFiles = false)
         {
-            var moveFiles = Request.GetBooleanQueryParameter("moveFiles");
             var series = _seriesService.GetSeries(seriesResource.Id);
 
             if (moveFiles)
@@ -149,12 +188,11 @@ namespace Sonarr.Api.V3.Series
                 var destinationPath = seriesResource.Path;
 
                 _commandQueueManager.Push(new MoveSeriesCommand
-                                          {
-                                              SeriesId = series.Id,
-                                              SourcePath = sourcePath,
-                                              DestinationPath = destinationPath,
-                                              Trigger = CommandTrigger.Manual
-                                          });
+                {
+                    SeriesId = series.Id,
+                    SourcePath = sourcePath,
+                    DestinationPath = destinationPath
+                }, trigger: CommandTrigger.Manual);
             }
 
             var model = seriesResource.ToModel(series);
@@ -167,11 +205,8 @@ namespace Sonarr.Api.V3.Series
         }
 
         [RestDeleteById]
-        public void DeleteSeries(int id)
+        public void DeleteSeries(int id, bool deleteFiles = false, bool addImportListExclusion = false)
         {
-            var deleteFiles = Request.GetBooleanQueryParameter("deleteFiles");
-            var addImportListExclusion = Request.GetBooleanQueryParameter("addImportListExclusion");
-
             _seriesService.DeleteSeries(new List<int> { id }, deleteFiles, addImportListExclusion);
         }
 
@@ -204,22 +239,22 @@ namespace Sonarr.Api.V3.Series
             LinkSeriesStatistics(resource, _seriesStatisticsService.SeriesStatistics(resource.Id));
         }
 
-        private void LinkSeriesStatistics(List<SeriesResource> resources, List<SeriesStatistics> seriesStatistics)
+        private void LinkSeriesStatistics(List<SeriesResource> resources, Dictionary<int, SeriesStatistics> seriesStatistics)
         {
             foreach (var series in resources)
             {
-                var stats = seriesStatistics.SingleOrDefault(ss => ss.SeriesId == series.Id);
-                if (stats == null)
+                if (seriesStatistics.TryGetValue(series.Id, out var stats))
                 {
-                    continue;
+                    LinkSeriesStatistics(series, stats);
                 }
-
-                LinkSeriesStatistics(series, stats);
             }
         }
 
         private void LinkSeriesStatistics(SeriesResource resource, SeriesStatistics seriesStatistics)
         {
+            // Only set last aired from statistics if it's missing from the series itself
+            resource.LastAired ??= seriesStatistics.LastAired;
+
             resource.PreviousAiring = seriesStatistics.PreviousAiring;
             resource.NextAiring = seriesStatistics.NextAiring;
             resource.Statistics = seriesStatistics.ToResource(resource.Seasons);
@@ -294,7 +329,7 @@ namespace Sonarr.Api.V3.Series
         {
             foreach (var series in message.Series)
             {
-                BroadcastResourceChange(ModelAction.Deleted, series.ToResource());
+                BroadcastResourceChange(ModelAction.Deleted, GetSeriesResource(series, false));
             }
         }
 
@@ -302,6 +337,15 @@ namespace Sonarr.Api.V3.Series
         public void Handle(SeriesRenamedEvent message)
         {
             BroadcastResourceChange(ModelAction.Updated, message.Series.Id);
+        }
+
+        [NonAction]
+        public void Handle(SeriesBulkEditedEvent message)
+        {
+            foreach (var series in message.Series)
+            {
+                BroadcastResourceChange(ModelAction.Updated, GetSeriesResource(series, false));
+            }
         }
 
         [NonAction]

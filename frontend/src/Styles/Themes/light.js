@@ -42,7 +42,7 @@ module.exports = {
   themeDarkColor: '#3a3f51',
   themeLightColor: '#4f566f',
   pageBackground: '#f5f7fa',
-  pageFooterBackgroud: '#f1f1f1',
+  pageFooterBackground: '#f1f1f1',
 
   torrentColor: '#00853d',
   usenetColor: '#17b1d9',
@@ -210,10 +210,12 @@ module.exports = {
   // Calendar
 
   calendarTodayBackgroundColor: '#c5c5c5',
-  calendarBackgroudColor: '#e4eaec',
+  calendarBackgroundColor: '#e4eaec',
   calendarBorderColor: '#cecece',
   calendarTextDim: '#666',
   calendarTextDimAlternate: '#242424',
+
+  calendarFullColorFilter: 'brightness(30%)',
 
   //
   // Table

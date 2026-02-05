@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators;
 using NzbDrone.Core.MediaFiles.MediaInfo;
-using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation
@@ -32,7 +31,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation
                                  IConfigService configService,
                                  Logger logger)
         {
-            _augmenters = augmenters;
+            _augmenters = augmenters.OrderBy(a => a.Order).ToList();
             _diskProvider = diskProvider;
             _videoFileInfoReader = videoFileInfoReader;
             _configService = configService;

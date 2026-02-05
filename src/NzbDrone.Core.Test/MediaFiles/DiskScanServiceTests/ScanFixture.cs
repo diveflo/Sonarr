@@ -9,6 +9,8 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.Events;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -81,7 +83,7 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
         private void GivenFiles(IEnumerable<string> files)
         {
             Mocker.GetMock<IDiskProvider>()
-                  .Setup(s => s.GetFiles(It.IsAny<string>(), SearchOption.AllDirectories))
+                  .Setup(s => s.GetFiles(It.IsAny<string>(), true))
                   .Returns(files.ToArray());
         }
 
@@ -93,7 +95,7 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
             ExceptionVerification.ExpectedWarns(1);
 
             Mocker.GetMock<IDiskProvider>()
-                  .Verify(v => v.GetFiles(_series.Path, SearchOption.AllDirectories), Times.Never());
+                  .Verify(v => v.GetFiles(_series.Path, true), Times.Never());
 
             Mocker.GetMock<IDiskProvider>()
                   .Verify(v => v.CreateFolder(_series.Path), Times.Never());
@@ -112,7 +114,7 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
             ExceptionVerification.ExpectedWarns(1);
 
             Mocker.GetMock<IDiskProvider>()
-                  .Verify(v => v.GetFiles(_series.Path, SearchOption.AllDirectories), Times.Never());
+                  .Verify(v => v.GetFiles(_series.Path, true), Times.Never());
 
             Mocker.GetMock<IDiskProvider>()
                   .Verify(v => v.CreateFolder(_series.Path), Times.Never());
@@ -186,6 +188,7 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
                            Path.Combine(_series.Path, "Scenes", "file6.mkv").AsOsAgnostic(),
                            Path.Combine(_series.Path, "Shorts", "file7.mkv").AsOsAgnostic(),
                            Path.Combine(_series.Path, "Trailers", "file8.mkv").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Other", "file9.mkv").AsOsAgnostic(),
                            Path.Combine(_series.Path, "Series Title S01E01 (1080p BluRay x265 10bit Tigole).mkv").AsOsAgnostic(),
                        });
 
@@ -267,7 +270,7 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
             Subject.Scan(_series);
 
             Mocker.GetMock<IDiskProvider>()
-                  .Verify(v => v.GetFiles(It.IsAny<string>(), It.IsAny<SearchOption>()), Times.Once());
+                  .Verify(v => v.GetFiles(It.IsAny<string>(), It.IsAny<bool>()), Times.Exactly(2));
 
             Mocker.GetMock<IMakeImportDecision>()
                   .Verify(v => v.GetImportDecisions(It.Is<List<string>>(l => l.Count == 1), _series, false), Times.Once());
@@ -455,6 +458,28 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             Mocker.GetMock<IMakeImportDecision>()
                   .Verify(v => v.GetImportDecisions(It.Is<List<string>>(l => l.Count == 1), _series, false), Times.Once());
+        }
+
+        [Test]
+        public void should_not_scan_excluded_files()
+        {
+            GivenSeriesFolder();
+
+            GivenFiles(new List<string>
+            {
+                Path.Combine(_series.Path, ".DS_Store").AsOsAgnostic(),
+                Path.Combine(_series.Path, ".unmanic").AsOsAgnostic(),
+                Path.Combine(_series.Path, ".unmanic.part").AsOsAgnostic(),
+                Path.Combine(_series.Path, "24 The Status Quo Combustion.mkv").AsOsAgnostic()
+            });
+
+            Subject.Scan(_series);
+
+            Mocker.GetMock<IMakeImportDecision>()
+                .Verify(v => v.GetImportDecisions(It.Is<List<string>>(l => l.Count == 1), _series, false), Times.Once());
+
+            Mocker.GetMock<IEventAggregator>()
+                .Verify(v => v.PublishEvent(It.Is<SeriesScannedEvent>(c => c.Series != null && c.PossibleExtraFiles.Count == 0)), Times.Once());
         }
     }
 }

@@ -1,7 +1,6 @@
 using FluentValidation;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Parser;
-using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.CustomFormats
@@ -21,7 +20,7 @@ namespace NzbDrone.Core.CustomFormats
         public override int Order => 6;
         public override string ImplementationName => "Resolution";
 
-        [FieldDefinition(1, Label = "Resolution", Type = FieldType.Select, SelectOptions = typeof(Resolution))]
+        [FieldDefinition(1, Label = "CustomFormatsSpecificationResolution", Type = FieldType.Select, SelectOptions = typeof(Resolution))]
         public int Value { get; set; }
 
         protected override bool IsSatisfiedByWithoutNegate(CustomFormatInput input)

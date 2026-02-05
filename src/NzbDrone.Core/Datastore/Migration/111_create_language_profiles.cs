@@ -33,10 +33,10 @@ namespace NzbDrone.Core.Datastore.Migration
 
             foreach (var profile in profiles.OrderBy(p => p.Id))
             {
-                using (IDbCommand insertNewLanguageProfileCmd = conn.CreateCommand())
+                using (var insertNewLanguageProfileCmd = conn.CreateCommand())
                 {
                     insertNewLanguageProfileCmd.Transaction = tran;
-                    insertNewLanguageProfileCmd.CommandText = "INSERT INTO LanguageProfiles (Id, Name, Cutoff, Languages) VALUES (?, ?, ?, ?)";
+                    insertNewLanguageProfileCmd.CommandText = "INSERT INTO \"LanguageProfiles\" (\"Id\", \"Name\", \"Cutoff\", \"Languages\") VALUES (?, ?, ?, ?)";
                     insertNewLanguageProfileCmd.AddParameter(profile.Id);
                     insertNewLanguageProfileCmd.AddParameter(profile.Name);
                     insertNewLanguageProfileCmd.AddParameter(profile.Cutoff.Id);
@@ -47,12 +47,12 @@ namespace NzbDrone.Core.Datastore.Migration
                     insertNewLanguageProfileCmd.ExecuteNonQuery();
                 }
 
-                using (IDbCommand updateSeriesCmd = conn.CreateCommand())
+                using (var updateSeriesCmd = conn.CreateCommand())
                 {
                     foreach (var profileId in profile.ProfileIds)
                     {
                         updateSeriesCmd.Transaction = tran;
-                        updateSeriesCmd.CommandText = "UPDATE Series SET LanguageProfileId = ? WHERE ProfileId = ?";
+                        updateSeriesCmd.CommandText = "UPDATE \"Series\" SET \"LanguageProfileId\" = ? WHERE \"ProfileId\" = ?";
                         updateSeriesCmd.AddParameter(profile.Id);
                         updateSeriesCmd.AddParameter(profileId);
                         updateSeriesCmd.ExecuteNonQuery();
@@ -84,12 +84,12 @@ namespace NzbDrone.Core.Datastore.Migration
             var profiles = GetDefaultLanguageProfiles();
             var thereAreProfiles = false;
 
-            using (IDbCommand getProfilesCmd = conn.CreateCommand())
+            using (var getProfilesCmd = conn.CreateCommand())
             {
                 getProfilesCmd.Transaction = tran;
-                getProfilesCmd.CommandText = @"SELECT Id, Language FROM Profiles";
+                getProfilesCmd.CommandText = "SELECT \"Id\", \"Language\" FROM \"Profiles\"";
 
-                using (IDataReader profileReader = getProfilesCmd.ExecuteReader())
+                using (var profileReader = getProfilesCmd.ExecuteReader())
                 {
                     while (profileReader.Read())
                     {

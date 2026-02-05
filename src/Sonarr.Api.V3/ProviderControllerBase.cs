@@ -3,30 +3,46 @@ using System.Linq;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Serializer;
+using NzbDrone.Core.Datastore.Events;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.ThingiProvider;
+using NzbDrone.Core.ThingiProvider.Events;
 using NzbDrone.Core.Validation;
-using Sonarr.Http.Extensions;
+using NzbDrone.SignalR;
 using Sonarr.Http.REST;
 using Sonarr.Http.REST.Attributes;
 
 namespace Sonarr.Api.V3
 {
-    public abstract class ProviderControllerBase<TProviderResource, TProvider, TProviderDefinition> : RestController<TProviderResource>
+    public abstract class ProviderControllerBase<TProviderResource, TBulkProviderResource, TProvider, TProviderDefinition> : RestControllerWithSignalR<TProviderResource, TProviderDefinition>,
+        IHandle<ProviderAddedEvent<TProvider>>,
+        IHandle<ProviderUpdatedEvent<TProvider>>,
+        IHandle<ProviderDeletedEvent<TProvider>>
         where TProviderDefinition : ProviderDefinition, new()
         where TProvider : IProvider
         where TProviderResource : ProviderResource<TProviderResource>, new()
+        where TBulkProviderResource : ProviderBulkResource<TBulkProviderResource>, new()
     {
         private readonly IProviderFactory<TProvider, TProviderDefinition> _providerFactory;
         private readonly ProviderResourceMapper<TProviderResource, TProviderDefinition> _resourceMapper;
+        private readonly ProviderBulkResourceMapper<TBulkProviderResource, TProviderDefinition> _bulkResourceMapper;
 
-        protected ProviderControllerBase(IProviderFactory<TProvider, TProviderDefinition> providerFactory, string resource, ProviderResourceMapper<TProviderResource, TProviderDefinition> resourceMapper)
+        protected ProviderControllerBase(IBroadcastSignalRMessage signalRBroadcaster,
+            IProviderFactory<TProvider,
+            TProviderDefinition> providerFactory,
+            string resource,
+            ProviderResourceMapper<TProviderResource, TProviderDefinition> resourceMapper,
+            ProviderBulkResourceMapper<TBulkProviderResource, TProviderDefinition> bulkResourceMapper)
+            : base(signalRBroadcaster)
         {
             _providerFactory = providerFactory;
             _resourceMapper = resourceMapper;
+            _bulkResourceMapper = bulkResourceMapper;
 
             SharedValidator.RuleFor(c => c.Name).NotEmpty();
-            SharedValidator.RuleFor(c => c.Name).Must((v, c) => !_providerFactory.All().Any(p => p.Name == c && p.Id != v.Id)).WithMessage("Should be unique");
+            SharedValidator.RuleFor(c => c.Name).Must((v, c) => !_providerFactory.All().Any(p => p.Name.EqualsIgnoreCase(c) && p.Id != v.Id)).WithMessage("Should be unique");
             SharedValidator.RuleFor(c => c.Implementation).NotEmpty();
             SharedValidator.RuleFor(c => c.ConfigContract).NotEmpty();
 
@@ -45,11 +61,11 @@ namespace Sonarr.Api.V3
         [Produces("application/json")]
         public List<TProviderResource> GetAll()
         {
-            var providerDefinitions = _providerFactory.All().OrderBy(p => p.ImplementationName);
+            var providerDefinitions = _providerFactory.All();
 
-            var result = new List<TProviderResource>(providerDefinitions.Count());
+            var result = new List<TProviderResource>(providerDefinitions.Count);
 
-            foreach (var definition in providerDefinitions)
+            foreach (var definition in providerDefinitions.OrderBy(p => p.ImplementationName))
             {
                 _providerFactory.SetProviderCharacteristics(definition);
 
@@ -61,13 +77,14 @@ namespace Sonarr.Api.V3
 
         [RestPostById]
         [Consumes("application/json")]
-        public ActionResult<TProviderResource> CreateProvider(TProviderResource providerResource)
+        [Produces("application/json")]
+        public ActionResult<TProviderResource> CreateProvider([FromBody] TProviderResource providerResource, [FromQuery] bool forceSave = false)
         {
-            var providerDefinition = GetDefinition(providerResource, true, false, false);
+            var providerDefinition = GetDefinition(providerResource, null, true, !forceSave, false);
 
             if (providerDefinition.Enable)
             {
-                Test(providerDefinition, false);
+                Test(providerDefinition, !forceSave);
             }
 
             providerDefinition = _providerFactory.Create(providerDefinition);
@@ -77,25 +94,79 @@ namespace Sonarr.Api.V3
 
         [RestPutById]
         [Consumes("application/json")]
-        public ActionResult<TProviderResource> UpdateProvider(TProviderResource providerResource)
+        [Produces("application/json")]
+        public ActionResult<TProviderResource> UpdateProvider([FromRoute] int id, [FromBody] TProviderResource providerResource, [FromQuery] bool forceSave = false)
         {
-            var providerDefinition = GetDefinition(providerResource, true, false, false);
-            var forceSave = Request.GetBooleanQueryParameter("forceSave");
+            // TODO: Remove fallback to Id from body in next API version bump
+            var existingDefinition = _providerFactory.Find(id) ?? _providerFactory.Find(providerResource.Id);
 
-            // Only test existing definitions if it is enabled and forceSave isn't set.
-            if (providerDefinition.Enable && !forceSave)
+            if (existingDefinition == null)
             {
-                Test(providerDefinition, false);
+                return NotFound();
             }
 
-            _providerFactory.Update(providerDefinition);
+            var providerDefinition = GetDefinition(providerResource, existingDefinition, true, !forceSave, false);
 
-            return Accepted(providerResource.Id);
+            // Compare settings separately because they are not serialized with the definition.
+            var hasDefinitionChanged = !existingDefinition.Equals(providerDefinition) || !existingDefinition.Settings.Equals(providerDefinition.Settings);
+
+            // Only test existing definitions if it is enabled and forceSave isn't set and the definition has changed.
+            if (providerDefinition.Enable && !forceSave && hasDefinitionChanged)
+            {
+                Test(providerDefinition, true);
+            }
+
+            if (hasDefinitionChanged)
+            {
+                _providerFactory.Update(providerDefinition);
+            }
+
+            return Accepted(existingDefinition.Id);
         }
 
-        private TProviderDefinition GetDefinition(TProviderResource providerResource, bool validate, bool includeWarnings, bool forceValidate)
+        [HttpPut("bulk")]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public virtual ActionResult<TProviderResource> UpdateProvider([FromBody] TBulkProviderResource providerResource)
         {
-            var existingDefinition = providerResource.Id > 0 ? _providerFactory.Find(providerResource.Id) : null;
+            if (!providerResource.Ids.Any())
+            {
+                throw new BadRequestException("ids must be provided");
+            }
+
+            var definitionsToUpdate = _providerFactory.Get(providerResource.Ids).ToList();
+
+            foreach (var definition in definitionsToUpdate)
+            {
+                _providerFactory.SetProviderCharacteristics(definition);
+
+                if (providerResource.Tags != null)
+                {
+                    var newTags = providerResource.Tags;
+                    var applyTags = providerResource.ApplyTags;
+
+                    switch (applyTags)
+                    {
+                        case ApplyTags.Add:
+                            newTags.ForEach(t => definition.Tags.Add(t));
+                            break;
+                        case ApplyTags.Remove:
+                            newTags.ForEach(t => definition.Tags.Remove(t));
+                            break;
+                        case ApplyTags.Replace:
+                            definition.Tags = new HashSet<int>(newTags);
+                            break;
+                    }
+                }
+            }
+
+            _bulkResourceMapper.UpdateModel(providerResource, definitionsToUpdate);
+
+            return Accepted(_providerFactory.Update(definitionsToUpdate).Select(x => _resourceMapper.ToResource(x)));
+        }
+
+        private TProviderDefinition GetDefinition(TProviderResource providerResource, TProviderDefinition existingDefinition, bool validate, bool includeWarnings, bool forceValidate)
+        {
             var definition = _resourceMapper.ToModel(providerResource, existingDefinition);
 
             if (validate && (definition.Enable || forceValidate))
@@ -110,6 +181,15 @@ namespace Sonarr.Api.V3
         public object DeleteProvider(int id)
         {
             _providerFactory.Delete(id);
+
+            return new { };
+        }
+
+        [HttpDelete("bulk")]
+        [Consumes("application/json")]
+        public virtual object DeleteProviders([FromBody] TBulkProviderResource resource)
+        {
+            _providerFactory.Delete(resource.Ids);
 
             return new { };
         }
@@ -140,9 +220,10 @@ namespace Sonarr.Api.V3
         [SkipValidation(true, false)]
         [HttpPost("test")]
         [Consumes("application/json")]
-        public object Test([FromBody] TProviderResource providerResource)
+        public object Test([FromBody] TProviderResource providerResource, [FromQuery] bool forceTest = false)
         {
-            var providerDefinition = GetDefinition(providerResource, true, true, true);
+            var existingDefinition = providerResource.Id > 0 ? _providerFactory.Find(providerResource.Id) : null;
+            var providerDefinition = GetDefinition(providerResource, existingDefinition, true, !forceTest, true);
 
             Test(providerDefinition, true);
 
@@ -150,6 +231,7 @@ namespace Sonarr.Api.V3
         }
 
         [HttpPost("testall")]
+        [Produces("application/json")]
         public IActionResult TestAll()
         {
             var providerDefinitions = _providerFactory.All()
@@ -177,15 +259,35 @@ namespace Sonarr.Api.V3
         [SkipValidation]
         [HttpPost("action/{name}")]
         [Consumes("application/json")]
-        public IActionResult RequestAction(string name, [FromBody] TProviderResource resource)
+        [Produces("application/json")]
+        public IActionResult RequestAction([FromRoute] string name, [FromBody] TProviderResource providerResource)
         {
-            var providerDefinition = GetDefinition(resource, false, false, false);
+            var existingDefinition = providerResource.Id > 0 ? _providerFactory.Find(providerResource.Id) : null;
+            var providerDefinition = GetDefinition(providerResource, existingDefinition, false, false, false);
 
             var query = Request.Query.ToDictionary(x => x.Key, x => x.Value.ToString());
 
             var data = _providerFactory.RequestAction(providerDefinition, name, query);
 
             return Content(data.ToJson(), "application/json");
+        }
+
+        [NonAction]
+        public virtual void Handle(ProviderAddedEvent<TProvider> message)
+        {
+            BroadcastResourceChange(ModelAction.Created, message.Definition.Id);
+        }
+
+        [NonAction]
+        public virtual void Handle(ProviderUpdatedEvent<TProvider> message)
+        {
+            BroadcastResourceChange(ModelAction.Updated, message.Definition.Id);
+        }
+
+        [NonAction]
+        public virtual void Handle(ProviderDeletedEvent<TProvider> message)
+        {
+            BroadcastResourceChange(ModelAction.Deleted, message.ProviderId);
         }
 
         private void Validate(TProviderDefinition definition, bool includeWarnings)
@@ -204,7 +306,7 @@ namespace Sonarr.Api.V3
 
         protected void VerifyValidationResult(ValidationResult validationResult, bool includeWarnings)
         {
-            var result = new NzbDroneValidationResult(validationResult.Errors);
+            var result = validationResult as NzbDroneValidationResult ?? new NzbDroneValidationResult(validationResult.Errors);
 
             if (includeWarnings && (!result.IsValid || result.HasWarnings))
             {

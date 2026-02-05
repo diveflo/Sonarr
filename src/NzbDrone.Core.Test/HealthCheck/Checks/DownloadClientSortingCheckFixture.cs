@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Common.Disk;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.HealthCheck.Checks;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 
@@ -42,8 +40,12 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
                 .Returns(_clientStatus);
 
             Mocker.GetMock<IProvideDownloadClient>()
-                .Setup(s => s.GetDownloadClients())
+                .Setup(s => s.GetDownloadClients(It.IsAny<bool>()))
                 .Returns(new IDownloadClient[] { _downloadClient.Object });
+
+            Mocker.GetMock<ILocalizationService>()
+                .Setup(s => s.GetLocalizedString(It.IsAny<string>()))
+                .Returns("Some Warning Message");
         }
 
         [Test]

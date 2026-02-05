@@ -63,7 +63,9 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                                             sceneSeasonNumbers.Contains(n.SceneSeasonNumber ?? -1) ||
                                             ((n.SeasonNumber ?? -1) == -1 && (n.SceneSeasonNumber ?? -1) == -1 && n.SceneOrigin != "tvdb"))
                                 .Where(n => IsEnglish(n.SearchTerm))
-                                .Select(n => n.SearchTerm).Distinct().ToList();
+                                .Select(n => n.SearchTerm)
+                                .Distinct(StringComparer.InvariantCultureIgnoreCase)
+                                .ToList();
 
             return names;
         }
@@ -92,6 +94,11 @@ namespace NzbDrone.Core.DataAugmentation.Scene
 
         public SceneMapping FindSceneMapping(string seriesTitle, string releaseTitle, int sceneSeasonNumber)
         {
+            if (seriesTitle.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+
             var mappings = FindMappings(seriesTitle, releaseTitle);
 
             if (mappings == null)

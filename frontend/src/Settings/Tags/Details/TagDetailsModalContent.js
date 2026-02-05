@@ -8,6 +8,7 @@ import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import TagDetailsDelayProfile from './TagDetailsDelayProfile';
 import styles from './TagDetailsModalContent.css';
 
@@ -21,6 +22,7 @@ function TagDetailsModalContent(props) {
     notifications,
     releaseProfiles,
     indexers,
+    downloadClients,
     autoTags,
     onModalClose,
     onDeleteTagPress
@@ -29,18 +31,20 @@ function TagDetailsModalContent(props) {
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>
-        Tag Details - {label}
+        {translate('TagDetails', { label })}
       </ModalHeader>
 
       <ModalBody>
         {
           !isTagUsed &&
-            <div>Tag is not used and can be deleted</div>
+            <div>
+              {translate('TagIsNotUsedAndCanBeDeleted')}
+            </div>
         }
 
         {
           series.length ?
-            <FieldSet legend="Series">
+            <FieldSet legend={translate('Series')}>
               {
                 series.map((item) => {
                   return (
@@ -56,7 +60,7 @@ function TagDetailsModalContent(props) {
 
         {
           delayProfiles.length ?
-            <FieldSet legend="Delay Profile">
+            <FieldSet legend={translate('DelayProfile')}>
               {
                 delayProfiles.map((item) => {
                   const {
@@ -86,7 +90,7 @@ function TagDetailsModalContent(props) {
 
         {
           notifications.length ?
-            <FieldSet legend="Connections">
+            <FieldSet legend={translate('Connections')}>
               {
                 notifications.map((item) => {
                   return (
@@ -102,7 +106,7 @@ function TagDetailsModalContent(props) {
 
         {
           importLists.length ?
-            <FieldSet legend="Import Lists">
+            <FieldSet legend={translate('ImportLists')}>
               {
                 importLists.map((item) => {
                   return (
@@ -118,7 +122,7 @@ function TagDetailsModalContent(props) {
 
         {
           releaseProfiles.length ?
-            <FieldSet legend="Release Profiles">
+            <FieldSet legend={translate('ReleaseProfiles')}>
               {
                 releaseProfiles.map((item) => {
                   return (
@@ -165,7 +169,7 @@ function TagDetailsModalContent(props) {
 
         {
           indexers.length ?
-            <FieldSet legend="Indexers">
+            <FieldSet legend={translate('Indexers')}>
               {
                 indexers.map((item) => {
                   return (
@@ -180,8 +184,24 @@ function TagDetailsModalContent(props) {
         }
 
         {
+          downloadClients.length ?
+            <FieldSet legend={translate('DownloadClients')}>
+              {
+                downloadClients.map((item) => {
+                  return (
+                    <div key={item.id}>
+                      {item.name}
+                    </div>
+                  );
+                })
+              }
+            </FieldSet> :
+            null
+        }
+
+        {
           autoTags.length ?
-            <FieldSet legend="Auto Tagging">
+            <FieldSet legend={translate('AutoTagging')}>
               {
                 autoTags.map((item) => {
                   return (
@@ -201,18 +221,18 @@ function TagDetailsModalContent(props) {
           <Button
             className={styles.deleteButton}
             kind={kinds.DANGER}
-            title={isTagUsed ? 'Cannot be deleted while in use' : undefined}
+            title={isTagUsed ? translate('TagCannotBeDeletedWhileInUse') : undefined}
             isDisabled={isTagUsed}
             onPress={onDeleteTagPress}
           >
-            Delete
+            {translate('Delete')}
           </Button>
         }
 
         <Button
           onPress={onModalClose}
         >
-          Close
+          {translate('Close')}
         </Button>
       </ModalFooter>
     </ModalContent>
@@ -228,6 +248,7 @@ TagDetailsModalContent.propTypes = {
   notifications: PropTypes.arrayOf(PropTypes.object).isRequired,
   releaseProfiles: PropTypes.arrayOf(PropTypes.object).isRequired,
   indexers: PropTypes.arrayOf(PropTypes.object).isRequired,
+  downloadClients: PropTypes.arrayOf(PropTypes.object).isRequired,
   autoTags: PropTypes.arrayOf(PropTypes.object).isRequired,
   onModalClose: PropTypes.func.isRequired,
   onDeleteTagPress: PropTypes.func.isRequired

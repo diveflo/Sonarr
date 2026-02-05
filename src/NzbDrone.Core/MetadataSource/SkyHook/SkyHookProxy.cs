@@ -83,6 +83,27 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             return results;
         }
 
+        public List<Series> SearchForNewSeriesByAniListId(int aniListId)
+        {
+            var results = SearchForNewSeries($"anilist:{aniListId}");
+
+            return results;
+        }
+
+        public List<Series> SearchForNewSeriesByMyAnimeListId(int malId)
+        {
+            var results = SearchForNewSeries($"mal:{malId}");
+
+            return results;
+        }
+
+        public List<Series> SearchForNewSeriesByTmdbId(int tmdbId)
+        {
+            var results = SearchForNewSeries($"tmdb:{tmdbId}");
+
+            return results;
+        }
+
         public List<Series> SearchForNewSeries(string title)
         {
             try
@@ -93,9 +114,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                 {
                     var slug = lowerTitle.Split(':')[1].Trim();
 
-                    int tvdbId;
-
-                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace) || !int.TryParse(slug, out tvdbId) || tvdbId <= 0)
+                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace) || !int.TryParse(slug, out var tvdbId) || tvdbId <= 0)
                     {
                         return new List<Series>();
                     }
@@ -128,17 +147,17 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             catch (HttpException ex)
             {
                 _logger.Warn(ex);
-                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with SkyHook.", ex, title);
+                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with SkyHook. {1}", ex, title, ex.Message);
             }
             catch (WebException ex)
             {
                 _logger.Warn(ex);
-                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with SkyHook.", ex, title, ex.Message);
+                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with SkyHook. {1}", ex, title, ex.Message);
             }
             catch (Exception ex)
             {
                 _logger.Warn(ex);
-                throw new SkyHookException("Search for '{0}' failed. Invalid response received from SkyHook.", ex, title);
+                throw new SkyHookException("Search for '{0}' failed. Invalid response received from SkyHook. {1}", ex, title, ex.Message);
             }
         }
 
@@ -169,7 +188,14 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                 series.TvMazeId = show.TvMazeId.Value;
             }
 
+            if (show.TmdbId.HasValue)
+            {
+                series.TmdbId = show.TmdbId.Value;
+            }
+
             series.ImdbId = show.ImdbId;
+            series.MalIds = show.MalIds;
+            series.AniListIds = show.AniListIds;
             series.Title = show.Title;
             series.CleanTitle = Parser.Parser.CleanSeriesTitle(show.Title);
             series.SortTitle = SeriesTitleNormalizer.Normalize(show.Title, show.TvdbId);
@@ -182,6 +208,11 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             {
                 series.FirstAired = DateTime.ParseExact(show.FirstAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
                 series.Year = series.FirstAired.Value.Year;
+            }
+
+            if (show.LastAired != null)
+            {
+                series.LastAired = DateTime.ParseExact(show.LastAired, "yyyy-MM-dd", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
             }
 
             series.Overview = show.Overview;
@@ -255,6 +286,8 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
 
             episode.AirDate = oracleEpisode.AirDate;
             episode.AirDateUtc = oracleEpisode.AirDateUtc;
+            episode.Runtime = oracleEpisode.Runtime;
+            episode.FinaleType = oracleEpisode.FinaleType;
 
             episode.Ratings = MapRatings(oracleEpisode.Rating);
 
@@ -325,6 +358,8 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                     return MediaCoverTypes.Banner;
                 case "fanart":
                     return MediaCoverTypes.Fanart;
+                case "clearlogo":
+                    return MediaCoverTypes.Clearlogo;
                 default:
                     return MediaCoverTypes.Unknown;
             }

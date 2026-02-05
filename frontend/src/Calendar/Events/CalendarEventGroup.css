@@ -43,11 +43,21 @@
 .expandContainer,
 .collapseContainer {
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 
 .collapseContainer {
   margin-bottom: 5px;
+}
+
+.statusContainer {
+  display: flex;
+  align-items: center;
+
+   &:global(.fullColor) {
+    filter: var(--calendarFullColorFilter)
+  }
 }
 
 .statusIcon {

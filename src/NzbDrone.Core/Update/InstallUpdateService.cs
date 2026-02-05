@@ -83,7 +83,7 @@ namespace NzbDrone.Core.Update
         {
             EnsureAppDataSafety();
 
-            if (OsInfo.IsWindows || _configFileProvider.UpdateMechanism != UpdateMechanism.Script)
+            if (_configFileProvider.UpdateMechanism != UpdateMechanism.Script)
             {
                 var startupFolder = _appFolderInfo.StartUpFolder;
                 var uiFolder = Path.Combine(startupFolder, "UI");
@@ -105,7 +105,13 @@ namespace NzbDrone.Core.Update
                 return false;
             }
 
+            var tempFolder = _appFolderInfo.TempFolder;
             var updateSandboxFolder = _appFolderInfo.GetUpdateSandboxFolder();
+
+            if (_diskProvider.GetTotalSize(tempFolder) < 1.Gigabytes())
+            {
+                _logger.Warn("Temporary location '{0}' has less than 1 GB free space, Sonarr may not be able to update itself.", tempFolder);
+            }
 
             var packageDestination = Path.Combine(updateSandboxFolder, updatePackage.FileName);
 
@@ -137,7 +143,7 @@ namespace NzbDrone.Core.Update
 
             _backupService.Backup(BackupType.Update);
 
-            if (OsInfo.IsNotWindows && _configFileProvider.UpdateMechanism == UpdateMechanism.Script)
+            if (_configFileProvider.UpdateMechanism == UpdateMechanism.Script)
             {
                 InstallUpdateWithScript(updateSandboxFolder);
                 return true;
@@ -225,7 +231,7 @@ namespace NzbDrone.Core.Update
             }
         }
 
-        private UpdatePackage GetUpdatePackage(CommandTrigger updateTrigger)
+        private UpdatePackage GetUpdatePackage(CommandTrigger updateTrigger, bool installMajorUpdate)
         {
             _logger.ProgressDebug("Checking for updates");
 
@@ -237,15 +243,21 @@ namespace NzbDrone.Core.Update
                 return null;
             }
 
-            if (_osInfo.IsDocker)
+            if (latestAvailable.Version.Major > BuildInfo.Version.Major && !installMajorUpdate)
             {
-                _logger.ProgressDebug("Updating is disabled inside a docker container.  Please update the container image.");
+                _logger.ProgressInfo("Unable to install major update, please update update manually from System: Updates");
                 return null;
             }
 
-            if (OsInfo.IsNotWindows && !_configFileProvider.UpdateAutomatically && updateTrigger != CommandTrigger.Manual)
+            if (!_configFileProvider.UpdateAutomatically && updateTrigger != CommandTrigger.Manual)
             {
                 _logger.ProgressDebug("Auto-update not enabled, not installing available update.");
+                return null;
+            }
+
+            if (_configFileProvider.UpdateMechanism == UpdateMechanism.BuiltIn && _deploymentInfoProvider.PackageUpdateMechanism == UpdateMechanism.Docker)
+            {
+                _logger.ProgressDebug("Built-In updater disabled inside a docker container. Please update the container image.");
                 return null;
             }
 
@@ -266,7 +278,7 @@ namespace NzbDrone.Core.Update
 
         public void Execute(ApplicationUpdateCheckCommand message)
         {
-            if (GetUpdatePackage(message.Trigger) != null)
+            if (GetUpdatePackage(message.Trigger, true) != null)
             {
                 _commandQueueManager.Push(new ApplicationUpdateCommand(), trigger: message.Trigger);
             }
@@ -274,7 +286,7 @@ namespace NzbDrone.Core.Update
 
         public void Execute(ApplicationUpdateCommand message)
         {
-            var latestAvailable = GetUpdatePackage(message.Trigger);
+            var latestAvailable = GetUpdatePackage(message.Trigger, message.InstallMajorUpdate);
 
             if (latestAvailable != null)
             {

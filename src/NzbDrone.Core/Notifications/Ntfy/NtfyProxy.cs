@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Localization;
 
 namespace NzbDrone.Core.Notifications.Ntfy
 {
@@ -21,12 +22,13 @@ namespace NzbDrone.Core.Notifications.Ntfy
         private const string DEFAULT_PUSH_URL = "https://ntfy.sh";
 
         private readonly IHttpClient _httpClient;
-
+        private readonly ILocalizationService _localizationService;
         private readonly Logger _logger;
 
-        public NtfyProxy(IHttpClient httpClient, Logger logger)
+        public NtfyProxy(IHttpClient httpClient, ILocalizationService localizationService, Logger logger)
         {
             _httpClient = httpClient;
+            _localizationService = localizationService;
             _logger = logger;
         }
 
@@ -34,7 +36,7 @@ namespace NzbDrone.Core.Notifications.Ntfy
         {
             var error = false;
 
-            var serverUrl = settings.ServerUrl.IsNullOrWhiteSpace() ? NtfyProxy.DEFAULT_PUSH_URL : settings.ServerUrl;
+            var serverUrl = settings.ServerUrl.IsNullOrWhiteSpace() ? DEFAULT_PUSH_URL : settings.ServerUrl;
 
             foreach (var topic in settings.Topics)
             {
@@ -78,19 +80,31 @@ namespace NzbDrone.Core.Notifications.Ntfy
             }
             catch (HttpException ex)
             {
-                if (ex.Response.StatusCode == HttpStatusCode.Unauthorized || ex.Response.StatusCode == HttpStatusCode.Forbidden)
+                if (ex.Response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 {
+                    if (!settings.AccessToken.IsNullOrWhiteSpace())
+                    {
+                        _logger.Error(ex, "Invalid token");
+                        return new ValidationFailure("AccessToken", _localizationService.GetLocalizedString("NotificationsValidationInvalidAccessToken"));
+                    }
+
+                    if (!settings.UserName.IsNullOrWhiteSpace() && !settings.Password.IsNullOrWhiteSpace())
+                    {
+                        _logger.Error(ex, "Invalid username or password");
+                        return new ValidationFailure("UserName", _localizationService.GetLocalizedString("NotificationsValidationInvalidUsernamePassword"));
+                    }
+
                     _logger.Error(ex, "Authorization is required");
-                    return new ValidationFailure("UserName", "Authorization is required");
+                    return new ValidationFailure("AccessToken", _localizationService.GetLocalizedString("NotificationsNtfyValidationAuthorizationRequired"));
                 }
 
                 _logger.Error(ex, "Unable to send test message");
-                return new ValidationFailure("ServerUrl", "Unable to send test message");
+                return new ValidationFailure("ServerUrl", _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "Unable to send test message");
-                return new ValidationFailure("", "Unable to send test message");
+                return new ValidationFailure(string.Empty,  _localizationService.GetLocalizedString("NotificationsValidationUnableToSendTestMessage", new Dictionary<string, object> { { "exceptionMessage", ex.Message } }));
             }
 
             return null;
@@ -100,32 +114,36 @@ namespace NzbDrone.Core.Notifications.Ntfy
         {
             try
             {
-                requestBuilder.Headers.Add("X-Title", title);
-                requestBuilder.Headers.Add("X-Message", message);
-                requestBuilder.Headers.Add("X-Priority", settings.Priority.ToString());
+                requestBuilder.AddQueryParam("title", title);
+                requestBuilder.AddQueryParam("message", message);
+                requestBuilder.AddQueryParam("priority", settings.Priority.ToString());
 
                 if (settings.Tags.Any())
                 {
-                    requestBuilder.Headers.Add("X-Tags", settings.Tags.Join(","));
+                    requestBuilder.AddQueryParam("tags", settings.Tags.Join(","));
                 }
 
                 if (!settings.ClickUrl.IsNullOrWhiteSpace())
                 {
-                    requestBuilder.Headers.Add("X-Click", settings.ClickUrl);
+                    requestBuilder.AddQueryParam("click", settings.ClickUrl);
+                }
+
+                if (!settings.AccessToken.IsNullOrWhiteSpace())
+                {
+                    requestBuilder.Headers.Set("Authorization", $"Bearer {settings.AccessToken}");
+                }
+                else if (!settings.UserName.IsNullOrWhiteSpace() && !settings.Password.IsNullOrWhiteSpace())
+                {
+                    requestBuilder.NetworkCredential = new BasicNetworkCredential(settings.UserName, settings.Password);
                 }
 
                 var request = requestBuilder.Build();
-
-                if (!settings.UserName.IsNullOrWhiteSpace() && !settings.Password.IsNullOrWhiteSpace())
-                {
-                    request.Credentials = new BasicNetworkCredential(settings.UserName, settings.Password);
-                }
 
                 _httpClient.Execute(request);
             }
             catch (HttpException ex)
             {
-                if (ex.Response.StatusCode == HttpStatusCode.Unauthorized || ex.Response.StatusCode == HttpStatusCode.Forbidden)
+                if (ex.Response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 {
                     _logger.Error(ex, "Authorization is required");
                     throw;
