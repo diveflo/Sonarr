@@ -20,9 +20,10 @@ namespace NzbDrone.Core.CustomFormats
 
         public abstract NzbDroneValidationResult Validate();
 
-        public bool IsSatisfiedBy(CustomFormatInput input)
+        public virtual bool IsSatisfiedBy(CustomFormatInput input)
         {
             var match = IsSatisfiedByWithoutNegate(input);
+
             if (Negate)
             {
                 match = !match;

@@ -2,12 +2,15 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
+using DryIoc.ImTools;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
@@ -40,15 +43,15 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         }
 
         [Test]
-        public void should_parse_recent_feed_from_newznab_nzb_su()
+        public async Task should_parse_recent_feed_from_newznab_nzb_su()
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Newznab/newznab_nzb_su.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
-            var releases = Subject.FetchRecent();
+            var releases = await Subject.FetchRecent();
 
             releases.Should().HaveCount(100);
 
@@ -66,15 +69,15 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         }
 
         [Test]
-        public void should_parse_recent_feed_from_newznab_animetosho()
+        public async Task should_parse_recent_feed_from_newznab_animetosho()
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_animetosho.xml");
 
             Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Execute(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), recentFeed));
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
 
-            var releases = Subject.FetchRecent();
+            var releases = await Subject.FetchRecent();
 
             releases.Should().HaveCount(1);
 
@@ -94,19 +97,28 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         }
 
         [Test]
-        public void should_use_pagesize_reported_by_caps()
+        public void should_use_best_pagesize_reported_by_caps()
         {
             _caps.MaxPageSize = 30;
             _caps.DefaultPageSize = 25;
 
-            Subject.PageSize.Should().Be(25);
+            Subject.PageSize.Should().Be(30);
         }
 
         [Test]
-        public void should_record_indexer_failure_if_caps_throw()
+        public void should_not_use_pagesize_over_100_even_if_reported_in_caps()
+        {
+            _caps.MaxPageSize = 250;
+            _caps.DefaultPageSize = 25;
+
+            Subject.PageSize.Should().Be(100);
+        }
+
+        [Test]
+        public async Task should_record_indexer_failure_if_caps_throw()
         {
             var request = new HttpRequest("http://my.indexer.com");
-            var response = new HttpResponse(request, new HttpHeader(), new byte[0], (HttpStatusCode)429);
+            var response = new HttpResponse(request, new HttpHeader(), Array.Empty<byte>(), (HttpStatusCode)429);
             response.Headers["Retry-After"] = "300";
 
             Mocker.GetMock<INewznabCapabilitiesProvider>()
@@ -116,12 +128,56 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
             _caps.MaxPageSize = 30;
             _caps.DefaultPageSize = 25;
 
-            Subject.FetchRecent().Should().BeEmpty();
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().BeEmpty();
 
             Mocker.GetMock<IIndexerStatusService>()
                   .Verify(v => v.RecordFailure(It.IsAny<int>(), TimeSpan.FromMinutes(5.0)), Times.Once());
 
             ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public async Task should_parse_languages()
+        {
+            var recentFeed = ReadAllText(@"Files/Indexers/Newznab/newznab_language.xml");
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().HaveCount(100);
+
+            releases[0].Languages.Should().BeEquivalentTo(new[] { Language.English, Language.Japanese });
+            releases[1].Languages.Should().BeEquivalentTo(new[] { Language.English, Language.Spanish });
+            releases[2].Languages.Should().BeEquivalentTo(new[] { Language.French });
+        }
+
+        [TestCase("no custom attributes")]
+        [TestCase("prematch=1 attribute", IndexerFlags.Scene)]
+        [TestCase("haspretime=1 attribute", IndexerFlags.Scene)]
+        [TestCase("prematch=0 attribute")]
+        [TestCase("haspretime=0 attribute")]
+        [TestCase("nuked=1 attribute", IndexerFlags.Nuked)]
+        [TestCase("nuked=0 attribute")]
+        [TestCase("prematch=1 and nuked=1 attributes", IndexerFlags.Scene, IndexerFlags.Nuked)]
+        [TestCase("haspretime=0 and nuked=0 attributes")]
+        public async Task should_parse_indexer_flags(string releaseGuid, params IndexerFlags[] indexerFlags)
+        {
+            var feed = ReadAllText(@"Files/Indexers/Newznab/newznab_indexerflags.xml");
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), feed)));
+
+            var releases = await Subject.FetchRecent();
+
+            var release = releases.Should().ContainSingle(r => r.Guid == releaseGuid).Subject;
+
+            indexerFlags.ForEach(f => release.IndexerFlags.Should().HaveFlag(f));
         }
     }
 }

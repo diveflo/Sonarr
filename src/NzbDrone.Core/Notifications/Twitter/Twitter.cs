@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Exceptions;
@@ -28,9 +28,19 @@ namespace NzbDrone.Core.Notifications.Twitter
             _twitterService.SendNotification($"Imported: {message.Message}", Settings);
         }
 
+        public override void OnImportComplete(ImportCompleteMessage message)
+        {
+            _twitterService.SendNotification($"Imported: {message.Message}", Settings);
+        }
+
         public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
         {
             _twitterService.SendNotification($"Episode Deleted: {deleteMessage.Message}", Settings);
+        }
+
+        public override void OnSeriesAdd(SeriesAddMessage message)
+        {
+            _twitterService.SendNotification($"Series Added: {message.Message}", Settings);
         }
 
         public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
@@ -43,9 +53,19 @@ namespace NzbDrone.Core.Notifications.Twitter
             _twitterService.SendNotification($"Health Issue: {healthCheck.Message}", Settings);
         }
 
+        public override void OnHealthRestored(HealthCheck.HealthCheck previousCheck)
+        {
+            _twitterService.SendNotification($"Health Issue Resolved: {previousCheck.Message}", Settings);
+        }
+
         public override void OnApplicationUpdate(ApplicationUpdateMessage updateMessage)
         {
             _twitterService.SendNotification($"Application Updated: {updateMessage.Message}", Settings);
+        }
+
+        public override void OnManualInteractionRequired(ManualInteractionRequiredMessage message)
+        {
+            _twitterService.SendNotification($"Manual Interaction Required: {message.Message}", Settings);
         }
 
         public override object RequestAction(string action, IDictionary<string, string> query)

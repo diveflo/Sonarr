@@ -21,7 +21,6 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
         private Series _unmonitoredSeries;
         private PagingSpec<Episode> _pagingSpec;
         private List<QualitiesBelowCutoff> _qualitiesBelowCutoff;
-        private List<LanguagesBelowCutoff> _languagesBelowCutoff;
         private List<Episode> _unairedEpisodes;
 
         [SetUp]
@@ -71,11 +70,6 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
                                         new QualitiesBelowCutoff(profile.Id, new[] { Quality.SDTV.Id })
                                     };
 
-            _languagesBelowCutoff = new List<LanguagesBelowCutoff>
-                                    {
-                                        new LanguagesBelowCutoff(profile.Id, new[] { Language.English.Id })
-                                    };
-
             var qualityMetLanguageUnmet = new EpisodeFile { RelativePath = "a", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Languages = new List<Language> { Language.English } };
             var qualityMetLanguageMet = new EpisodeFile { RelativePath = "b", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Languages = new List<Language> { Language.Spanish } };
             var qualityMetLanguageExceed = new EpisodeFile { RelativePath = "c", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Languages = new List<Language> { Language.French } };
@@ -86,7 +80,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
             var qualityRawHDLanguageMet = new EpisodeFile { RelativePath = "h", Quality = new QualityModel { Quality = Quality.RAWHD }, Languages = new List<Language> { Language.Spanish } };
             var qualityRawHDLanguageExceed = new EpisodeFile { RelativePath = "i", Quality = new QualityModel { Quality = Quality.RAWHD }, Languages = new List<Language> { Language.French } };
 
-            MediaFileRepository fileRepository = Mocker.Resolve<MediaFileRepository>();
+            var fileRepository = Mocker.Resolve<MediaFileRepository>();
 
             qualityMetLanguageUnmet = fileRepository.Insert(qualityMetLanguageUnmet);
             qualityMetLanguageMet = fileRepository.Insert(qualityMetLanguageMet);
@@ -157,7 +151,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
         {
             GivenMonitoredFilterExpression();
 
-            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, _languagesBelowCutoff, false);
+            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false);
 
             spec.Records.Should().HaveCount(1);
             spec.Records.Should().OnlyContain(e => e.EpisodeFile.Value.Quality.Quality == Quality.SDTV);
@@ -168,7 +162,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
         {
             GivenMonitoredFilterExpression();
 
-            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, _languagesBelowCutoff, false);
+            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false);
 
             spec.Records.Should().HaveCount(1);
             spec.Records.Should().OnlyContain(e => e.Monitored);
@@ -179,7 +173,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
         {
             GivenMonitoredFilterExpression();
 
-            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, _languagesBelowCutoff, false);
+            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false);
 
             spec.Records.Should().HaveCount(1);
             spec.Records.Should().OnlyContain(e => e.Series.Monitored);
@@ -192,7 +186,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeRepositoryTests
 
             GivenMonitoredFilterExpression();
 
-            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, _languagesBelowCutoff, false);
+            var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false);
 
             spec.Records.Should().HaveCount(2);
             spec.Records.Should().OnlyContain(e => e.Series.Monitored);

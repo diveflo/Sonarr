@@ -5,6 +5,7 @@ import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import EditQualityProfileModalConnector from './EditQualityProfileModalConnector';
 import QualityProfile from './QualityProfile';
 import styles from './QualityProfiles.css';
@@ -51,10 +52,10 @@ class QualityProfiles extends Component {
     } = this.props;
 
     return (
-      <FieldSet legend="Quality Profiles">
+      <FieldSet legend={translate('QualityProfiles')}>
         <PageSectionContent
-          errorMessage="Unable to load Quality Profiles"
-          {...otherProps}c={true}
+          errorMessage={translate('QualityProfilesLoadError')}
+          {...otherProps}
         >
           <div className={styles.qualityProfiles}>
             {

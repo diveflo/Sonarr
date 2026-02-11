@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NzbDrone.Common.Http.Proxy;
+using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.Qualities;
@@ -20,6 +21,7 @@ namespace NzbDrone.Core.Configuration
         // Completed/Failed Download Handling (Download client)
         bool EnableCompletedDownloadHandling { get; set; }
         bool AutoRedownloadFailed { get; set; }
+        bool AutoRedownloadFailedFromInteractiveSearch { get; set; }
 
         // Media Management
         bool AutoUnmonitorPreviouslyDownloadedEpisodes { get; set; }
@@ -33,6 +35,8 @@ namespace NzbDrone.Core.Configuration
         int MinimumFreeSpaceWhenImporting { get; set; }
         bool CopyUsingHardlinks { get; set; }
         bool EnableMediaInfo { get; set; }
+        bool UseScriptImport { get; set; }
+        string ScriptImportPath { get; set; }
         bool ImportExtraFiles { get; set; }
         string ExtraFileExtensions { get; set; }
         RescanAfterRefreshType RescanAfterRefresh { get; set; }
@@ -48,6 +52,9 @@ namespace NzbDrone.Core.Configuration
         int RssSyncInterval { get; set; }
         int MaximumSize { get; set; }
         int MinimumAge { get; set; }
+
+        ListSyncLevelType ListSyncLevel { get; set; }
+        int ListSyncTag { get; set; }
 
         // UI
         int FirstDayOfWeek { get; set; }

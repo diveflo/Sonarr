@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using FluentMigrator.Model;
@@ -201,7 +201,7 @@ namespace NzbDrone.Core.Datastore.Migration.Framework
 
         public virtual IList<TableDefinition> ReadDbSchema()
         {
-            IList<TableDefinition> tables = ReadTables();
+            var tables = ReadTables();
             foreach (var table in tables)
             {
                 table.Indexes = ReadIndexes(table.SchemaName, table.Name);
@@ -219,7 +219,7 @@ namespace NzbDrone.Core.Datastore.Migration.Framework
 
         protected virtual IList<TableDefinition> ReadTables()
         {
-            const string sqlCommand = @"SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;";
+            const string sqlCommand = @"SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_litestream_%' ORDER BY name;";
             var dtTable = Read(sqlCommand).Tables[0];
 
             var tableDefinitionList = new List<TableDefinition>();
@@ -264,7 +264,7 @@ namespace NzbDrone.Core.Datastore.Migration.Framework
         protected virtual IList<IndexDefinition> ReadIndexes(string schemaName, string tableName)
         {
             var sqlCommand = string.Format(@"SELECT type, name, sql FROM sqlite_master WHERE tbl_name = '{0}' AND type = 'index' AND name NOT LIKE 'sqlite_auto%';", tableName);
-            DataTable table = Read(sqlCommand).Tables[0];
+            var table = Read(sqlCommand).Tables[0];
 
             IList<IndexDefinition> indexes = new List<IndexDefinition>();
 

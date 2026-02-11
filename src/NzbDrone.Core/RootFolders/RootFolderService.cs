@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common;
+using NzbDrone.Common.Cache;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Organizer;
@@ -30,6 +31,8 @@ namespace NzbDrone.Core.RootFolders
         private readonly INamingConfigService _namingConfigService;
         private readonly Logger _logger;
 
+        private readonly ICached<string> _cache;
+
         private static readonly HashSet<string> SpecialFolders = new HashSet<string>
                                                                  {
                                                                      "$recycle.bin",
@@ -47,6 +50,7 @@ namespace NzbDrone.Core.RootFolders
                                  IDiskProvider diskProvider,
                                  ISeriesRepository seriesRepository,
                                  INamingConfigService namingConfigService,
+                                 ICacheManager cacheManager,
                                  Logger logger)
         {
             _rootFolderRepository = rootFolderRepository;
@@ -54,6 +58,8 @@ namespace NzbDrone.Core.RootFolders
             _seriesRepository = seriesRepository;
             _namingConfigService = namingConfigService;
             _logger = logger;
+
+            _cache = cacheManager.GetCache<string>(GetType());
         }
 
         public List<RootFolder> All()
@@ -72,7 +78,7 @@ namespace NzbDrone.Core.RootFolders
             {
                 try
                 {
-                    if (folder.Path.IsPathValid())
+                    if (folder.Path.IsPathValid(PathValidationType.CurrentOs))
                     {
                         GetDetails(folder, seriesPaths, true);
                     }
@@ -110,13 +116,14 @@ namespace NzbDrone.Core.RootFolders
 
             if (!_diskProvider.FolderWritable(rootFolder.Path))
             {
-                throw new UnauthorizedAccessException(string.Format("Root folder path '{0}' is not writable by user '{1}'", rootFolder.Path, Environment.UserName));
+                throw new UnauthorizedAccessException($"Root folder path '{rootFolder.Path}' is not writable by user '{Environment.UserName}'");
             }
 
             _rootFolderRepository.Insert(rootFolder);
             var seriesPaths = _seriesRepository.AllSeriesPaths();
 
             GetDetails(rootFolder, seriesPaths, true);
+            _cache.Clear();
 
             return rootFolder;
         }
@@ -124,6 +131,7 @@ namespace NzbDrone.Core.RootFolders
         public void Remove(int id)
         {
             _rootFolderRepository.Delete(id);
+            _cache.Clear();
         }
 
         private List<UnmappedFolder> GetUnmappedFolders(string path, Dictionary<int, string> seriesPaths)
@@ -148,7 +156,7 @@ namespace NzbDrone.Core.RootFolders
 
             if (subFolderDepth > 0)
             {
-                for (int i = 0; i < subFolderDepth; i++)
+                for (var i = 0; i < subFolderDepth; i++)
                 {
                     possibleSeriesFolders = possibleSeriesFolders.SelectMany(_diskProvider.GetDirectories).ToList();
                 }
@@ -186,22 +194,13 @@ namespace NzbDrone.Core.RootFolders
 
         public string GetBestRootFolderPath(string path)
         {
-            var possibleRootFolder = All().Where(r => r.Path.IsParentPath(path))
-                                          .OrderByDescending(r => r.Path.Length)
-                                          .FirstOrDefault();
-
-            if (possibleRootFolder == null)
-            {
-                return _diskProvider.GetParentFolder(path);
-            }
-
-            return possibleRootFolder.Path;
+            return _cache.Get(path, () => GetBestRootFolderPathInternal(path), TimeSpan.FromDays(1));
         }
 
         private void GetDetails(RootFolder rootFolder, Dictionary<int, string> seriesPaths, bool timeout)
         {
-            // Task.Run(() =>
-            // {
+            Task.Run(() =>
+            {
                 if (_diskProvider.FolderExists(rootFolder.Path))
                 {
                     rootFolder.Accessible = true;
@@ -209,8 +208,21 @@ namespace NzbDrone.Core.RootFolders
                     rootFolder.TotalSpace = _diskProvider.GetTotalSize(rootFolder.Path);
                     rootFolder.UnmappedFolders = GetUnmappedFolders(rootFolder.Path, seriesPaths);
                 }
+            }).Wait(timeout ? 5000 : -1);
+        }
 
-            // }).Wait(timeout ? 5000 : -1);
+        private string GetBestRootFolderPathInternal(string path)
+        {
+            var possibleRootFolder = All().Where(r => r.Path.IsParentPath(path)).MaxBy(r => r.Path.Length);
+
+            if (possibleRootFolder == null)
+            {
+                var osPath = new OsPath(path);
+
+                return osPath.Directory.ToString().GetCleanPath();
+            }
+
+            return possibleRootFolder.Path.GetCleanPath();
         }
     }
 }

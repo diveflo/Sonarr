@@ -10,6 +10,10 @@ const fuseOptions = {
   keys: [
     'title',
     'alternateTitles.title',
+    'tvdbId',
+    'tvMazeId',
+    'imdbId',
+    'tmdbId',
     'tags.label'
   ]
 };
@@ -33,7 +37,7 @@ function getSuggestions(series, value) {
               key: 'title'
             }
           ],
-          arrayIndex: 0
+          refIndex: 0
         });
         if (suggestions.length > limit) {
           break;

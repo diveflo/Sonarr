@@ -2,8 +2,6 @@ using System;
 using System.IO;
 using System.Net.Sockets;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Exceptions;
@@ -115,11 +113,11 @@ namespace NzbDrone.Console
                     }
 
                     System.Console.WriteLine("Non-recoverable failure, waiting for user intervention...");
-                    for (int i = 0; i < 3600; i++)
+                    for (var i = 0; i < 3600; i++)
                     {
                         System.Threading.Thread.Sleep(1000);
 
-                        if (System.Console.KeyAvailable)
+                        if (!System.Console.IsInputRedirected && System.Console.KeyAvailable)
                         {
                             break;
                         }

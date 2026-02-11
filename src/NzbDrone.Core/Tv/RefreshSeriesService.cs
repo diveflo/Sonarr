@@ -92,7 +92,10 @@ namespace NzbDrone.Core.Tv
             series.TitleSlug = seriesInfo.TitleSlug;
             series.TvRageId = seriesInfo.TvRageId;
             series.TvMazeId = seriesInfo.TvMazeId;
+            series.TmdbId = seriesInfo.TmdbId;
             series.ImdbId = seriesInfo.ImdbId;
+            series.MalIds = seriesInfo.MalIds;
+            series.AniListIds = seriesInfo.AniListIds;
             series.AirTime = seriesInfo.AirTime;
             series.Overview = seriesInfo.Overview;
             series.OriginalLanguage = seriesInfo.OriginalLanguage;
@@ -104,6 +107,7 @@ namespace NzbDrone.Core.Tv
             series.Images = seriesInfo.Images;
             series.Network = seriesInfo.Network;
             series.FirstAired = seriesInfo.FirstAired;
+            series.LastAired = seriesInfo.LastAired;
             series.Ratings = seriesInfo.Ratings;
             series.Actors = seriesInfo.Actors;
             series.Genres = seriesInfo.Genres;
@@ -138,7 +142,6 @@ namespace NzbDrone.Core.Tv
             {
                 var existingSeason = series.Seasons.FirstOrDefault(s => s.SeasonNumber == season.SeasonNumber);
 
-                // Todo: Should this should use the previous season's monitored state?
                 if (existingSeason == null)
                 {
                     if (season.SeasonNumber == 0)
@@ -148,8 +151,10 @@ namespace NzbDrone.Core.Tv
                         continue;
                     }
 
-                    _logger.Debug("New season ({0}) for series: [{1}] {2}, setting monitored to {3}", season.SeasonNumber, series.TvdbId, series.Title, series.Monitored.ToString().ToLowerInvariant());
-                    season.Monitored = series.Monitored;
+                    var monitorNewSeasons = series.MonitorNewItems == NewItemMonitorTypes.All;
+
+                    _logger.Debug("New season ({0}) for series: [{1}] {2}, setting monitored to {3}", season.SeasonNumber, series.TvdbId, series.Title, monitorNewSeasons.ToString().ToLowerInvariant());
+                    season.Monitored = monitorNewSeasons;
                 }
                 else
                 {
@@ -195,34 +200,11 @@ namespace NzbDrone.Core.Tv
 
         private void UpdateTags(Series series)
         {
-            _logger.Trace("Updating tags for {0}", series);
+            var tagsUpdated = _seriesService.UpdateTags(series);
 
-            var tagsAdded = new HashSet<int>();
-            var tagsRemoved = new HashSet<int>();
-            var changes = _autoTaggingService.GetTagChanges(series);
-
-            foreach (var tag in changes.TagsToRemove)
-            {
-                if (series.Tags.Contains(tag))
-                {
-                    series.Tags.Remove(tag);
-                    tagsRemoved.Add(tag);
-                }
-            }
-
-            foreach (var tag in changes.TagsToAdd)
-            {
-                if (!series.Tags.Contains(tag))
-                {
-                    series.Tags.Add(tag);
-                    tagsAdded.Add(tag);
-                }
-            }
-
-            if (tagsAdded.Any() || tagsRemoved.Any())
+            if (tagsUpdated)
             {
                 _seriesService.UpdateSeries(series);
-                _logger.Debug("Updated tags for '{0}'. Added: {1}, Removed: {2}", series.Title, tagsAdded.Count, tagsRemoved.Count);
             }
         }
 
@@ -232,26 +214,29 @@ namespace NzbDrone.Core.Tv
             var isNew = message.IsNewSeries;
             _eventAggregator.PublishEvent(new SeriesRefreshStartingEvent(trigger == CommandTrigger.Manual));
 
-            if (message.SeriesId.HasValue)
+            if (message.SeriesIds.Any())
             {
-                var series = _seriesService.GetSeries(message.SeriesId.Value);
+                foreach (var seriesId in message.SeriesIds)
+                {
+                    var series = _seriesService.GetSeries(seriesId);
 
-                try
-                {
-                    series = RefreshSeriesInfo(message.SeriesId.Value);
-                    UpdateTags(series);
-                    RescanSeries(series, isNew, trigger);
-                }
-                catch (SeriesNotFoundException)
-                {
-                    _logger.Error("Series '{0}' (tvdbid {1}) was not found, it may have been removed from TheTVDB.", series.Title, series.TvdbId);
-                }
-                catch (Exception e)
-                {
-                    _logger.Error(e, "Couldn't refresh info for {0}", series);
-                    UpdateTags(series);
-                    RescanSeries(series, isNew, trigger);
-                    throw;
+                    try
+                    {
+                        series = RefreshSeriesInfo(seriesId);
+                        UpdateTags(series);
+                        RescanSeries(series, isNew, trigger);
+                    }
+                    catch (SeriesNotFoundException)
+                    {
+                        _logger.Error("Series '{0}' (tvdbid {1}) was not found, it may have been removed from TheTVDB.", series.Title, series.TvdbId);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Error(e, "Couldn't refresh info for {0}", series);
+                        UpdateTags(series);
+                        RescanSeries(series, isNew, trigger);
+                        throw;
+                    }
                 }
             }
             else

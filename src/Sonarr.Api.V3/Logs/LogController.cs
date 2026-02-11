@@ -1,5 +1,8 @@
-using System.Linq;
+using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Instrumentation;
 using Sonarr.Http;
 using Sonarr.Http.Extensions;
@@ -10,29 +13,38 @@ namespace Sonarr.Api.V3.Logs
     public class LogController : Controller
     {
         private readonly ILogService _logService;
+        private readonly IConfigFileProvider _configFileProvider;
 
-        public LogController(ILogService logService)
+        public LogController(ILogService logService, IConfigFileProvider configFileProvider)
         {
             _logService = logService;
+            _configFileProvider = configFileProvider;
         }
 
         [HttpGet]
         [Produces("application/json")]
-        public PagingResource<LogResource> GetLogs()
+        public PagingResource<LogResource> GetLogs([FromQuery] PagingRequestResource paging, string level)
         {
-            var pagingResource = Request.ReadPagingResourceFromRequest<LogResource>();
-            var pageSpec = pagingResource.MapToPagingSpec<LogResource, Log>();
+            if (!_configFileProvider.LogDbEnabled)
+            {
+                return new PagingResource<LogResource>();
+            }
+
+            var pagingResource = new PagingResource<LogResource>(paging);
+            var pageSpec = pagingResource.MapToPagingSpec<LogResource, Log>(new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "id",
+                "time"
+            });
 
             if (pageSpec.SortKey == "time")
             {
                 pageSpec.SortKey = "id";
             }
 
-            var levelFilter = pagingResource.Filters.FirstOrDefault(f => f.Key == "level");
-
-            if (levelFilter != null)
+            if (level.IsNotNullOrWhiteSpace())
             {
-                switch (levelFilter.Value)
+                switch (level)
                 {
                     case "fatal":
                         pageSpec.FilterExpressions.Add(h => h.Level == "Fatal");

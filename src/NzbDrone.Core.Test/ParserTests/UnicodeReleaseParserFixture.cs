@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Indexers;
@@ -55,6 +51,10 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[Skymoon-Raws] Anime-Series Title S02 - 01 [ViuTV][CHT][WEB-DL][1080p][AVC AAC][MP4+ASS]", "Anime-Series Title S2", "Skymoon-Raws", 1)]
         [TestCase("[orion origin] Anime-Series Title S02[07][1080p][H264 AAC][CHS][ENG＆JPN stidio]", "Anime-Series Title S2", "orion origin", 7)]
         [TestCase("[UHA-WINGS][Anime-Series Title S02][01][x264 1080p][CHT].mp4", "Anime-Series Title S2", "UHA-WINGS", 1)]
+        [TestCase("[Suzuya Raws] 腼腆英雄 东京夺还篇 / Series 2nd Season - 01 [CR WebRip 1080p HEVC-10bit AAC][Multi-Subs]", "Series 2nd Season", "Suzuya Raws", 1)]
+        [TestCase("[ANi] SERIES / SERIES 靦腆英雄 - 11 [1080P][Baha][WEB-DL][AAC AVC][CHT][MP4]", "SERIES", "ANi", 11)]
+        [TestCase("[Q] 全职高手 第3季 / Series S3 - 09 (1080p HBR HEVC Multi-Sub)", "Series S3", "Q", 9)]
+        [TestCase("[Q] 全职高手 第3季 | Series S3 - 09 (1080p HBR HEVC Multi-Sub)", "Series S3", "Q", 9)]
         public void should_parse_chinese_anime_season_episode_releases(string postTitle, string title, string subgroup, int absoluteEpisodeNumber)
         {
             postTitle = XmlCleaner.ReplaceUnicode(postTitle);
@@ -75,6 +75,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[NC-Raws] ANIME-SERIES TITLE－影宅－ / Anime-Series Title - 07 [Baha][WEB-DL][1080p][AVC AAC][CHT][MP4]", "Anime-Series Title", "NC-Raws", 7)]
         [TestCase("[OPFans楓雪動漫][ANIME SERIES 海賊王][第1008話][典藏版][1080P][MKV][簡繁]", "ANIME SERIES", "OPFans", 1008)]
         [TestCase("[Skymoon-Raws][Anime Series 海賊王][1008][ViuTV][WEB-RIP][CHT][SRTx2][1080p][MKV]", "Anime Series", "Skymoon-Raws", 1008)]
+        [TestCase("[银光字幕组][名侦探柯南·Series Title][871][信长四五〇事件][繁日][HDrip][X264-AAC][720P][MP4]", "Series Title", "银光字幕组", 871)]
         public void should_parse_unbracketed_chinese_anime_releases(string postTitle, string title, string subgroup, int absoluteEpisodeNumber)
         {
             postTitle = XmlCleaner.ReplaceUnicode(postTitle);

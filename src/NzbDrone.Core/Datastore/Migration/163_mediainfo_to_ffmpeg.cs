@@ -47,7 +47,7 @@ namespace NzbDrone.Core.Datastore.Migration
 
         private void MigrateToFfprobe(IDbConnection conn, IDbTransaction tran)
         {
-            var existing = conn.Query<MediaInfoRaw>("SELECT Id, MediaInfo, SceneName FROM EpisodeFiles");
+            var existing = conn.Query<MediaInfoRaw>("SELECT \"Id\", \"MediaInfo\", \"SceneName\" FROM \"EpisodeFiles\"");
 
             var updated = new List<MediaInfoRaw>();
 
@@ -78,7 +78,7 @@ namespace NzbDrone.Core.Datastore.Migration
                 });
             }
 
-            var updateSql = "UPDATE EpisodeFiles SET MediaInfo = @MediaInfo WHERE Id = @Id";
+            var updateSql = "UPDATE \"EpisodeFiles\" SET \"MediaInfo\" = @MediaInfo WHERE \"Id\" = @Id";
             conn.Execute(updateSql, updated, transaction: tran);
         }
 
@@ -627,13 +627,13 @@ namespace NzbDrone.Core.Datastore.Migration
 
             try
             {
-                if (audioChannelPositions.Contains("+"))
+                if (audioChannelPositions.Contains('+'))
                 {
                     return audioChannelPositions.Split('+')
                         .Sum(s => decimal.Parse(s.Trim(), CultureInfo.InvariantCulture));
                 }
 
-                if (audioChannelPositions.Contains("/"))
+                if (audioChannelPositions.Contains('/'))
                 {
                     var channelStringList = Regex.Replace(audioChannelPositions,
                             @"^\d+\sobjects",
@@ -748,7 +748,7 @@ namespace NzbDrone.Core.Datastore.Migration
             var tokens = mediaInfoLanguages.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
             var cultures = CultureInfo.GetCultures(CultureTypes.NeutralCultures);
-            for (int i = 0; i < tokens.Count; i++)
+            for (var i = 0; i < tokens.Count; i++)
             {
                 if (tokens[i] == "Swedis")
                 {

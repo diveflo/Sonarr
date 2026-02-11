@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Organizer;
 
@@ -44,8 +44,30 @@ namespace NzbDrone.Core.Parser
                                                                new IsoLanguage("sk", "", "slk", Language.Slovak),
                                                                new IsoLanguage("th", "th", "tha", Language.Thai),
                                                                new IsoLanguage("pt", "br", "por", Language.PortugueseBrazil),
-                                                               new IsoLanguage("es", "mx", "spa", Language.SpanishLatino)
+                                                               new IsoLanguage("es", "mx", "spa", Language.SpanishLatino),
+                                                               new IsoLanguage("ro", "", "ron", Language.Romanian),
+                                                               new IsoLanguage("lv", "", "lav", Language.Latvian),
+                                                               new IsoLanguage("fa", "", "fas", Language.Persian),
+                                                               new IsoLanguage("ca", "", "cat", Language.Catalan),
+                                                               new IsoLanguage("hr", "", "hrv", Language.Croatian),
+                                                               new IsoLanguage("sr", "", "srp", Language.Serbian),
+                                                               new IsoLanguage("bs", "", "bos", Language.Bosnian),
+                                                               new IsoLanguage("et", "", "est", Language.Estonian),
+                                                               new IsoLanguage("ta", "", "tam", Language.Tamil),
+                                                               new IsoLanguage("id", "", "ind", Language.Indonesian),
+                                                               new IsoLanguage("mk", "", "mkd", Language.Macedonian),
+                                                               new IsoLanguage("sl", "", "slv", Language.Slovenian),
                                                            };
+
+        private static readonly Dictionary<string, Language> AlternateIsoCodeMappings = new Dictionary<string, Language>
+        {
+            { "cze", Language.Czech },
+            { "dut", Language.Dutch },
+            { "mac", Language.Macedonian },
+            { "rum", Language.Romanian },
+            { "yue", Language.Chinese },
+            { "zhtw", Language.Chinese }
+        };
 
         public static IsoLanguage Find(string isoCode)
         {
@@ -66,6 +88,10 @@ namespace NzbDrone.Core.Parser
 
                 return isoLanguages.FirstOrDefault();
             }
+            else if (AlternateIsoCodeMappings.TryGetValue(isoCode, out var alternateLanguage))
+            {
+                return Get(alternateLanguage);
+            }
             else if (langCode.Length == 3)
             {
                 // Lookup ISO639-2T code
@@ -83,6 +109,11 @@ namespace NzbDrone.Core.Parser
         public static IsoLanguage Get(Language language)
         {
             return All.FirstOrDefault(l => l.Language == language);
+        }
+
+        public static IsoLanguage FindByName(string name)
+        {
+            return All.FirstOrDefault(l => l.Language.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
         }
     }
 }

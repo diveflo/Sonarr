@@ -20,7 +20,7 @@ namespace Sonarr.Api.V3.System.Backup
         private readonly IAppFolderInfo _appFolderInfo;
         private readonly IDiskProvider _diskProvider;
 
-        private static readonly List<string> ValidExtensions = new List<string> { ".zip", ".db", ".xml" };
+        private static readonly List<string> ValidExtensions = new () { ".zip", ".db", ".xml" };
 
         public BackupController(IBackupService backupService,
                             IAppFolderInfo appFolderInfo,
@@ -37,22 +37,28 @@ namespace Sonarr.Api.V3.System.Backup
             var backups = _backupService.GetBackups();
 
             return backups.Select(b => new BackupResource
-            {
-                Id = GetBackupId(b),
-                Name = b.Name,
-                Path = $"/backup/{b.Type.ToString().ToLower()}/{b.Name}",
-                Size = b.Size,
-                Type = b.Type,
-                Time = b.Time
-            })
-                                       .OrderByDescending(b => b.Time)
-                                       .ToList();
+                {
+                    Id = GetBackupId(b),
+                    Name = b.Name,
+                    Path = $"/backup/{b.Type.ToString().ToLower()}/{b.Name}",
+                    Size = b.Size,
+                    Type = b.Type,
+                    Time = b.Time
+                })
+                .OrderByDescending(b => b.Time)
+                .ToList();
         }
 
         [RestDeleteById]
-        public void DeleteBackup(int id)
+        public object DeleteBackup(int id)
         {
             var backup = GetBackup(id);
+
+            if (backup == null)
+            {
+                throw new NotFoundException();
+            }
+
             var path = GetBackupPath(backup);
 
             if (!_diskProvider.FileExists(path))
@@ -61,10 +67,12 @@ namespace Sonarr.Api.V3.System.Backup
             }
 
             _diskProvider.DeleteFile(path);
+
+            return new { };
         }
 
         [HttpPost("restore/{id:int}")]
-        public object Restore(int id)
+        public object Restore([FromRoute] int id)
         {
             var backup = GetBackup(id);
 
@@ -84,6 +92,7 @@ namespace Sonarr.Api.V3.System.Backup
         }
 
         [HttpPost("restore/upload")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 500000000)]
         public object UploadAndRestore()
         {
             var files = Request.Form.Files;
@@ -93,7 +102,7 @@ namespace Sonarr.Api.V3.System.Backup
                 throw new BadRequestException("file must be provided");
             }
 
-            var file = files.First();
+            var file = files[0];
             var extension = Path.GetExtension(file.FileName);
 
             if (!ValidExtensions.Contains(extension))

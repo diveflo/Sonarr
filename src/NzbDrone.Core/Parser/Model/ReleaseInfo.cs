@@ -1,11 +1,20 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
+using System.Text.Json.Serialization;
+using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Languages;
 
 namespace NzbDrone.Core.Parser.Model
 {
     public class ReleaseInfo
     {
+        public ReleaseInfo()
+        {
+            Languages = new List<Language>();
+        }
+
         public string Guid { get; set; }
         public string Title { get; set; }
         public long Size { get; set; }
@@ -27,6 +36,15 @@ namespace NzbDrone.Core.Parser.Model
         public string Container { get; set; }
         public string Codec { get; set; }
         public string Resolution { get; set; }
+
+        public List<Language> Languages { get; set; }
+
+        [JsonIgnore]
+        public IndexerFlags IndexerFlags { get; set; }
+
+        // Used to track pending releases that are being reprocessed
+        [JsonIgnore]
+        public PendingReleaseReason? PendingReleaseReason { get; set; }
 
         public int Age
         {
@@ -85,6 +103,7 @@ namespace NzbDrone.Core.Parser.Model
                     stringBuilder.AppendLine("DownloadProtocol: " + DownloadProtocol ?? "Empty");
                     stringBuilder.AppendLine("TvdbId: " + TvdbId ?? "Empty");
                     stringBuilder.AppendLine("TvRageId: " + TvRageId ?? "Empty");
+                    stringBuilder.AppendLine("ImdbId: " + ImdbId ?? "Empty");
                     stringBuilder.AppendLine("PublishDate: " + PublishDate ?? "Empty");
                     return stringBuilder.ToString();
                 default:

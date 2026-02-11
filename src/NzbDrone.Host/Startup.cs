@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using DryIoc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -20,13 +22,13 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Instrumentation;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Host;
 using NzbDrone.Host.AccessControl;
 using NzbDrone.Http.Authentication;
 using NzbDrone.SignalR;
 using Sonarr.Api.V3.System;
 using Sonarr.Http;
 using Sonarr.Http.Authentication;
+using Sonarr.Http.ClientSchema;
 using Sonarr.Http.ErrorManagement;
 using Sonarr.Http.Frontend;
 using Sonarr.Http.Middleware;
@@ -48,8 +50,8 @@ namespace NzbDrone.Host
             services.AddLogging(b =>
             {
                 b.ClearProviders();
-                b.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-                b.AddFilter("Microsoft.AspNetCore", Microsoft.Extensions.Logging.LogLevel.Warning);
+                b.SetMinimumLevel(LogLevel.Trace);
+                b.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
                 b.AddFilter("Sonarr.Http.Authentication", LogLevel.Information);
                 b.AddFilter("Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager", LogLevel.Error);
                 b.AddNLog();
@@ -57,9 +59,12 @@ namespace NzbDrone.Host
 
             services.Configure<ForwardedHeadersOptions>(options =>
             {
-                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                options.KnownNetworks.Clear();
-                options.KnownProxies.Clear();
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("fc00::"), 7));
+                options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("fe80::"), 10));
             });
 
             services.AddRouting(options => options.LowercaseUrls = true);
@@ -100,7 +105,7 @@ namespace NzbDrone.Host
                 {
                     Version = "3.0.0",
                     Title = "Sonarr",
-                    Description = "Sonarr API docs",
+                    Description = "Sonarr API docs - The v3 API docs apply to both v3 and v4 versions of Sonarr. Some functionality may only be available in v4 of the Sonarr application.",
                     License = new OpenApiLicense
                     {
                         Name = "GPL-3.0",
@@ -126,7 +131,7 @@ namespace NzbDrone.Host
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
-                    { apiKeyHeader, new string[] { } }
+                    { apiKeyHeader, Array.Empty<string>() }
                 });
 
                 var apikeyQuery = new OpenApiSecurityScheme
@@ -134,7 +139,7 @@ namespace NzbDrone.Host
                     Name = "apikey",
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "apiKey",
-                    Description = "Apikey passed as header",
+                    Description = "Apikey passed as query parameter",
                     In = ParameterLocation.Query,
                     Reference = new OpenApiReference
                     {
@@ -157,8 +162,10 @@ namespace NzbDrone.Host
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
-                    { apikeyQuery, new string[] { } }
+                    { apikeyQuery, Array.Empty<string>() }
                 });
+
+                c.DescribeAllParametersInCamelCase();
             });
 
             services
@@ -192,6 +199,7 @@ namespace NzbDrone.Host
         }
 
         public void Configure(IApplicationBuilder app,
+                              IContainer container,
                               IStartupContext startupContext,
                               Lazy<IMainDatabase> mainDatabaseFactory,
                               Lazy<ILogDatabase> logDatabaseFactory,
@@ -211,15 +219,22 @@ namespace NzbDrone.Host
             appFolderFactory.Register();
             pidFileProvider.Write();
 
+            configFileProvider.EnsureDefaultConfigFile();
+
             reconfigureLogging.Reconfigure();
 
             EnsureSingleInstance(false, startupContext, singleInstancePolicy);
 
             // instantiate the databases to initialize/migrate them
             _ = mainDatabaseFactory.Value;
-            _ = logDatabaseFactory.Value;
 
-            dbTarget.Register();
+            if (configFileProvider.LogDbEnabled)
+            {
+                _ = logDatabaseFactory.Value;
+                dbTarget.Register();
+            }
+
+            SchemaBuilder.Initialize(container);
 
             if (OsInfo.IsNotWindows)
             {
@@ -251,6 +266,7 @@ namespace NzbDrone.Host
 
             app.UseMiddleware<VersionMiddleware>();
             app.UseMiddleware<UrlBaseMiddleware>(configFileProvider.UrlBase);
+            app.UseMiddleware<StartingUpMiddleware>();
             app.UseMiddleware<CacheHeaderMiddleware>();
             app.UseMiddleware<IfModifiedMiddleware>();
             app.UseMiddleware<BufferingMiddleware>(new List<string> { "/api/v3/command" });

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
 import Button from 'Components/Link/Button';
 import ClipboardButton from 'Components/Link/ClipboardButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
@@ -8,6 +9,7 @@ import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './ExportCustomFormatModalContent.css';
 
 class ExportCustomFormatModalContent extends Component {
@@ -28,7 +30,7 @@ class ExportCustomFormatModalContent extends Component {
       <ModalContent onModalClose={onModalClose}>
 
         <ModalHeader>
-          Export Custom Format
+          {translate('ExportCustomFormat')}
         </ModalHeader>
 
         <ModalBody>
@@ -40,9 +42,9 @@ class ExportCustomFormatModalContent extends Component {
 
             {
               !isFetching && !!error &&
-                <div>
-                  Unable to load custom formats
-                </div>
+                <Alert kind={kinds.DANGER}>
+                  {translate('CustomFormatsLoadError')}
+                </Alert>
             }
 
             {
@@ -59,13 +61,13 @@ class ExportCustomFormatModalContent extends Component {
           <ClipboardButton
             className={styles.button}
             value={json}
-            title="Copy to clipboard"
+            title={translate('CopyToClipboard')}
             kind={kinds.DEFAULT}
           />
           <Button
             onPress={onModalClose}
           >
-            Close
+            {translate('Close')}
           </Button>
         </ModalFooter>
       </ModalContent>

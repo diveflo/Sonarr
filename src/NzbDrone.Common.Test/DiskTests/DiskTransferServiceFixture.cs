@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -353,6 +352,26 @@ namespace NzbDrone.Common.Test.DiskTests
         }
 
         [Test]
+        public void should_not_rollback_move_on_partial_if_destination_already_exists()
+        {
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(v => v.MoveFile(_sourcePath, _targetPath, false))
+                .Callback(() =>
+                {
+                    WithExistingFile(_targetPath, true, 900);
+                });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(v => v.MoveFile(_sourcePath, _targetPath, false))
+                .Throws(new FileAlreadyExistsException("File already exists", _targetPath));
+
+            Assert.Throws<FileAlreadyExistsException>(() => Subject.TransferFile(_sourcePath, _targetPath, TransferMode.Move));
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(v => v.DeleteFile(_targetPath), Times.Never());
+        }
+
+        [Test]
         public void should_log_error_if_rollback_partialmove_fails()
         {
             Mocker.GetMock<IDiskProvider>()
@@ -584,7 +603,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(0);
+            count.Should().Be(0);
             destination.GetFileSystemInfos().Should().BeEmpty();
         }
 
@@ -604,7 +623,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(0);
+            count.Should().Be(0);
             destination.GetFileSystemInfos().Should().HaveCount(1);
         }
 
@@ -621,7 +640,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(3);
+            count.Should().Be(3);
             VerifyCopyFolder(original.FullName, destination.FullName);
         }
 
@@ -638,7 +657,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(3);
+            count.Should().Be(3);
 
             File.Exists(Path.Combine(destination.FullName, _nfsFile)).Should().BeFalse();
         }
@@ -658,7 +677,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName, destination.FullName);
 
-            count.Should().Equals(0);
+            count.Should().Be(0);
             VerifyCopyFolder(original.FullName, destination.FullName);
         }
 
@@ -675,7 +694,7 @@ namespace NzbDrone.Common.Test.DiskTests
 
             var count = Subject.MirrorFolder(source.FullName + Path.DirectorySeparatorChar, destination.FullName);
 
-            count.Should().Equals(3);
+            count.Should().Be(3);
             VerifyCopyFolder(original.FullName, destination.FullName);
         }
 

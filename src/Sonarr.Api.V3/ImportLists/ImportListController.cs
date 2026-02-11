@@ -1,22 +1,31 @@
+using FluentValidation;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Validation;
 using NzbDrone.Core.Validation.Paths;
+using NzbDrone.SignalR;
 using Sonarr.Http;
 
 namespace Sonarr.Api.V3.ImportLists
 {
     [V3ApiController]
-    public class ImportListController : ProviderControllerBase<ImportListResource, IImportList, ImportListDefinition>
+    public class ImportListController : ProviderControllerBase<ImportListResource, ImportListBulkResource, IImportList, ImportListDefinition>
     {
-        public static readonly ImportListResourceMapper ResourceMapper = new ImportListResourceMapper();
+        public static readonly ImportListResourceMapper ResourceMapper = new ();
+        public static readonly ImportListBulkResourceMapper BulkResourceMapper = new ();
 
-        public ImportListController(IImportListFactory importListFactory, ProfileExistsValidator profileExistsValidator)
-            : base(importListFactory, "importlist", ResourceMapper)
+        public ImportListController(IBroadcastSignalRMessage signalRBroadcaster,
+            IImportListFactory importListFactory,
+            RootFolderExistsValidator rootFolderExistsValidator,
+            QualityProfileExistsValidator qualityProfileExistsValidator)
+            : base(signalRBroadcaster, importListFactory, "importlist", ResourceMapper, BulkResourceMapper)
         {
-            Http.Validation.RuleBuilderExtensions.ValidId(SharedValidator.RuleFor(s => s.QualityProfileId));
+            SharedValidator.RuleFor(c => c.RootFolderPath).Cascade(CascadeMode.Stop)
+                .IsValidPath()
+                .SetValidator(rootFolderExistsValidator);
 
-            SharedValidator.RuleFor(c => c.RootFolderPath).IsValidPath();
-            SharedValidator.RuleFor(c => c.QualityProfileId).SetValidator(profileExistsValidator);
+            SharedValidator.RuleFor(c => c.QualityProfileId).Cascade(CascadeMode.Stop)
+                .ValidId()
+                .SetValidator(qualityProfileExistsValidator);
         }
     }
 }
